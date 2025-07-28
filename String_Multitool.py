@@ -24,9 +24,12 @@ import json
 import os
 import base64
 import secrets
+import time
+import threading
 from pathlib import Path
 from typing import List, Optional, Callable, Dict, Any, Tuple
 from dataclasses import dataclass
+from datetime import datetime
 
 try:
     import pyperclip
@@ -54,6 +57,26 @@ class TransformationRule:
     function: Callable[[str], str]
     requires_args: bool = False
     default_args: List[str] = None
+
+
+@dataclass
+class SessionState:
+    """Represents current interactive session state."""
+    current_text: str
+    text_source: str  # "clipboard", "pipe", "manual"
+    last_update_time: datetime
+    character_count: int
+    auto_detection_enabled: bool
+    clipboard_monitor_active: bool
+
+
+@dataclass
+class CommandResult:
+    """Result of command processing."""
+    success: bool
+    message: str
+    should_continue: bool = True
+    updated_text: Optional[str] = None
 
 
 class ConfigurationManager:
@@ -438,7 +461,7 @@ class TextTransformationEngine:
         # Initialize string operation rules
         string_rules = {
             't': self._trim_whitespace,
-            'r': self._reverse_string,
+            'R': self._reverse_string,
             'si': self._to_sql_in_clause,
             'dlb': self._delete_line_breaks,
         }
@@ -480,7 +503,7 @@ class TextTransformationEngine:
                     requires_args=True,
                     default_args=rule_config.get("default_args", ["-"])
                 )
-            elif rule_key == 'R':
+            elif rule_key == 'r':
                 self.argument_rules[rule_key] = TransformationRule(
                     name=rule_config["name"],
                     description=rule_config["description"],
@@ -668,6 +691,136 @@ class TextTransformationEngine:
         return {**self.transformation_rules, **self.argument_rules}
 
 
+class ClipboardMonitor:
+    """Monitors clipboard changes for auto-detection functionality."""
+    
+    def __init__(self, io_manager: 'InputOutputManager'):
+        """Initialize clipboard monitor.
+        
+        Args:
+            io_manager: InputOutputManager instance for clipboard operations
+        """
+        self.io_manager = io_manager
+        self.last_content = ""
+        self.last_check_time = None
+        self.is_monitoring = False
+        self.check_interval = 1.0  # seconds
+        self.monitor_thread = None
+        self.stop_event = threading.Event()
+        self.change_callback = None
+        self.max_content_size = 1024 * 1024  # 1MB limit
+    
+    def start_monitoring(self, change_callback: Optional[Callable[[str], None]] = None) -> None:
+        """Start clipboard monitoring in background.
+        
+        Args:
+            change_callback: Optional callback function called when clipboard changes
+        """
+        if self.is_monitoring:
+            return
+        
+        self.change_callback = change_callback
+        self.is_monitoring = True
+        self.stop_event.clear()
+        
+        # Initialize with current clipboard content
+        try:
+            self.last_content = self.get_current_content()
+        except Exception:
+            self.last_content = ""
+        
+        # Start monitoring thread
+        self.monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
+        self.monitor_thread.start()
+    
+    def stop_monitoring(self) -> None:
+        """Stop clipboard monitoring."""
+        if not self.is_monitoring:
+            return
+        
+        self.is_monitoring = False
+        self.stop_event.set()
+        
+        if self.monitor_thread and self.monitor_thread.is_alive():
+            self.monitor_thread.join(timeout=2.0)
+        
+        self.change_callback = None
+    
+    def _monitor_loop(self) -> None:
+        """Main monitoring loop running in background thread."""
+        while not self.stop_event.is_set():
+            try:
+                if self.check_for_changes() and self.change_callback:
+                    self.change_callback(self.last_content)
+            except Exception:
+                # Silently handle monitoring errors to avoid spam
+                pass
+            
+            # Wait for next check or stop signal
+            self.stop_event.wait(self.check_interval)
+    
+    def check_for_changes(self) -> bool:
+        """Check if clipboard content has changed.
+        
+        Returns:
+            True if clipboard content has changed, False otherwise
+        """
+        try:
+            current_content = self.get_current_content()
+            self.last_check_time = datetime.now()
+            
+            if current_content != self.last_content:
+                self.last_content = current_content
+                return True
+            
+            return False
+        except Exception:
+            return False
+    
+    def get_current_content(self) -> str:
+        """Get current clipboard content.
+        
+        Returns:
+            Current clipboard content
+            
+        Raises:
+            RuntimeError: If clipboard cannot be accessed
+        """
+        if not CLIPBOARD_AVAILABLE:
+            raise RuntimeError("Clipboard functionality not available")
+        
+        try:
+            content = pyperclip.paste()
+            if content is None:
+                return ""
+            
+            # Check size limit
+            if len(content) > self.max_content_size:
+                raise RuntimeError(f"Clipboard content too large ({len(content)} bytes, max {self.max_content_size})")
+            
+            return content.strip() if content else ""
+        except Exception as e:
+            if "too large" in str(e):
+                raise
+            raise RuntimeError(f"Error reading clipboard: {e}")
+    
+    def set_check_interval(self, interval: float) -> None:
+        """Set clipboard check interval.
+        
+        Args:
+            interval: Check interval in seconds (minimum 0.1)
+        """
+        self.check_interval = max(0.1, interval)
+    
+    def set_max_content_size(self, size: int) -> None:
+        """Set maximum allowed clipboard content size.
+        
+        Args:
+            size: Maximum size in bytes
+        """
+        self.max_content_size = max(1024, size)  # Minimum 1KB
+
+
 class InputOutputManager:
     """Manages input and output operations for the application."""
     
@@ -701,6 +854,25 @@ class InputOutputManager:
                 raise RuntimeError(f"Error reading clipboard: {e}")
     
     @staticmethod
+    def get_clipboard_text() -> str:
+        """Get text from clipboard only.
+        
+        Returns:
+            Clipboard text string
+            
+        Raises:
+            RuntimeError: If clipboard cannot be read
+        """
+        if not CLIPBOARD_AVAILABLE:
+            raise RuntimeError("Clipboard functionality not available. Install pyperclip.")
+        
+        try:
+            clipboard_content = pyperclip.paste()
+            return clipboard_content.strip() if clipboard_content else ""
+        except Exception as e:
+            raise RuntimeError(f"Error reading clipboard: {e}")
+    
+    @staticmethod
     def set_output_text(text: str) -> None:
         """Set output text to clipboard.
         
@@ -719,6 +891,449 @@ class InputOutputManager:
             print("✅ Text copied to clipboard")
         except Exception as e:
             raise RuntimeError(f"Error copying to clipboard: {e}")
+
+
+class InteractiveSession:
+    """Manages interactive session state and clipboard operations."""
+    
+    def __init__(self, io_manager: InputOutputManager, transformation_engine: 'TextTransformationEngine'):
+        """Initialize interactive session.
+        
+        Args:
+            io_manager: InputOutputManager instance
+            transformation_engine: TextTransformationEngine instance
+        """
+        self.io_manager = io_manager
+        self.transformation_engine = transformation_engine
+        self.current_text = ""
+        self.text_source = "clipboard"  # clipboard, pipe, manual
+        self.last_update_time = datetime.now()
+        self.clipboard_monitor = ClipboardMonitor(io_manager)
+        self.auto_detection_enabled = False
+        self.session_start_time = datetime.now()
+    
+    def initialize_with_text(self, text: str, source: str = "clipboard") -> None:
+        """Initialize session with initial text.
+        
+        Args:
+            text: Initial text content
+            source: Source of the text (clipboard, pipe, manual)
+        """
+        self.update_working_text(text, source)
+    
+    def refresh_from_clipboard(self) -> bool:
+        """Refresh working text from clipboard.
+        
+        Returns:
+            True if refresh was successful, False otherwise
+        """
+        try:
+            new_content = self.io_manager.get_clipboard_text()
+            
+            if new_content == self.current_text:
+                return False  # No change detected
+            
+            self.update_working_text(new_content, "clipboard")
+            return True
+            
+        except Exception:
+            return False
+    
+    def update_working_text(self, text: str, source: str) -> None:
+        """Update current working text with source tracking.
+        
+        Args:
+            text: New text content
+            source: Source of the text (clipboard, pipe, manual)
+        """
+        self.current_text = text
+        self.text_source = source
+        self.last_update_time = datetime.now()
+    
+    def get_status_info(self) -> SessionState:
+        """Get current session status information.
+        
+        Returns:
+            SessionState object with current status
+        """
+        return SessionState(
+            current_text=self.current_text,
+            text_source=self.text_source,
+            last_update_time=self.last_update_time,
+            character_count=len(self.current_text),
+            auto_detection_enabled=self.auto_detection_enabled,
+            clipboard_monitor_active=self.clipboard_monitor.is_monitoring
+        )
+    
+    def toggle_auto_detection(self, enabled: bool) -> bool:
+        """Enable/disable automatic clipboard detection.
+        
+        Args:
+            enabled: True to enable, False to disable
+            
+        Returns:
+            True if operation was successful, False otherwise
+        """
+        try:
+            if enabled and not self.auto_detection_enabled:
+                # Start monitoring
+                self.clipboard_monitor.start_monitoring(self._on_clipboard_change)
+                self.auto_detection_enabled = True
+                return True
+            elif not enabled and self.auto_detection_enabled:
+                # Stop monitoring
+                self.clipboard_monitor.stop_monitoring()
+                self.auto_detection_enabled = False
+                return True
+            
+            return True  # Already in desired state
+            
+        except Exception:
+            return False
+    
+    def _on_clipboard_change(self, new_content: str) -> None:
+        """Callback for clipboard change notifications.
+        
+        Args:
+            new_content: New clipboard content
+        """
+        # This will be called from the monitoring thread
+        # We'll just store the notification for the main thread to handle
+        pass
+    
+    def check_clipboard_changes(self) -> Optional[str]:
+        """Check for clipboard changes (for manual polling).
+        
+        Returns:
+            New clipboard content if changed, None otherwise
+        """
+        if self.clipboard_monitor.check_for_changes():
+            return self.clipboard_monitor.last_content
+        return None
+    
+    def clear_working_text(self) -> None:
+        """Clear current working text."""
+        self.update_working_text("", "manual")
+    
+    def copy_to_clipboard(self) -> bool:
+        """Copy current working text to clipboard.
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            self.io_manager.set_output_text(self.current_text)
+            return True
+        except Exception:
+            return False
+    
+    def get_display_text(self, max_length: int = 50) -> str:
+        """Get truncated text for display purposes.
+        
+        Args:
+            max_length: Maximum length for display
+            
+        Returns:
+            Truncated text with ellipsis if needed
+        """
+        if len(self.current_text) <= max_length:
+            return self.current_text
+        return self.current_text[:max_length] + "..."
+    
+    def get_time_since_update(self) -> str:
+        """Get human-readable time since last update.
+        
+        Returns:
+            Time string (e.g., "2 minutes ago")
+        """
+        delta = datetime.now() - self.last_update_time
+        
+        if delta.total_seconds() < 60:
+            return f"{int(delta.total_seconds())} seconds ago"
+        elif delta.total_seconds() < 3600:
+            return f"{int(delta.total_seconds() // 60)} minutes ago"
+        else:
+            return f"{int(delta.total_seconds() // 3600)} hours ago"
+    
+    def cleanup(self) -> None:
+        """Clean up session resources."""
+        if self.auto_detection_enabled:
+            self.clipboard_monitor.stop_monitoring()
+
+
+class CommandProcessor:
+    """Processes interactive commands including clipboard operations."""
+    
+    CLIPBOARD_COMMANDS = {
+        'refresh': 'Refresh input text from clipboard',
+        'reload': 'Alias for refresh',
+        'replace': 'Short alias for refresh',
+        'auto': 'Toggle automatic clipboard detection',
+        'status': 'Show current session status',
+        'clear': 'Clear current working text',
+        'copy': 'Copy working text to clipboard',
+        'commands': 'Show all available commands',
+        'cmd': 'Short alias for commands'
+    }
+    
+    SYSTEM_COMMANDS = {
+        'help': 'Show transformation rules',
+        'h': 'Short alias for help',
+        '?': 'Short alias for help',
+        'quit': 'Exit application',
+        'q': 'Short alias for quit',
+        'exit': 'Exit application'
+    }
+    
+    def __init__(self, session: InteractiveSession):
+        """Initialize command processor.
+        
+        Args:
+            session: InteractiveSession instance
+        """
+        self.session = session
+    
+    def is_command(self, input_text: str) -> bool:
+        """Check if input text is a command (not a transformation rule).
+        
+        Args:
+            input_text: User input text
+            
+        Returns:
+            True if input is a command, False if it's a transformation rule
+        """
+        input_text = input_text.strip().lower()
+        
+        # Check system commands
+        if input_text in self.SYSTEM_COMMANDS:
+            return True
+        
+        # Check clipboard commands
+        if input_text in self.CLIPBOARD_COMMANDS:
+            return True
+        
+        # Check auto command with arguments
+        if input_text.startswith('auto '):
+            return True
+        
+        # If it starts with '/', it's a transformation rule
+        if input_text.startswith('/'):
+            return False
+        
+        # Default to command for unrecognized input
+        return True
+    
+    def process_command(self, command: str) -> CommandResult:
+        """Process interactive command and return result.
+        
+        Args:
+            command: Command string to process
+            
+        Returns:
+            CommandResult with operation result
+        """
+        command = command.strip().lower()
+        
+        # Handle system commands
+        if command in ['help', 'h', '?']:
+            return self._handle_help_command()
+        
+        if command in ['quit', 'q', 'exit']:
+            return CommandResult(
+                success=True,
+                message="Goodbye!",
+                should_continue=False
+            )
+        
+        # Handle clipboard commands
+        if command in ['refresh', 'reload', 'replace']:
+            return self._handle_refresh_command()
+        
+        if command == 'status':
+            return self._handle_status_command()
+        
+        if command == 'clear':
+            return self._handle_clear_command()
+        
+        if command == 'copy':
+            return self._handle_copy_command()
+        
+        if command in ['commands', 'cmd']:
+            return self._handle_commands_command()
+        
+        if command.startswith('auto'):
+            return self._handle_auto_command(command)
+        
+        # Unknown command
+        return CommandResult(
+            success=False,
+            message=f"Unknown command: {command}. Type 'commands' for available commands."
+        )
+    
+    def _handle_refresh_command(self) -> CommandResult:
+        """Handle clipboard refresh command."""
+        try:
+            old_text = self.session.current_text
+            success = self.session.refresh_from_clipboard()
+            
+            if not success:
+                if self.session.current_text == old_text:
+                    return CommandResult(
+                        success=True,
+                        message="No change detected - clipboard content is identical to current text."
+                    )
+                else:
+                    return CommandResult(
+                        success=False,
+                        message="Failed to refresh from clipboard. Please check clipboard access."
+                    )
+            
+            status = self.session.get_status_info()
+            display_text = self.session.get_display_text()
+            
+            return CommandResult(
+                success=True,
+                message=f"✅ Refreshed from clipboard ({status.character_count} chars)\nNew text: '{display_text}'",
+                updated_text=self.session.current_text
+            )
+            
+        except Exception as e:
+            return CommandResult(
+                success=False,
+                message=f"Error refreshing clipboard: {e}"
+            )
+    
+    def _handle_status_command(self) -> CommandResult:
+        """Handle status command."""
+        status = self.session.get_status_info()
+        display_text = self.session.get_display_text(100)
+        time_since = self.session.get_time_since_update()
+        
+        status_lines = [
+            f"📊 Session Status:",
+            f"   Text: '{display_text}'",
+            f"   Length: {status.character_count} characters",
+            f"   Source: {status.text_source}",
+            f"   Last updated: {time_since}",
+            f"   Auto-detection: {'ON' if status.auto_detection_enabled else 'OFF'}",
+            f"   Monitor active: {'Yes' if status.clipboard_monitor_active else 'No'}"
+        ]
+        
+        return CommandResult(
+            success=True,
+            message="\n".join(status_lines)
+        )
+    
+    def _handle_clear_command(self) -> CommandResult:
+        """Handle clear command."""
+        self.session.clear_working_text()
+        return CommandResult(
+            success=True,
+            message="✅ Working text cleared. Enter new text or use 'refresh' to load from clipboard.",
+            updated_text=""
+        )
+    
+    def _handle_copy_command(self) -> CommandResult:
+        """Handle copy command."""
+        if not self.session.current_text:
+            return CommandResult(
+                success=False,
+                message="No text to copy. Working text is empty."
+            )
+        
+        success = self.session.copy_to_clipboard()
+        if success:
+            return CommandResult(
+                success=True,
+                message=f"✅ Copied {len(self.session.current_text)} characters to clipboard."
+            )
+        else:
+            return CommandResult(
+                success=False,
+                message="Failed to copy text to clipboard."
+            )
+    
+    def _handle_auto_command(self, command: str) -> CommandResult:
+        """Handle auto-detection command."""
+        parts = command.split()
+        
+        if len(parts) == 1:
+            # Toggle auto-detection
+            current_status = self.session.get_status_info()
+            new_state = not current_status.auto_detection_enabled
+        elif len(parts) == 2:
+            # Explicit on/off
+            arg = parts[1].lower()
+            if arg in ['on', 'enable', 'true', '1']:
+                new_state = True
+            elif arg in ['off', 'disable', 'false', '0']:
+                new_state = False
+            else:
+                return CommandResult(
+                    success=False,
+                    message="Invalid argument for 'auto'. Use 'on' or 'off'."
+                )
+        else:
+            return CommandResult(
+                success=False,
+                message="Usage: 'auto' or 'auto on/off'"
+            )
+        
+        success = self.session.toggle_auto_detection(new_state)
+        if success:
+            state_text = "enabled" if new_state else "disabled"
+            return CommandResult(
+                success=True,
+                message=f"✅ Auto-detection {state_text}."
+            )
+        else:
+            return CommandResult(
+                success=False,
+                message="Failed to toggle auto-detection."
+            )
+    
+    def _handle_commands_command(self) -> CommandResult:
+        """Handle commands list command."""
+        lines = [
+            "📋 Available Interactive Commands:",
+            "",
+            "Clipboard Operations:",
+        ]
+        
+        for cmd, desc in self.CLIPBOARD_COMMANDS.items():
+            lines.append(f"  {cmd:<12} - {desc}")
+        
+        lines.extend([
+            "",
+            "System Commands:",
+        ])
+        
+        for cmd, desc in self.SYSTEM_COMMANDS.items():
+            lines.append(f"  {cmd:<12} - {desc}")
+        
+        lines.extend([
+            "",
+            "Transformation Rules:",
+            "  /t/l         - Trim and lowercase",
+            "  /enc         - Encrypt text",
+            "  /dec         - Decrypt text",
+            "  /S '-'       - Slugify with hyphen",
+            "  /r 'old' 'new' - Replace text",
+            "  ... (type 'help' for complete list)",
+        ])
+        
+        return CommandResult(
+            success=True,
+            message="\n".join(lines)
+        )
+    
+    def _handle_help_command(self) -> CommandResult:
+        """Handle help command - this will be handled by ApplicationInterface."""
+        return CommandResult(
+            success=True,
+            message="SHOW_HELP",  # Special message to trigger help display
+            should_continue=True
+        )
 
 
 class ApplicationInterface:
@@ -791,65 +1406,119 @@ class ApplicationInterface:
             print("  • Supports unlimited text size")
     
     def run_interactive_mode(self, input_text: str) -> None:
-        """Run application in interactive mode.
+        """Run application in interactive mode with enhanced clipboard functionality.
         
         Args:
             input_text: Initial input text
         """
-        print("String_Multitool - Interactive Mode")
-        print("=" * 40)
-        print(f"Input text: '{input_text[:50]}{'...' if len(input_text) > 50 else ''}'")
-        print()
-        print("Enter transformation rules (e.g., /t/l) or 'help' for available rules:")
+        # Initialize interactive session
+        session = InteractiveSession(self.io_manager, self.transformation_engine)
         
-        current_text = input_text
+        # Determine initial text source
+        if sys.stdin.isatty():
+            session.initialize_with_text(input_text, "clipboard")
+        else:
+            session.initialize_with_text(input_text, "pipe")
         
-        while True:
-            try:
+        command_processor = CommandProcessor(session)
+        
+        # Display initial session info
+        self._display_session_header(session)
+        
+        try:
+            while True:
                 try:
-                    user_input = input("Rules: ").strip()
-                except EOFError:
+                    # Check for clipboard changes if auto-detection is enabled
+                    if session.auto_detection_enabled:
+                        new_content = session.check_clipboard_changes()
+                        if new_content is not None and new_content != session.current_text:
+                            print(f"\n🔔 Clipboard changed! New content available ({len(new_content)} chars)")
+                            print("   Type 'refresh' to load new content or continue with current text.")
+                    
+                    # Get user input
+                    try:
+                        user_input = input("Rules: ").strip()
+                    except EOFError:
+                        print("\nGoodbye!")
+                        break
+                    
+                    if not user_input:
+                        print("Please enter a rule, command, or 'help'")
+                        continue
+                    
+                    # Process command or transformation rule
+                    if command_processor.is_command(user_input):
+                        result = command_processor.process_command(user_input)
+                        
+                        if result.message == "SHOW_HELP":
+                            self.display_help()
+                            continue
+                        
+                        print(result.message)
+                        
+                        if result.updated_text is not None:
+                            # Text was updated by command
+                            pass
+                        
+                        if not result.should_continue:
+                            break
+                            
+                    else:
+                        # Handle transformation rules
+                        try:
+                            # Handle decryption with fresh clipboard content
+                            if user_input.strip() == '/dec':
+                                fresh_content = self.io_manager.get_clipboard_text()
+                                session.update_working_text(fresh_content, "clipboard")
+                            
+                            # Apply transformations
+                            result = self.transformation_engine.apply_transformations(session.current_text, user_input)
+                            self.io_manager.set_output_text(result)
+                            
+                            # Update session with result
+                            session.update_working_text(result, "transformation")
+                            
+                            # Display result
+                            if user_input.strip() == '/enc':
+                                print(f"Result: '{result}'")
+                                print("(Full encrypted text copied to clipboard)")
+                            else:
+                                display_result = result[:100] + ('...' if len(result) > 100 else '')
+                                print(f"Result: '{display_result}'")
+                            
+                        except Exception as e:
+                            print(f"❌ Transformation error: {e}")
+                    
+                    print()
+                    
+                except KeyboardInterrupt:
                     print("\nGoodbye!")
                     break
-                
-                if not user_input:
-                    print("Please enter a rule or 'help'")
-                    continue
-                
-                if user_input.lower() in ['help', 'h', '?']:
-                    self.display_help()
-                    continue
-                
-                if user_input.lower() in ['quit', 'q', 'exit']:
-                    print("Goodbye!")
-                    break
-                
-                # Handle decryption with fresh clipboard content
-                if user_input.strip() == '/dec':
-                    current_text = self.io_manager.get_input_text()
-                
-                # Apply transformations
-                result = self.transformation_engine.apply_transformations(current_text, user_input)
-                self.io_manager.set_output_text(result)
-                
-                # Display result
-                if user_input.strip() == '/enc':
-                    print(f"Result: '{result}'")
-                    print("(Full encrypted text copied to clipboard)")
-                else:
-                    display_result = result[:100] + ('...' if len(result) > 100 else '')
-                    print(f"Result: '{display_result}'")
-                
-                # Update current text for next iteration
-                current_text = result
-                print()
-                
-            except KeyboardInterrupt:
-                print("\nGoodbye!")
-                break
-            except Exception as e:
-                print(f"❌ Error: {e}")
-                print("Type 'help' for available rules")
+                except Exception as e:
+                    print(f"❌ Error: {e}")
+                    print("Type 'commands' for available commands or 'help' for transformation rules")
+        
+        finally:
+            # Clean up session resources
+            session.cleanup()
+    
+    def _display_session_header(self, session: InteractiveSession) -> None:
+        """Display interactive session header with status information.
+        
+        Args:
+            session: InteractiveSession instance
+        """
+        status = session.get_status_info()
+        display_text = session.get_display_text()
+        
+        print("String_Multitool - Interactive Mode")
+        print("=" * 45)
+        print(f"Input text: '{display_text}' ({status.character_count} chars, from {status.text_source})")
+        print(f"Auto-detection: {'ON' if status.auto_detection_enabled else 'OFF'}")
+        print()
+        print("Available commands: help, refresh, auto, status, clear, copy, commands, quit")
+        print("Enter transformation rules (e.g., /t/l) or command:")
+        print()
     
     def run_command_mode(self, rule_string: str) -> None:
         """Run application in command mode with specified rules.

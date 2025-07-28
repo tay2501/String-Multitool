@@ -20,5 +20,14 @@
   "key_generation": {
     "secure_random": true,
     "backend": "default"
+  },
+  "interactive_mode": {
+    "clipboard_refresh": {
+      "auto_detection_interval": 1.0,
+      "max_content_size": 1048576,
+      "enable_auto_detection_by_default": false,
+      "show_character_count": true,
+      "show_timestamps": true
+    }
   }
 }

@@ -59,7 +59,7 @@
       "description": "Trim whitespace from beginning and end",
       "example": "  hello world   → hello world"
     },
-    "r": {
+    "R": {
       "name": "Reverse",
       "description": "Reverse the string",
       "example": "hello → olleh"
@@ -94,10 +94,10 @@
       "example": "/S '+' → http://foo.bar → http+foo+bar",
       "default_args": ["-"]
     },
-    "R": {
+    "r": {
       "name": "Replace",
       "description": "Replace all substring occurrences with replacement", 
-      "example": "/R 'old' 'new' → old text → new text",
+      "example": "/r 'old' 'new' → old text → new text",
       "default_args": [""]
     }
   }

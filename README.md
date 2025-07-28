@@ -9,7 +9,7 @@ An advanced, enterprise-grade text transformation tool with modular architecture
 - **Pipe Support**: Works with stdin/stdout for seamless integration with shell commands
 - **Interactive Mode**: Prompt-based interface when no arguments provided
 - **Sequential Processing**: Chain multiple transformations (e.g., `/t/l/u`)
-- **Argument Support**: Advanced rules with parameters (e.g., `/R 'old' 'new'`)
+- **Argument Support**: Advanced rules with parameters (e.g., `/r 'old' 'new'`)
 - **Clipboard Integration**: Automatically copies results to clipboard
 - **Cross-Platform**: Works on Windows, macOS, and Linux
 - **Unicode Support**: Full-width ↔ half-width character conversion for Japanese text
@@ -82,7 +82,7 @@ Get-Content file.txt | python String_Multitool.py /t/l
 | Rule | Name | Example |
 |------|------|---------|
 | `/t` | Trim | `  hello world  ` → `hello world` |
-| `/r` | Reverse | `hello` → `olleh` |
+| `/R` | Reverse | `hello` → `olleh` |
 | `/si` | SQL IN Clause | `A0001\r\nA0002\r\nA0003` → `'A0001',\r\n'A0002',\r\n'A0003'` |
 | `/dlb` | Delete Line Breaks | `A0001\r\nA0002\r\nA0003` → `A0001A0002A0003` |
 
@@ -91,13 +91,13 @@ Get-Content file.txt | python String_Multitool.py /t/l
 | Rule | Name | Example |
 |------|------|---------|
 | `/S '<replacement>'` | Slugify | `/S '+'` → `http://foo.bar` → `http+foo+bar` |
-| `/R '<find>' '<replace>'` | Replace | `/R 'old' 'new'` → `old text` → `new text` |
+| `/r '<find>' '<replace>'` | Replace | `/r 'old' 'new'` → `old text` → `new text` |
 | `/enc` | RSA Encrypt | `Secret message` → `Base64 encrypted text` |
 | `/dec` | RSA Decrypt | `Base64 encrypted text` → `Secret message` |
 
 **Default Arguments:**
 - `/S` (no argument) uses `-` as replacement
-- `/R '<find>'` (no replacement) removes the substring
+- `/r '<find>'` (no replacement) removes the substring
 
 ## Usage Examples
 
@@ -127,11 +127,11 @@ echo "http://foo.bar/baz" | python String_Multitool.py "/S '+'"
 # Result: "http+foo+bar+baz"
 
 # Replace text
-echo "I'm Will, Will's son" | python String_Multitool.py "/R 'Will' 'Bill'"
+echo "I'm Will, Will's son" | python String_Multitool.py "/r 'Will' 'Bill'"
 # Result: "I'm Bill, Bill's son"
 
 # Remove substring (replace with empty)
-echo "remove this text" | python String_Multitool.py "/R 'this'"
+echo "remove this text" | python String_Multitool.py "/r 'this'"
 # Result: "remove  text"
 
 # RSA Encryption with Japanese text support
@@ -187,18 +187,55 @@ echo "Secret Message" | python String_Multitool.py "/enc/t"
 
 ### Interactive Mode
 
-When no arguments are provided, the app enters interactive mode:
+When no arguments are provided, the app enters enhanced interactive mode with dynamic clipboard support:
 
 ```bash
 python String_Multitool.py
-# 📋 String_Multitool - Interactive Mode
+# String_Multitool - Interactive Mode
 # =============================================
-# Input text: 'your clipboard content...'
+# Input text: 'your clipboard content...' (25 chars, from clipboard)
+# Auto-detection: OFF
 # 
-# Enter transformation rules (e.g., /t/l) or 'help' for available rules:
+# Available commands: help, refresh, auto, status, clear, copy, commands, quit
+# Enter transformation rules (e.g., /t/l) or command:
 # Rules: /t/l
 # ✅ Text copied to clipboard
 # Result: 'transformed text'
+```
+
+#### Interactive Commands
+
+The interactive mode now supports powerful clipboard management commands:
+
+**Clipboard Operations:**
+- `refresh`, `reload`, `replace` - Refresh input text from clipboard
+- `auto [on|off]` - Toggle automatic clipboard change detection
+- `copy` - Copy current working text back to clipboard
+- `clear` - Clear current working text
+
+**Session Management:**
+- `status` - Show detailed session information
+- `commands`, `cmd` - List all available commands
+- `help` - Show transformation rules
+- `quit`, `q`, `exit` - Exit application
+
+#### Dynamic Clipboard Workflow
+
+1. **Start Interactive Mode**: Launch with current clipboard content
+2. **Apply Transformations**: Use transformation rules as usual
+3. **Copy New Content**: Copy different text to clipboard in another app
+4. **Refresh**: Type `refresh` to load new clipboard content
+5. **Auto-Detection**: Enable with `auto on` for automatic change notifications
+6. **Continue Working**: Seamlessly work with multiple text snippets
+
+**Example Session:**
+```bash
+Rules: /u                    # Transform to uppercase
+Rules: refresh               # Load new clipboard content
+Rules: /t/s                  # Trim and convert to snake_case
+Rules: auto on               # Enable auto-detection
+Rules: status                # Check session status
+Rules: copy                  # Copy result back to clipboard
 ```
 
 ### File Processing
@@ -300,7 +337,7 @@ python String_Multitool.py --help      # Show help
 
 - **Single rule**: `/rule` (e.g., `/t`, `/l`, `/u`)
 - **Multiple rules**: `/rule1/rule2/rule3` (e.g., `/t/l/u`)
-- **Rules with arguments**: `/rule 'arg1' 'arg2'` (e.g., `/R 'old' 'new'`)
+- **Rules with arguments**: `/rule 'arg1' 'arg2'` (e.g., `/r 'old' 'new'`)
 
 ### Input Sources
 
@@ -327,7 +364,7 @@ python String_Multitool.py --help      # Show help
 
 **Rule parsing errors:**
 - Ensure rules start with `/`
-- Use quotes around arguments with spaces: `/R 'old text' 'new text'`
+- Use quotes around arguments with spaces: `/r 'old text' 'new text'`
 - Check rule names are correct (case-sensitive)
 
 **RSA encryption/decryption errors:**
@@ -427,6 +464,15 @@ def _my_new_rule(self, text: str) -> str:
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Changelog
+
+### Version 2.2.0 (Dynamic Clipboard Enhancement)
+- **Dynamic Clipboard Refresh**: Refresh input text from clipboard during interactive sessions
+- **Auto-Detection**: Optional automatic clipboard change monitoring with notifications
+- **Enhanced Interactive Commands**: New commands for session management and clipboard operations
+- **Session State Management**: Track text source, timestamps, and character counts
+- **Improved User Experience**: Better status information and command feedback
+- **Background Monitoring**: Efficient clipboard monitoring with configurable intervals
+- **Resource Management**: Size limits and memory management for large clipboard content
 
 ### Version 2.1.0 (Enterprise Refactor)
 - **Architecture Overhaul**: Complete refactor to modular, enterprise-grade architecture
