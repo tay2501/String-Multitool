@@ -1,4 +1,4 @@
-# Clipboard Transformer
+# String_Multitool
 
 A powerful command-line text transformation tool with pipe support and intuitive rule-based syntax. Transform text from clipboard or stdin using simple `/rule` commands with support for sequential processing.
 
@@ -83,6 +83,8 @@ Get-Content file.txt | python String_Multitool.py /t/l
 |------|------|---------|
 | `/S '<replacement>'` | Slugify | `/S '+'` → `http://foo.bar` → `http+foo+bar` |
 | `/R '<find>' '<replace>'` | Replace | `/R 'old' 'new'` → `old text` → `new text` |
+| `/enc` | RSA Encrypt | `Secret message` → `Base64 encrypted text` |
+| `/dec` | RSA Decrypt | `Base64 encrypted text` → `Secret message` |
 
 **Default Arguments:**
 - `/S` (no argument) uses `-` as replacement
@@ -122,6 +124,51 @@ echo "I'm Will, Will's son" | python String_Multitool.py "/R 'Will' 'Bill'"
 # Remove substring (replace with empty)
 echo "remove this text" | python String_Multitool.py "/R 'this'"
 # Result: "remove  text"
+
+# RSA Encryption with Japanese text support
+echo "秘密のメッセージ Secret message" | python String_Multitool.py "/enc"
+# Result: Base64 encoded encrypted text (supports any text size)
+
+# RSA Decryption (assumes encrypted text is in clipboard)
+python String_Multitool.py "/dec"
+# Result: Original message with Japanese characters restored
+```
+
+### RSA Encryption/Decryption
+
+The application includes RSA encryption capabilities with hybrid AES+RSA encryption:
+
+- **`/enc`**: Encrypt clipboard text using hybrid AES+RSA encryption
+- **`/dec`**: Decrypt clipboard text using RSA private key
+- **Auto Key Generation**: RSA-2048 key pair is automatically created if not found
+- **Key Storage**: Keys are stored in `rsa/` directory (excluded from version control)
+  - Private key: `rsa/rsa` (PEM format)
+  - Public key: `rsa/rsa.pub` (PEM format)
+- **Hybrid Encryption**: Uses AES-256-CBC for data + RSA-2048 for key encryption
+- **Unlimited Size**: Can encrypt text of any length (no 190-byte RSA limit)
+- **Base64 Output**: Encrypted data is base64 encoded for safe text handling
+- **Japanese Support**: Full UTF-8 support for Japanese and other Unicode text
+
+**Security Features:**
+- RSA-2048 bit keys for strong security
+- AES-256-CBC encryption for data payload
+- Automatic padding correction for base64 decoding
+- Secure key storage with proper file permissions
+- Keys are automatically excluded from version control
+
+**Example Usage:**
+```bash
+# Encrypt a message
+echo "機密データ Confidential data" | python String_Multitool.py "/enc"
+# Output: Base64 encoded encrypted text
+
+# Decrypt (assumes encrypted text is in clipboard)
+python String_Multitool.py "/dec"
+# Output: Original message restored
+
+# Chain with other transformations
+echo "Secret Message" | python String_Multitool.py "/enc/t"
+# Encrypt then trim whitespace from result
 ```
 
 ### Interactive Mode
@@ -130,7 +177,7 @@ When no arguments are provided, the app enters interactive mode:
 
 ```bash
 python String_Multitool.py
-# 📋 Clipboard Transformer - Interactive Mode
+# 📋 String_Multitool - Interactive Mode
 # =============================================
 # Input text: 'your clipboard content...'
 # 
@@ -207,7 +254,7 @@ echo -e "A0001\nA0002\nA0003" | python String_Multitool.py /dlb
 ```bash
 # Clone repository
 git clone <repository-url>
-cd clipboard-transformer
+cd String_Multitool
 
 # Install dependencies
 pip install -r requirements.txt
@@ -218,10 +265,11 @@ python String_Multitool.py help
 
 ### Dependencies
 
-The application requires minimal dependencies:
+The application requires the following dependencies:
 
 ```
-pyperclip>=1.8.0  # Clipboard operations
+pyperclip>=1.8.0     # Clipboard operations
+cryptography>=3.4.8  # RSA encryption/decryption
 ```
 
 ## Command Reference
@@ -268,6 +316,17 @@ python String_Multitool.py --help      # Show help
 - Use quotes around arguments with spaces: `/R 'old text' 'new text'`
 - Check rule names are correct (case-sensitive)
 
+**RSA encryption/decryption errors:**
+- Ensure `cryptography` library is installed: `pip install cryptography`
+- Check that RSA keys exist in `rsa/` directory (auto-generated on first use)
+- Verify encrypted text is properly base64 encoded
+- For "Incorrect padding" errors, the tool automatically corrects base64 padding
+
+**Key generation issues:**
+- Ensure write permissions to create `rsa/` directory
+- On first encryption, key generation may take a few seconds
+- Keys are automatically excluded from git commits
+
 ### Getting Help
 
 ```bash
@@ -283,7 +342,7 @@ echo "test text" | python String_Multitool.py /rule
 ### Project Structure
 
 ```
-clipboard-transformer/
+String_Multitool/
 ├── String_Multitool.py       # Main application
 ├── test_transform.py         # Test suite
 ├── requirements.txt          # Dependencies
@@ -308,6 +367,15 @@ python test_transform.py
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Changelog
+
+### Version 2.1.0
+- Added RSA encryption/decryption functionality (`/enc`, `/dec`)
+- Implemented hybrid AES+RSA encryption for unlimited text size
+- Added automatic RSA key pair generation (RSA-2048)
+- Enhanced Japanese text support in encryption
+- Added automatic base64 padding correction
+- Improved error handling for encryption operations
+- Added secure key storage with git exclusion
 
 ### Version 2.0.0
 - Complete rewrite with new rule-based syntax

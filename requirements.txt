@@ -9,3 +9,6 @@ pynput>=1.7.0
 
 # File system monitoring (for config auto-reload)
 watchdog>=3.0.0
+
+# RSA encryption/decryption support
+cryptography>=41.0.0

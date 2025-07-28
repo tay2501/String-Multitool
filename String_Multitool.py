@@ -7,12 +7,27 @@ Usage:
     app.py /t/l                     # Apply trim + lowercase to clipboard
     echo "text" | app.py            # Interactive mode (pipe input)
     echo "text" | app.py /t/l       # Apply trim + lowercase to piped text
+    app.py /enc                     # Encrypt clipboard text with RSA
+    app.py /dec                     # Decrypt clipboard text with RSA
 """
 
 import sys
 import re
 import pyperclip
+import os
+import base64
+from pathlib import Path
 from typing import List, Optional, Callable
+
+try:
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa, padding
+    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+    from cryptography.hazmat.backends import default_backend
+    import secrets
+    CRYPTO_AVAILABLE = True
+except ImportError:
+    CRYPTO_AVAILABLE = False
 
 
 class TextTransformer:
@@ -40,6 +55,10 @@ class TextTransformer:
             'r': ('Reverse', self._reverse),
             'si': ('SQL IN Clause', self._sql_in_clause),
             'dlb': ('Delete Line Breaks', self._delete_line_breaks),
+            
+            # Encryption/Decryption
+            'enc': ('RSA Encrypt', self._rsa_encrypt),
+            'dec': ('RSA Decrypt', self._rsa_decrypt),
         }
         
         # Rules with arguments
@@ -137,6 +156,227 @@ class TextTransformer:
         """Replace all substring occurrences with replacement."""
         return text.replace(substring, replacement)
     
+    def _ensure_rsa_keys(self) -> tuple:
+        """Ensure RSA key pair exists, create if not found."""
+        if not CRYPTO_AVAILABLE:
+            raise RuntimeError("cryptography library not installed. Run: pip install cryptography>=41.0.0")
+        
+        rsa_dir = Path("rsa")
+        private_key_path = rsa_dir / "rsa"
+        public_key_path = rsa_dir / "rsa.pub"
+        
+        # Create rsa directory if it doesn't exist
+        rsa_dir.mkdir(exist_ok=True)
+        
+        # Check if keys exist
+        if private_key_path.exists() and public_key_path.exists():
+            try:
+                # Load existing keys
+                with open(private_key_path, 'rb') as f:
+                    private_key = serialization.load_pem_private_key(
+                        f.read(),
+                        password=None
+                    )
+                
+                with open(public_key_path, 'rb') as f:
+                    public_key = serialization.load_pem_public_key(f.read())
+                
+                print("Using existing RSA key pair")
+                return private_key, public_key
+                
+            except Exception as e:
+                print(f"Warning: Error loading existing keys: {e}")
+                print("Generating new key pair...")
+        
+        # Generate new key pair
+        print("Generating new RSA key pair...")
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048
+        )
+        public_key = private_key.public_key()
+        
+        # Save private key
+        private_pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        
+        with open(private_key_path, 'wb') as f:
+            f.write(private_pem)
+        
+        # Save public key
+        public_pem = public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        
+        with open(public_key_path, 'wb') as f:
+            f.write(public_pem)
+        
+        # Set appropriate permissions (readable only by owner)
+        try:
+            os.chmod(private_key_path, 0o600)  # rw-------
+            os.chmod(public_key_path, 0o644)   # rw-r--r--
+        except OSError:
+            pass  # Windows doesn't support chmod the same way
+        
+        print("RSA key pair generated and saved:")
+        print(f"   Private key: {private_key_path}")
+        print(f"   Public key:  {public_key_path}")
+        
+        return private_key, public_key
+    
+    def _rsa_encrypt(self, text: str) -> str:
+        """Encrypt text using hybrid encryption (AES + RSA)."""
+        try:
+            private_key, public_key = self._ensure_rsa_keys()
+            
+            # Convert text to bytes
+            text_bytes = text.encode('utf-8')
+            
+            # Use hybrid encryption for any size text
+            # Generate random AES key (256-bit)
+            aes_key = secrets.token_bytes(32)  # 256 bits
+            
+            # Generate random IV for AES
+            iv = secrets.token_bytes(16)  # 128 bits
+            
+            # Encrypt the text with AES
+            cipher = Cipher(
+                algorithms.AES(aes_key),
+                modes.CBC(iv),
+                backend=default_backend()
+            )
+            encryptor = cipher.encryptor()
+            
+            # Pad the text to be multiple of 16 bytes (AES block size)
+            padding_length = 16 - (len(text_bytes) % 16)
+            padded_text = text_bytes + bytes([padding_length] * padding_length)
+            
+            # Encrypt the text
+            encrypted_text = encryptor.update(padded_text) + encryptor.finalize()
+            
+            # Encrypt the AES key with RSA
+            encrypted_aes_key = public_key.encrypt(
+                aes_key,
+                padding.OAEP(
+                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                    algorithm=hashes.SHA256(),
+                    label=None
+                )
+            )
+            
+            # Combine encrypted AES key, IV, and encrypted text
+            # Format: [encrypted_aes_key_length(4 bytes)][encrypted_aes_key][iv(16 bytes)][encrypted_text]
+            encrypted_aes_key_length = len(encrypted_aes_key).to_bytes(4, byteorder='big')
+            combined = encrypted_aes_key_length + encrypted_aes_key + iv + encrypted_text
+            
+            # Encode as base64 for text representation
+            encrypted_b64 = base64.b64encode(combined).decode('ascii')
+            
+            print(f"Text encrypted successfully (hybrid AES+RSA, {len(text_bytes)} bytes)")
+            return encrypted_b64
+            
+        except Exception as e:
+            raise RuntimeError(f"Encryption failed: {e}")
+    
+    def _rsa_decrypt(self, text: str) -> str:
+        """Decrypt text using hybrid decryption (AES + RSA)."""
+        try:
+            private_key, public_key = self._ensure_rsa_keys()
+            
+            # Clean the input text (remove whitespace, newlines, etc.)
+            cleaned_text = ''.join(text.split())
+            
+            # Validate base64 format
+            if not cleaned_text:
+                raise ValueError("Empty encrypted text")
+            
+            # Debug: Check for invalid characters
+            base64_chars = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=')
+            invalid_chars = [c for c in cleaned_text if c not in base64_chars]
+            
+            if invalid_chars:
+                # Show first few invalid characters for debugging
+                invalid_sample = invalid_chars[:5]
+                raise ValueError(f"Text contains non-base64 characters: {invalid_sample} (found {len(invalid_chars)} invalid chars total)")
+            
+            # Fix base64 padding if necessary
+            missing_padding = len(cleaned_text) % 4
+            if missing_padding:
+                cleaned_text += '=' * (4 - missing_padding)
+            
+            # Decode from base64
+            try:
+                encrypted_bytes = base64.b64decode(cleaned_text.encode('ascii'))
+            except Exception as e:
+                # Try with strict validation disabled
+                try:
+                    encrypted_bytes = base64.b64decode(cleaned_text.encode('ascii'), validate=False)
+                except Exception as e2:
+                    raise ValueError(f"Invalid base64 format: {e} (also tried without validation: {e2})")
+            
+            # Extract components
+            # Format: [encrypted_aes_key_length(4 bytes)][encrypted_aes_key][iv(16 bytes)][encrypted_text]
+            if len(encrypted_bytes) < 4:
+                raise ValueError("Invalid encrypted data format")
+            
+            # Get encrypted AES key length
+            encrypted_aes_key_length = int.from_bytes(encrypted_bytes[:4], byteorder='big')
+            
+            if len(encrypted_bytes) < 4 + encrypted_aes_key_length + 16:
+                raise ValueError("Invalid encrypted data format")
+            
+            # Extract encrypted AES key
+            encrypted_aes_key = encrypted_bytes[4:4 + encrypted_aes_key_length]
+            
+            # Extract IV
+            iv = encrypted_bytes[4 + encrypted_aes_key_length:4 + encrypted_aes_key_length + 16]
+            
+            # Extract encrypted text
+            encrypted_text = encrypted_bytes[4 + encrypted_aes_key_length + 16:]
+            
+            # Decrypt the AES key with RSA
+            aes_key = private_key.decrypt(
+                encrypted_aes_key,
+                padding.OAEP(
+                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                    algorithm=hashes.SHA256(),
+                    label=None
+                )
+            )
+            
+            # Decrypt the text with AES
+            cipher = Cipher(
+                algorithms.AES(aes_key),
+                modes.CBC(iv),
+                backend=default_backend()
+            )
+            decryptor = cipher.decryptor()
+            
+            # Decrypt the text
+            padded_text = decryptor.update(encrypted_text) + decryptor.finalize()
+            
+            # Remove padding
+            padding_length = padded_text[-1]
+            if padding_length > 16 or padding_length == 0:
+                raise ValueError("Invalid padding")
+            
+            # Verify padding
+            for i in range(padding_length):
+                if padded_text[-(i+1)] != padding_length:
+                    raise ValueError("Invalid padding")
+            
+            decrypted_text = padded_text[:-padding_length].decode('utf-8')
+            
+            print(f"Text decrypted successfully (hybrid AES+RSA, {len(decrypted_text)} chars)")
+            return decrypted_text
+            
+        except Exception as e:
+            raise RuntimeError(f"Decryption failed: {e}")
+    
     def parse_rules(self, rule_string: str) -> List[tuple]:
         """Parse rule string into list of (rule, args) tuples."""
         if not rule_string.startswith('/'):
@@ -202,11 +442,22 @@ def get_input_text() -> str:
     """Get input text from stdin or clipboard."""
     if not sys.stdin.isatty():
         # Reading from pipe
-        return sys.stdin.read().rstrip('\n\r')
+        try:
+            # Handle encoding properly for Windows
+            import codecs
+            if sys.platform.startswith('win'):
+                sys.stdin.reconfigure(encoding='utf-8')
+            return sys.stdin.read().rstrip('\n\r')
+        except Exception:
+            # Fallback to default encoding
+            return sys.stdin.read().rstrip('\n\r')
     else:
         # Reading from clipboard
         try:
-            return pyperclip.paste()
+            clipboard_text = pyperclip.paste()
+            # For encrypted data, we might need to preserve exact formatting
+            # But for most cases, strip whitespace is fine
+            return clipboard_text.strip() if clipboard_text else ""
         except Exception as e:
             print(f"Error reading clipboard: {e}", file=sys.stderr)
             sys.exit(1)
@@ -216,7 +467,7 @@ def set_output_text(text: str) -> None:
     """Set output text to clipboard."""
     try:
         pyperclip.copy(text)
-        print("✅ Text copied to clipboard")
+        print("Text copied to clipboard")
     except Exception as e:
         print(f"Error copying to clipboard: {e}", file=sys.stderr)
         sys.exit(1)
@@ -227,7 +478,7 @@ def show_help():
     transformer = TextTransformer()
     rules = transformer.get_available_rules()
     
-    print("📋 Clipboard Transformer")
+    print("Clipboard Transformer")
     print("=" * 50)
     print()
     print("Usage:")
@@ -244,6 +495,7 @@ def show_help():
         "Basic Transformations": ['uh', 'hu', 'fh', 'hf'],
         "Case Transformations": ['l', 'u', 'p', 'c', 's', 'a'],
         "String Operations": ['t', 'r', 'si', 'dlb'],
+        "Encryption/Decryption": ['enc', 'dec'],
         "Advanced (with args)": ['S', 'R']
     }
     
@@ -257,15 +509,24 @@ def show_help():
     print("Examples:")
     print("  /t                        # Trim whitespace")
     print("  /t/l                      # Trim then lowercase")
+    print("  /enc                      # Encrypt with RSA")
+    print("  /dec                      # Decrypt with RSA")
     print("  /S '-'                    # Slugify with hyphen")
     print("  /R 'old' 'new'            # Replace 'old' with 'new'")
+    print()
+    print("RSA Encryption Notes:")
+    print("  • Keys are auto-generated in rsa/ folder")
+    print("  • Private key: rsa/rsa")
+    print("  • Public key: rsa/rsa.pub")
+    print("  • Uses hybrid encryption (AES+RSA) for any text size")
+    print("  • Secure for both short and long texts")
 
 
 def interactive_mode(input_text: str):
     """Run in interactive mode."""
     transformer = TextTransformer()
     
-    print("📋 Clipboard Transformer - Interactive Mode")
+    print("Clipboard Transformer - Interactive Mode")
     print("=" * 45)
     print(f"Input text: '{input_text[:50]}{'...' if len(input_text) > 50 else ''}'")
     print()
@@ -273,7 +534,11 @@ def interactive_mode(input_text: str):
     
     while True:
         try:
-            rule_input = input("Rules: ").strip()
+            try:
+                rule_input = input("Rules: ").strip()
+            except EOFError:
+                print("\nGoodbye!")
+                break
             
             if not rule_input:
                 print("Please enter a rule or 'help'")
@@ -287,11 +552,25 @@ def interactive_mode(input_text: str):
                 print("Goodbye!")
                 break
             
-            # Apply transformation
-            result = transformer.apply_rules(input_text, rule_input)
+            # For decryption, get fresh clipboard content
+            if rule_input.strip() == '/dec':
+                current_input = get_input_text()
+                result = transformer.apply_rules(current_input, rule_input)
+            else:
+                result = transformer.apply_rules(input_text, rule_input)
+            
             set_output_text(result)
             
-            print(f"Result: '{result[:100]}{'...' if len(result) > 100 else ''}'")
+            # For encrypted data, show more characters to avoid truncation issues
+            if rule_input.strip() == '/enc':
+                print(f"Result: '{result}'")
+                print("(Full encrypted text copied to clipboard)")
+                # Update input_text for next iteration
+                input_text = result
+            else:
+                print(f"Result: '{result[:100]}{'...' if len(result) > 100 else ''}'")
+                # Update input_text for next iteration
+                input_text = result
             print()
             
         except KeyboardInterrupt:
@@ -318,9 +597,15 @@ def main():
             transformer = TextTransformer()
             result = transformer.apply_rules(input_text, rule_string)
             set_output_text(result)
-            print(f"✅ Applied: {rule_string}")
-            print(f"Result: '{result[:100]}{'...' if len(result) > 100 else ''}'")
-            print("📋 Result copied to clipboard!")
+            print(f"Applied: {rule_string}")
+            
+            # For encrypted data, show more characters to avoid truncation issues
+            if rule_string.strip() == '/enc':
+                print(f"Result: '{result}'")
+                print("(Full encrypted text copied to clipboard)")
+            else:
+                print(f"Result: '{result[:100]}{'...' if len(result) > 100 else ''}'")
+            print("Result copied to clipboard!")
         except Exception as e:
             print(f"❌ Error: {e}", file=sys.stderr)
             sys.exit(1)

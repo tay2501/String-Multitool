@@ -154,6 +154,15 @@ config/*_personal.json
 config/*_local.json
 config/*_user.json
 
+# RSA encryption keys (NEVER commit these!)
+rsa/
+rsa/*
+*.pem
+*.key
+*.pub
+*_rsa
+*_rsa.pub
+
 # Application logs
 logs/
 logs/*.log
