@@ -1,0 +1,24 @@
+{
+  "rsa_encryption": {
+    "key_size": 4096,
+    "public_exponent": 65537,
+    "hash_algorithm": "SHA256",
+    "mgf_algorithm": "MGF1",
+    "aes_key_size": 32,
+    "aes_iv_size": 16,
+    "aes_mode": "CBC",
+    "key_directory": "rsa",
+    "private_key_file": "rsa",
+    "public_key_file": "rsa.pub",
+    "private_key_permissions": "0o600",
+    "public_key_permissions": "0o644"
+  },
+  "base64_encoding": {
+    "validate": true,
+    "auto_fix_padding": true
+  },
+  "key_generation": {
+    "secure_random": true,
+    "backend": "default"
+  }
+}

@@ -1,9 +1,10 @@
 # String_Multitool
 
-A powerful command-line text transformation tool with pipe support and intuitive rule-based syntax. Transform text from clipboard or stdin using simple `/rule` commands with support for sequential processing.
+An advanced, enterprise-grade text transformation tool with modular architecture, configurable rules, and military-grade RSA encryption. Features pipe support, intuitive rule-based syntax, and extensible configuration system for professional development workflows.
 
 ## Features
 
+### Core Functionality
 - **Intuitive Syntax**: Use `/rule` format for transformations (e.g., `/t/l` for trim + lowercase)
 - **Pipe Support**: Works with stdin/stdout for seamless integration with shell commands
 - **Interactive Mode**: Prompt-based interface when no arguments provided
@@ -12,6 +13,14 @@ A powerful command-line text transformation tool with pipe support and intuitive
 - **Clipboard Integration**: Automatically copies results to clipboard
 - **Cross-Platform**: Works on Windows, macOS, and Linux
 - **Unicode Support**: Full-width ↔ half-width character conversion for Japanese text
+
+### Enterprise Features
+- **Modular Architecture**: Clean separation of concerns with dedicated managers
+- **Configuration-Driven**: Rules and security settings externalized to JSON files
+- **Enhanced Security**: RSA-4096 encryption with AES-256-CBC hybrid encryption
+- **Extensible Design**: Easy to add new transformation rules via configuration
+- **Professional Error Handling**: Comprehensive error messages and graceful degradation
+- **Type Safety**: Full type hints and dataclass-based rule definitions
 
 ## Quick Start
 
@@ -140,21 +149,26 @@ The application includes RSA encryption capabilities with hybrid AES+RSA encrypt
 
 - **`/enc`**: Encrypt clipboard text using hybrid AES+RSA encryption
 - **`/dec`**: Decrypt clipboard text using RSA private key
-- **Auto Key Generation**: RSA-2048 key pair is automatically created if not found
+- **Auto Key Generation**: RSA-4096 key pair is automatically created if not found
 - **Key Storage**: Keys are stored in `rsa/` directory (excluded from version control)
   - Private key: `rsa/rsa` (PEM format)
   - Public key: `rsa/rsa.pub` (PEM format)
-- **Hybrid Encryption**: Uses AES-256-CBC for data + RSA-2048 for key encryption
+- **Hybrid Encryption**: Uses AES-256-CBC for data + RSA-4096 for key encryption
 - **Unlimited Size**: Can encrypt text of any length (no 190-byte RSA limit)
 - **Base64 Output**: Encrypted data is base64 encoded for safe text handling
 - **Japanese Support**: Full UTF-8 support for Japanese and other Unicode text
 
 **Security Features:**
-- RSA-2048 bit keys for strong security
+- RSA-4096 bit keys for military-grade security
 - AES-256-CBC encryption for data payload
+- PKCS7 padding with validation
+- OAEP padding for RSA operations
+- SHA-256 hash algorithm with MGF1
+- Cryptographically secure random number generation
 - Automatic padding correction for base64 decoding
-- Secure key storage with proper file permissions
+- Secure key storage with proper file permissions (0o600 for private keys)
 - Keys are automatically excluded from version control
+- Configurable security parameters via JSON configuration
 
 **Example Usage:**
 ```bash
@@ -269,7 +283,7 @@ The application requires the following dependencies:
 
 ```
 pyperclip>=1.8.0     # Clipboard operations
-cryptography>=3.4.8  # RSA encryption/decryption
+cryptography>=41.0.0  # RSA encryption/decryption
 ```
 
 ## Command Reference
@@ -343,11 +357,29 @@ echo "test text" | python String_Multitool.py /rule
 
 ```
 String_Multitool/
-├── String_Multitool.py       # Main application
-├── test_transform.py         # Test suite
-├── requirements.txt          # Dependencies
-└── README.md                # Documentation
+├── String_Multitool.py              # Main application with modular architecture
+├── config/                          # Configuration files
+│   ├── transformation_rules.json    # Rule definitions and metadata
+│   └── security_config.json        # Security and encryption settings
+├── rsa/                            # RSA key storage (auto-generated, git-ignored)
+│   ├── rsa                         # Private key (PEM format)
+│   └── rsa.pub                     # Public key (PEM format)
+├── test_transform.py               # Test suite
+├── requirements.txt                # Dependencies
+├── .gitignore                      # Git ignore rules
+└── README.md                      # Documentation
 ```
+
+### Architecture Overview
+
+The application follows a modular, enterprise-grade architecture:
+
+- **ConfigurationManager**: Handles JSON configuration loading and caching
+- **CryptographyManager**: Manages RSA key generation, encryption, and decryption
+- **TextTransformationEngine**: Core transformation logic with rule processing
+- **InputOutputManager**: Handles clipboard and stdin/stdout operations
+- **ApplicationInterface**: Main UI and user interaction logic
+- **TransformationRule**: Dataclass for type-safe rule definitions
 
 ### Running Tests
 
@@ -357,10 +389,38 @@ python test_transform.py
 
 ### Adding New Rules
 
-1. Add rule function to `TextTransformer` class
-2. Register in `self.rules` or `self.arg_rules` dictionary
-3. Add test cases to `test_transform.py`
-4. Update documentation
+#### Method 1: Configuration-Based (Recommended)
+1. Add rule definition to `config/transformation_rules.json`
+2. Implement the transformation method in `TextTransformationEngine`
+3. Register the method in `_initialize_rules()` method
+4. Add test cases to `test_transform.py`
+5. Update documentation
+
+#### Method 2: Code-Based
+1. Add rule function to `TextTransformationEngine` class
+2. Register in `transformation_rules` or `argument_rules` dictionary
+3. Add corresponding entry in `config/transformation_rules.json`
+4. Add test cases to `test_transform.py`
+5. Update documentation
+
+#### Example: Adding a New Rule
+```python
+# In TextTransformationEngine class
+def _my_new_rule(self, text: str) -> str:
+    """My custom transformation."""
+    return text.upper().replace(' ', '_')
+
+# In config/transformation_rules.json
+{
+  "custom_transformations": {
+    "mn": {
+      "name": "My New Rule",
+      "description": "Convert to uppercase and replace spaces with underscores",
+      "example": "hello world → HELLO_WORLD"
+    }
+  }
+}
+```
 
 ## License
 
@@ -368,14 +428,21 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Changelog
 
-### Version 2.1.0
-- Added RSA encryption/decryption functionality (`/enc`, `/dec`)
-- Implemented hybrid AES+RSA encryption for unlimited text size
-- Added automatic RSA key pair generation (RSA-2048)
-- Enhanced Japanese text support in encryption
-- Added automatic base64 padding correction
-- Improved error handling for encryption operations
-- Added secure key storage with git exclusion
+### Version 2.1.0 (Enterprise Refactor)
+- **Architecture Overhaul**: Complete refactor to modular, enterprise-grade architecture
+- **Configuration System**: Externalized rules and security settings to JSON files
+- **Enhanced Security**: Upgraded to RSA-4096 with configurable security parameters
+- **Type Safety**: Added comprehensive type hints and dataclass-based rule definitions
+- **Improved Error Handling**: Professional error messages and graceful degradation
+- **Extensibility**: Easy rule addition via configuration files
+- **Security Enhancements**:
+  - RSA-4096 key generation (upgraded from RSA-2048)
+  - PKCS7 padding validation
+  - Configurable hash algorithms and key sizes
+  - Secure file permissions (0o600 for private keys)
+  - Enhanced base64 validation and padding correction
+- **Code Quality**: Clean separation of concerns, improved maintainability
+- **Documentation**: Comprehensive inline documentation and type annotations
 
 ### Version 2.0.0
 - Complete rewrite with new rule-based syntax

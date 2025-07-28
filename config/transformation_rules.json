@@ -1,0 +1,104 @@
+{
+  "basic_transformations": {
+    "uh": {
+      "name": "Underbar to Hyphen",
+      "description": "Convert underscores to hyphens",
+      "example": "TBL_CHA1 → TBL-CHA1"
+    },
+    "hu": {
+      "name": "Hyphen to Underbar", 
+      "description": "Convert hyphens to underscores",
+      "example": "TBL-CHA1 → TBL_CHA1"
+    },
+    "fh": {
+      "name": "Full-width to Half-width",
+      "description": "Convert full-width characters to half-width",
+      "example": "ＴＢＬ－ＣＨＡ１ → TBL-CHA1"
+    },
+    "hf": {
+      "name": "Half-width to Full-width",
+      "description": "Convert half-width characters to full-width", 
+      "example": "TBL-CHA1 → ＴＢＬ－ＣＨＡ１"
+    }
+  },
+  "case_transformations": {
+    "l": {
+      "name": "Lowercase",
+      "description": "Convert to lowercase",
+      "example": "HELLO WORLD → hello world"
+    },
+    "u": {
+      "name": "Uppercase", 
+      "description": "Convert to uppercase",
+      "example": "hello world → HELLO WORLD"
+    },
+    "p": {
+      "name": "PascalCase",
+      "description": "Convert to PascalCase",
+      "example": "the quick brown fox → TheQuickBrownFox"
+    },
+    "c": {
+      "name": "camelCase",
+      "description": "Convert to camelCase", 
+      "example": "is error state → isErrorState"
+    },
+    "s": {
+      "name": "snake_case",
+      "description": "Convert to snake_case",
+      "example": "is error state → is_error_state"
+    },
+    "a": {
+      "name": "Capitalize",
+      "description": "Capitalize first char of each word",
+      "example": "hello world → Hello World"
+    }
+  },
+  "string_operations": {
+    "t": {
+      "name": "Trim",
+      "description": "Trim whitespace from beginning and end",
+      "example": "  hello world   → hello world"
+    },
+    "r": {
+      "name": "Reverse",
+      "description": "Reverse the string",
+      "example": "hello → olleh"
+    },
+    "si": {
+      "name": "SQL IN Clause",
+      "description": "Convert line-separated text to SQL IN clause format",
+      "example": "A0001\\r\\nA0002\\r\\nA0003 → 'A0001',\\r\\n'A0002',\\r\\n'A0003'"
+    },
+    "dlb": {
+      "name": "Delete Line Breaks",
+      "description": "Delete all line breaks from text",
+      "example": "A0001\\r\\nA0002\\r\\nA0003 → A0001A0002A0003"
+    }
+  },
+  "encryption_operations": {
+    "enc": {
+      "name": "RSA Encrypt",
+      "description": "Encrypt text using hybrid AES+RSA encryption",
+      "example": "Secret message → Base64 encrypted text"
+    },
+    "dec": {
+      "name": "RSA Decrypt", 
+      "description": "Decrypt text using RSA private key",
+      "example": "Base64 encrypted text → Secret message"
+    }
+  },
+  "advanced_rules": {
+    "S": {
+      "name": "Slugify",
+      "description": "Remove non-word/non-digit chars and merge with replacement",
+      "example": "/S '+' → http://foo.bar → http+foo+bar",
+      "default_args": ["-"]
+    },
+    "R": {
+      "name": "Replace",
+      "description": "Replace all substring occurrences with replacement", 
+      "example": "/R 'old' 'new' → old text → new text",
+      "default_args": [""]
+    }
+  }
+}
