@@ -29,7 +29,7 @@ jobs:
     
     - name: Run tests
       run: |
-        pytest --cov=src --cov-report=xml
+        python -m pytest test_transform.py --cov=String_Multitool --cov-report=xml -v
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -58,20 +58,20 @@ jobs:
     
     - name: Build executable
       run: |
-        .\build.ps1
-      shell: powershell
+        powershell -ExecutionPolicy Bypass -File .\build.ps1
+      shell: cmd
     
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: clipboard-transformer-portable
-        path: dist/clipboard-transformer-portable/
+        name: string-multitool-portable
+        path: dist/string-multitool-portable/
     
     - name: Upload ZIP package
       uses: actions/upload-artifact@v3
       with:
-        name: clipboard-transformer-portable-zip
-        path: dist/clipboard-transformer-portable.zip
+        name: string-multitool-portable-zip
+        path: dist/string-multitool-portable.zip
 
   release:
     needs: build
@@ -84,13 +84,13 @@ jobs:
     - name: Download build artifacts
       uses: actions/download-artifact@v3
       with:
-        name: clipboard-transformer-portable-zip
+        name: string-multitool-portable-zip
         path: ./
     
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        files: clipboard-transformer-portable.zip
+        files: string-multitool-portable.zip
         draft: false
         prerelease: false
         generate_release_notes: true

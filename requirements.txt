@@ -1,4 +1,4 @@
-# Core dependencies for Clipboard Transformer
+# Core dependencies for String_Multitool
 # Minimum required packages for basic functionality
 
 # Clipboard operations (required for both manual and hotkey modes)
@@ -12,3 +12,11 @@ watchdog>=3.0.0
 
 # RSA encryption/decryption support
 cryptography>=41.0.0
+
+# Development and testing dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+
+# Build dependencies
+pyinstaller>=5.0.0
