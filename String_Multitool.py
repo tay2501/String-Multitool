@@ -31,6 +31,15 @@ from typing import List, Optional, Callable, Dict, Any, Tuple
 from dataclasses import dataclass
 from datetime import datetime
 
+# Ensure UTF-8 encoding for stdout/stderr on Windows
+if sys.platform.startswith('win'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except AttributeError:
+        # Python < 3.7 doesn't have reconfigure
+        pass
+
 try:
     import pyperclip
     CLIPBOARD_AVAILABLE = True
