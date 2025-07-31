@@ -23,6 +23,14 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -30,8 +38,18 @@ jobs:
     
     - name: Run tests
       run: |
-        python -m pytest test_transform.py --cov=String_Multitool --cov-report=xml -v
+        python -m pytest test_transform.py --cov=String_Multitool --cov-report=xml --cov-report=term -v --tb=short
       continue-on-error: false
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ matrix.python-version }}
+        path: |
+          coverage.xml
+          .pytest_cache/
+        retention-days: 7
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
@@ -54,6 +72,15 @@ jobs:
       with:
         python-version: '3.12'
     
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-build-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-build-
+          ${{ runner.os }}-pip-
+    
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -61,9 +88,22 @@ jobs:
     
     - name: Build executable
       run: |
-        powershell -ExecutionPolicy Bypass -File .\build.ps1
-      shell: cmd
+        .\build.ps1 -SkipTests
+      shell: pwsh
       continue-on-error: false
+    
+    - name: Verify build artifacts
+      run: |
+        if (-not (Test-Path "dist/string-multitool-portable/String_Multitool.exe")) {
+          Write-Error "Executable not found!"
+          exit 1
+        }
+        if (-not (Test-Path "dist/string-multitool-portable.zip")) {
+          Write-Error "ZIP package not found!"
+          exit 1
+        }
+        Write-Host "✅ All build artifacts verified successfully"
+      shell: pwsh
     
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
