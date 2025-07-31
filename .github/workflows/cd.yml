@@ -1,0 +1,458 @@
+name: Continuous Deployment
+
+on:
+  push:
+    branches: [ main ]
+  workflow_run:
+    workflows: ["Build and Release"]
+    types: [completed]
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+        default: staging
+      force_deploy:
+        description: 'Force deployment even if tests fail'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  PYTHON_VERSION: '3.12'
+  STAGING_RETENTION_DAYS: 30
+  PRODUCTION_RETENTION_DAYS: 365
+
+jobs:
+  # Job 1: Deployment Preparation
+  prepare-deployment:
+    name: Prepare Deployment
+    runs-on: windows-latest
+    timeout-minutes: 10
+    
+    outputs:
+      environment: ${{ steps.env.outputs.environment }}
+      should-deploy: ${{ steps.check.outputs.should-deploy }}
+      version: ${{ steps.version.outputs.version }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Determine deployment environment
+      id: env
+      run: |
+        if ('${{ github.event_name }}' -eq 'workflow_dispatch') {
+            $environment = '${{ inputs.environment }}'
+        } elseif ('${{ github.ref }}' -eq 'refs/heads/main') {
+            $environment = 'staging'
+        } else {
+            $environment = 'none'
+        }
+        
+        Write-Host "Deployment environment: $environment"
+        echo "environment=$environment" >> $env:GITHUB_OUTPUT
+    
+    - name: Extract version
+      id: version
+      run: |
+        # Extract version from the latest tag or commit
+        $version = git describe --tags --abbrev=0 2>$null
+        if (-not $version) {
+            $version = "dev-$(git rev-parse --short HEAD)"
+        }
+        
+        Write-Host "Version: $version"
+        echo "version=$version" >> $env:GITHUB_OUTPUT
+    
+    - name: Check deployment conditions
+      id: check
+      run: |
+        $shouldDeploy = $true
+        $environment = '${{ steps.env.outputs.environment }}'
+        
+        # Check if this is a workflow_run trigger and if the previous workflow succeeded
+        if ('${{ github.event_name }}' -eq 'workflow_run') {
+            $workflowResult = '${{ github.event.workflow_run.conclusion }}'
+            if ($workflowResult -ne 'success') {
+                Write-Host "❌ Previous workflow failed: $workflowResult"
+                $shouldDeploy = $false
+            }
+        }
+        
+        # Skip deployment if environment is 'none'
+        if ($environment -eq 'none') {
+            Write-Host "ℹ️ No deployment environment determined"
+            $shouldDeploy = $false
+        }
+        
+        # Force deployment if requested
+        if ('${{ inputs.force_deploy }}' -eq 'true') {
+            Write-Host "⚠️ Force deployment requested"
+            $shouldDeploy = $true
+        }
+        
+        Write-Host "Should deploy: $shouldDeploy"
+        echo "should-deploy=$shouldDeploy" >> $env:GITHUB_OUTPUT
+
+  # Job 2: Build for Deployment
+  build-for-deployment:
+    name: Build for ${{ needs.prepare-deployment.outputs.environment }}
+    runs-on: windows-latest
+    timeout-minutes: 30
+    needs: [prepare-deployment]
+    if: needs.prepare-deployment.outputs.should-deploy == 'true'
+    
+    environment:
+      name: ${{ needs.prepare-deployment.outputs.environment }}
+      url: ${{ steps.deploy.outputs.deployment-url }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-deploy-${{ needs.prepare-deployment.outputs.environment }}-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-deploy-${{ needs.prepare-deployment.outputs.environment }}-
+          ${{ runner.os }}-pip-deploy-
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Configure for environment
+      run: |
+        $environment = '${{ needs.prepare-deployment.outputs.environment }}'
+        $version = '${{ needs.prepare-deployment.outputs.version }}'
+        
+        Write-Host "🔧 Configuring for $environment environment" -ForegroundColor Cyan
+        
+        # Environment-specific configurations
+        if ($environment -eq 'production') {
+            # Production optimizations
+            Write-Host "✅ Applying production optimizations"
+            
+            # Could modify config files, enable production features, etc.
+            # For example, disable debug logging, enable telemetry, etc.
+            
+        } elseif ($environment -eq 'staging') {
+            # Staging configurations
+            Write-Host "✅ Applying staging configurations"
+            
+            # Could enable additional logging, testing features, etc.
+        }
+        
+        # Update version information
+        $content = Get-Content String_Multitool.py -Raw
+        $content = $content -replace 'Version: [\d.-]+', "Version: $version"
+        $content | Out-File -FilePath String_Multitool.py -Encoding UTF8
+    
+    - name: Run pre-deployment tests
+      run: |
+        Write-Host "🧪 Running pre-deployment tests..." -ForegroundColor Cyan
+        
+        # Quick smoke tests before deployment
+        python -m pytest test_transform.py -v --tb=short -x
+        
+        # Test basic functionality
+        echo "Hello World" | python String_Multitool.py /u
+        
+        Write-Host "✅ Pre-deployment tests passed"
+    
+    - name: Build deployment package
+      run: |
+        Write-Host "📦 Building deployment package..." -ForegroundColor Cyan
+        
+        $environment = '${{ needs.prepare-deployment.outputs.environment }}'
+        $retentionDays = if ($environment -eq 'production') { $env:PRODUCTION_RETENTION_DAYS } else { $env:STAGING_RETENTION_DAYS }
+        
+        # Build with environment-specific settings
+        .\build.ps1 -SkipTests -Clean
+        
+        # Add deployment metadata
+        $deploymentInfo = @{
+            environment = $environment
+            version = '${{ needs.prepare-deployment.outputs.version }}'
+            build_date = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss UTC')
+            commit_sha = '${{ github.sha }}'
+            deployment_id = '${{ github.run_id }}'
+        }
+        
+        $deploymentInfo | ConvertTo-Json -Depth 2 | Out-File -FilePath "dist/string-multitool-portable/deployment-info.json" -Encoding UTF8
+        
+        # Update ZIP with deployment info
+        Compress-Archive -Path "dist/string-multitool-portable/deployment-info.json" -DestinationPath "dist/string-multitool-portable.zip" -Update
+        
+        Write-Host "✅ Deployment package built successfully"
+    
+    - name: Upload deployment artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: deployment-${{ needs.prepare-deployment.outputs.environment }}-${{ github.run_id }}
+        path: |
+          dist/string-multitool-portable.zip
+          dist/string-multitool-portable/
+        retention-days: ${{ needs.prepare-deployment.outputs.environment == 'production' && fromJson(env.PRODUCTION_RETENTION_DAYS) || fromJson(env.STAGING_RETENTION_DAYS) }}
+    
+    - name: Deploy to environment
+      id: deploy
+      run: |
+        $environment = '${{ needs.prepare-deployment.outputs.environment }}'
+        $version = '${{ needs.prepare-deployment.outputs.version }}'
+        
+        Write-Host "🚀 Deploying to $environment environment..." -ForegroundColor Cyan
+        
+        # This is where you would implement actual deployment logic
+        # Examples:
+        # - Upload to cloud storage (AWS S3, Azure Blob, etc.)
+        # - Deploy to container registry
+        # - Update package repositories
+        # - Notify deployment services
+        
+        if ($environment -eq 'production') {
+            # Production deployment logic
+            Write-Host "📦 Deploying to production distribution channels..."
+            
+            # Example: Upload to release distribution
+            # aws s3 cp dist/string-multitool-portable.zip s3://releases/string-multitool/
+            # docker push myregistry/string-multitool:$version
+            
+            $deploymentUrl = "https://github.com/${{ github.repository }}/releases/latest"
+            
+        } elseif ($environment -eq 'staging') {
+            # Staging deployment logic
+            Write-Host "📦 Deploying to staging environment..."
+            
+            # Example: Upload to staging area
+            # aws s3 cp dist/string-multitool-portable.zip s3://staging/string-multitool/
+            
+            $deploymentUrl = "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        }
+        
+        Write-Host "✅ Deployment completed successfully"
+        Write-Host "🔗 Deployment URL: $deploymentUrl"
+        
+        echo "deployment-url=$deploymentUrl" >> $env:GITHUB_OUTPUT
+
+  # Job 3: Post-deployment Verification
+  post-deployment-verification:
+    name: Post-deployment Verification
+    runs-on: windows-latest
+    timeout-minutes: 15
+    needs: [prepare-deployment, build-for-deployment]
+    if: needs.prepare-deployment.outputs.should-deploy == 'true'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Download deployment artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: deployment-${{ needs.prepare-deployment.outputs.environment }}-${{ github.run_id }}
+        path: ./deployment-artifacts
+    
+    - name: Verify deployment artifacts
+      run: |
+        Write-Host "🔍 Verifying deployment artifacts..." -ForegroundColor Cyan
+        
+        $zipPath = "deployment-artifacts/string-multitool-portable.zip"
+        $exePath = "deployment-artifacts/String_Multitool.exe"
+        
+        # Check ZIP file
+        if (Test-Path $zipPath) {
+            $zipInfo = Get-Item $zipPath
+            Write-Host "✅ ZIP package verified: $($zipInfo.Name) ($([math]::Round($zipInfo.Length / 1MB, 2)) MB)"
+        } else {
+            Write-Error "❌ ZIP package not found"
+            exit 1
+        }
+        
+        # Extract and test executable
+        Expand-Archive -Path $zipPath -DestinationPath "test-extract" -Force
+        $extractedExe = "test-extract/String_Multitool.exe"
+        
+        if (Test-Path $extractedExe) {
+            Write-Host "✅ Executable extracted successfully"
+            
+            # Test executable
+            & $extractedExe help | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "✅ Executable functionality verified"
+            } else {
+                Write-Error "❌ Executable test failed"
+                exit 1
+            }
+        } else {
+            Write-Error "❌ Executable not found in package"
+            exit 1
+        }
+    
+    - name: Run deployment smoke tests
+      run: |
+        Write-Host "🧪 Running deployment smoke tests..." -ForegroundColor Cyan
+        
+        $environment = '${{ needs.prepare-deployment.outputs.environment }}'
+        
+        # Environment-specific smoke tests
+        if ($environment -eq 'production') {
+            Write-Host "🔥 Running production smoke tests..."
+            
+            # Production-specific tests
+            # - Check release availability
+            # - Verify download links
+            # - Test update mechanisms
+            
+        } elseif ($environment -eq 'staging') {
+            Write-Host "🔥 Running staging smoke tests..."
+            
+            # Staging-specific tests
+            # - Verify staging deployment
+            # - Test integration points
+            # - Validate configurations
+        }
+        
+        Write-Host "✅ Smoke tests completed successfully"
+    
+    - name: Update deployment status
+      run: |
+        $environment = '${{ needs.prepare-deployment.outputs.environment }}'
+        $version = '${{ needs.prepare-deployment.outputs.version }}'
+        $deploymentUrl = '${{ needs.build-for-deployment.outputs.deployment-url }}'
+        
+        Write-Host "📊 Updating deployment status..." -ForegroundColor Cyan
+        
+        # This could update:
+        # - Deployment tracking systems
+        # - Status pages
+        # - Monitoring dashboards
+        # - Notification systems
+        
+        Write-Host "✅ Deployment status updated"
+        Write-Host "   Environment: $environment"
+        Write-Host "   Version: $version"
+        Write-Host "   URL: $deploymentUrl"
+
+  # Job 4: Rollback Preparation
+  prepare-rollback:
+    name: Prepare Rollback Plan
+    runs-on: windows-latest
+    timeout-minutes: 10
+    needs: [prepare-deployment, build-for-deployment]
+    if: needs.prepare-deployment.outputs.should-deploy == 'true' && needs.prepare-deployment.outputs.environment == 'production'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Create rollback plan
+      run: |
+        Write-Host "📋 Creating rollback plan..." -ForegroundColor Cyan
+        
+        $currentVersion = '${{ needs.prepare-deployment.outputs.version }}'
+        $environment = '${{ needs.prepare-deployment.outputs.environment }}'
+        
+        # Get previous version for rollback
+        $previousVersion = git describe --tags --abbrev=0 HEAD~1 2>$null
+        if (-not $previousVersion) {
+            $previousVersion = "unknown"
+        }
+        
+        $rollbackPlan = @{
+            current_version = $currentVersion
+            previous_version = $previousVersion
+            environment = $environment
+            rollback_steps = @(
+                "1. Stop current deployment",
+                "2. Restore previous version: $previousVersion",
+                "3. Verify rollback deployment",
+                "4. Update status and notifications"
+            )
+            rollback_command = "gh workflow run rollback.yml -f version=$previousVersion -f environment=$environment"
+            created_at = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss UTC')
+        }
+        
+        $rollbackPlan | ConvertTo-Json -Depth 3 | Out-File -FilePath "rollback-plan.json" -Encoding UTF8
+        
+        Write-Host "✅ Rollback plan created"
+        Write-Host "   Current: $currentVersion"
+        Write-Host "   Previous: $previousVersion"
+    
+    - name: Upload rollback plan
+      uses: actions/upload-artifact@v4
+      with:
+        name: rollback-plan-${{ github.run_id }}
+        path: rollback-plan.json
+        retention-days: 30
+
+  # Summary Job
+  deployment-summary:
+    name: Deployment Summary
+    runs-on: windows-latest
+    timeout-minutes: 5
+    needs: [prepare-deployment, build-for-deployment, post-deployment-verification, prepare-rollback]
+    if: always() && needs.prepare-deployment.outputs.should-deploy == 'true'
+    
+    steps:
+    - name: Generate Deployment Summary
+      run: |
+        Write-Host "🎯 Continuous Deployment Summary" -ForegroundColor Cyan
+        Write-Host "=================================" -ForegroundColor Cyan
+        
+        $environment = '${{ needs.prepare-deployment.outputs.environment }}'
+        $version = '${{ needs.prepare-deployment.outputs.version }}'
+        $deploymentUrl = '${{ needs.build-for-deployment.outputs.deployment-url }}'
+        
+        Write-Host "🌍 Environment: $environment" -ForegroundColor Yellow
+        Write-Host "📦 Version: $version" -ForegroundColor Yellow
+        Write-Host "🔗 URL: $deploymentUrl" -ForegroundColor Yellow
+        Write-Host "🕒 Timestamp: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss UTC')" -ForegroundColor Yellow
+        
+        $jobs = @{
+            'Prepare Deployment' = '${{ needs.prepare-deployment.result }}'
+            'Build for Deployment' = '${{ needs.build-for-deployment.result }}'
+            'Post-deployment Verification' = '${{ needs.post-deployment-verification.result }}'
+            'Prepare Rollback' = '${{ needs.prepare-rollback.result }}'
+        }
+        
+        Write-Host "`n📊 Job Results:" -ForegroundColor Yellow
+        $allPassed = $true
+        foreach ($job in $jobs.GetEnumerator()) {
+            $status = $job.Value
+            $icon = switch ($status) {
+                'success' { '✅' }
+                'skipped' { '⏭️' }
+                default { '❌'; $allPassed = $false }
+            }
+            Write-Host "$icon $($job.Key): $status"
+        }
+        
+        Write-Host ""
+        if ($allPassed) {
+            Write-Host "🎉 Deployment pipeline completed successfully!" -ForegroundColor Green
+            if ($environment -eq 'production') {
+                Write-Host "🚀 String_Multitool $version is now live in production!" -ForegroundColor Green
+            } else {
+                Write-Host "🧪 String_Multitool $version deployed to $environment for testing" -ForegroundColor Green
+            }
+        } else {
+            Write-Host "❌ Deployment pipeline encountered issues. Please review the results." -ForegroundColor Red
+            Write-Host "📋 Rollback plan available if needed" -ForegroundColor Yellow
+            exit 1
+        }

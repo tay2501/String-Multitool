@@ -1,0 +1,448 @@
+name: Build and Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v2.2.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+      draft:
+        description: 'Create as draft release'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  PYTHON_VERSION: '3.12'
+  BUILD_TIMEOUT: 45
+  ARTIFACT_RETENTION_DAYS: 90
+
+jobs:
+  # Job 1: Pre-release Validation
+  pre-release-validation:
+    name: Pre-release Validation
+    runs-on: windows-latest
+    timeout-minutes: 15
+    
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is-prerelease: ${{ steps.version.outputs.is-prerelease }}
+      release-notes: ${{ steps.notes.outputs.notes }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for changelog generation
+    
+    - name: Extract version information
+      id: version
+      run: |
+        if ('${{ github.event_name }}' -eq 'workflow_dispatch') {
+            $version = '${{ inputs.version }}'
+            $isPrerelease = '${{ inputs.prerelease }}' -eq 'true'
+        } else {
+            $version = '${{ github.ref_name }}'
+            $isPrerelease = $version -match '-(alpha|beta|rc|pre)'
+        }
+        
+        # Validate version format
+        if ($version -notmatch '^v?\d+\.\d+\.\d+(-[a-zA-Z0-9.-]+)?$') {
+            Write-Error "Invalid version format: $version"
+            exit 1
+        }
+        
+        # Clean version (remove 'v' prefix if present)
+        $cleanVersion = $version -replace '^v', ''
+        
+        Write-Host "Version: $version"
+        Write-Host "Clean Version: $cleanVersion"
+        Write-Host "Is Prerelease: $isPrerelease"
+        
+        echo "version=$version" >> $env:GITHUB_OUTPUT
+        echo "clean-version=$cleanVersion" >> $env:GITHUB_OUTPUT
+        echo "is-prerelease=$isPrerelease" >> $env:GITHUB_OUTPUT
+    
+    - name: Validate changelog entry
+      run: |
+        $version = '${{ steps.version.outputs.clean-version }}'
+        $changelog = Get-Content README.md -Raw
+        
+        if ($changelog -match "### Version $version") {
+            Write-Host "✅ Changelog entry found for version $version"
+        } else {
+            Write-Warning "⚠️ No changelog entry found for version $version"
+            Write-Host "Please add a changelog entry in README.md"
+        }
+    
+    - name: Generate release notes
+      id: notes
+      run: |
+        $version = '${{ steps.version.outputs.version }}'
+        
+        # Extract changelog section for this version
+        $readme = Get-Content README.md -Raw
+        $pattern = "### Version $($version -replace '^v', '').*?(?=### Version|\z)"
+        $match = [regex]::Match($readme, $pattern, [System.Text.RegularExpressions.RegexOptions]::Singleline)
+        
+        if ($match.Success) {
+            $notes = $match.Value.Trim()
+            Write-Host "Generated release notes:"
+            Write-Host $notes
+            
+            # Save to file for upload
+            $notes | Out-File -FilePath "release-notes.md" -Encoding UTF8
+            echo "notes-file=release-notes.md" >> $env:GITHUB_OUTPUT
+        } else {
+            $defaultNotes = "Release $version`n`nSee README.md for detailed changelog."
+            $defaultNotes | Out-File -FilePath "release-notes.md" -Encoding UTF8
+            echo "notes-file=release-notes.md" >> $env:GITHUB_OUTPUT
+        }
+    
+    - name: Upload release notes
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-notes
+        path: release-notes.md
+        retention-days: 7
+
+  # Job 2: Build Matrix
+  build:
+    name: Build Executable
+    runs-on: windows-latest
+    timeout-minutes: ${{ fromJson(env.BUILD_TIMEOUT) }}
+    needs: [pre-release-validation]
+    
+    strategy:
+      matrix:
+        include:
+          - name: "Windows x64"
+            platform: "win64"
+            python-arch: "x64"
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        architecture: ${{ matrix.python-arch }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-build-${{ matrix.platform }}-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-build-${{ matrix.platform }}-
+          ${{ runner.os }}-pip-build-
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+        # Verify installation
+        python --version
+        python -c "import sys; print(f'Architecture: {sys.maxsize > 2**32 and \"64-bit\" or \"32-bit\"}')"
+    
+    - name: Update version in code
+      run: |
+        $version = '${{ needs.pre-release-validation.outputs.version }}'
+        $cleanVersion = '${{ needs.pre-release-validation.outputs.clean-version }}'
+        
+        # Update version in String_Multitool.py
+        $content = Get-Content String_Multitool.py -Raw
+        $content = $content -replace 'Version: [\d.]+', "Version: $cleanVersion"
+        $content | Out-File -FilePath String_Multitool.py -Encoding UTF8
+        
+        # Update version in build.ps1
+        $buildContent = Get-Content build.ps1 -Raw
+        $buildContent = $buildContent -replace 'Version = "[\d.]+"', "Version = `"$cleanVersion`""
+        $buildContent | Out-File -FilePath build.ps1 -Encoding UTF8
+        
+        Write-Host "✅ Updated version to $cleanVersion in source files"
+    
+    - name: Build executable
+      run: |
+        Write-Host "🔨 Building String_Multitool ${{ needs.pre-release-validation.outputs.version }}" -ForegroundColor Cyan
+        .\build.ps1 -SkipTests -Clean
+      env:
+        BUILD_VERSION: ${{ needs.pre-release-validation.outputs.clean-version }}
+    
+    - name: Verify build artifacts
+      run: |
+        $exePath = "dist/string-multitool-portable/String_Multitool.exe"
+        $zipPath = "dist/string-multitool-portable.zip"
+        
+        if (-not (Test-Path $exePath)) {
+            Write-Error "❌ Executable not found: $exePath"
+            exit 1
+        }
+        
+        if (-not (Test-Path $zipPath)) {
+            Write-Error "❌ ZIP package not found: $zipPath"
+            exit 1
+        }
+        
+        # Get file information
+        $exeInfo = Get-Item $exePath
+        $zipInfo = Get-Item $zipPath
+        
+        Write-Host "✅ Build artifacts verified:" -ForegroundColor Green
+        Write-Host "   Executable: $($exeInfo.Name) ($([math]::Round($exeInfo.Length / 1MB, 2)) MB)"
+        Write-Host "   ZIP Package: $($zipInfo.Name) ($([math]::Round($zipInfo.Length / 1MB, 2)) MB)"
+        
+        # Test executable
+        Write-Host "🧪 Testing executable..."
+        & $exePath help | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "✅ Executable test passed"
+        } else {
+            Write-Error "❌ Executable test failed"
+            exit 1
+        }
+    
+    - name: Generate build metadata
+      run: |
+        $metadata = @{
+            version = '${{ needs.pre-release-validation.outputs.version }}'
+            build_date = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss UTC')
+            platform = '${{ matrix.platform }}'
+            python_version = '${{ env.PYTHON_VERSION }}'
+            commit_sha = '${{ github.sha }}'
+            commit_ref = '${{ github.ref }}'
+        }
+        
+        $metadata | ConvertTo-Json -Depth 2 | Out-File -FilePath "dist/string-multitool-portable/build-metadata.json" -Encoding UTF8
+        
+        # Add to ZIP
+        Compress-Archive -Path "dist/string-multitool-portable/build-metadata.json" -DestinationPath "dist/string-multitool-portable.zip" -Update
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: string-multitool-${{ matrix.platform }}
+        path: dist/string-multitool-portable/
+        retention-days: ${{ fromJson(env.ARTIFACT_RETENTION_DAYS) }}
+    
+    - name: Upload ZIP package
+      uses: actions/upload-artifact@v4
+      with:
+        name: string-multitool-${{ matrix.platform }}-zip
+        path: dist/string-multitool-portable.zip
+        retention-days: ${{ fromJson(env.ARTIFACT_RETENTION_DAYS) }}
+
+  # Job 3: Create Release
+  create-release:
+    name: Create GitHub Release
+    runs-on: windows-latest
+    timeout-minutes: 15
+    needs: [pre-release-validation, build]
+    
+    permissions:
+      contents: write
+      discussions: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Download all build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./artifacts
+    
+    - name: Download release notes
+      uses: actions/download-artifact@v4
+      with:
+        name: release-notes
+        path: ./
+    
+    - name: Prepare release assets
+      run: |
+        Write-Host "📦 Preparing release assets..." -ForegroundColor Cyan
+        
+        # Create release directory
+        New-Item -ItemType Directory -Force -Path "release-assets" | Out-Null
+        
+        # Copy ZIP packages with descriptive names
+        $version = '${{ needs.pre-release-validation.outputs.version }}'
+        
+        Get-ChildItem "artifacts" -Filter "*-zip" -Directory | ForEach-Object {
+            $platform = $_.Name -replace '-zip$', ''
+            $zipFile = Get-ChildItem $_.FullName -Filter "*.zip" | Select-Object -First 1
+            
+            if ($zipFile) {
+                $newName = "String_Multitool_${version}_${platform}.zip"
+                Copy-Item $zipFile.FullName "release-assets/$newName"
+                Write-Host "✅ Prepared: $newName"
+            }
+        }
+        
+        # List all release assets
+        Write-Host "`n📋 Release assets:" -ForegroundColor Yellow
+        Get-ChildItem "release-assets" | ForEach-Object {
+            $size = [math]::Round($_.Length / 1MB, 2)
+            Write-Host "   $($_.Name) ($size MB)"
+        }
+    
+    - name: Generate checksums
+      run: |
+        Write-Host "🔐 Generating checksums..." -ForegroundColor Cyan
+        
+        $checksums = @()
+        Get-ChildItem "release-assets" -Filter "*.zip" | ForEach-Object {
+            $hash = Get-FileHash $_.FullName -Algorithm SHA256
+            $checksums += "$($hash.Hash.ToLower())  $($_.Name)"
+            Write-Host "✅ $($_.Name): $($hash.Hash.ToLower())"
+        }
+        
+        $checksums | Out-File -FilePath "release-assets/checksums.txt" -Encoding UTF8
+        Write-Host "✅ Checksums saved to checksums.txt"
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ needs.pre-release-validation.outputs.version }}
+        name: String_Multitool ${{ needs.pre-release-validation.outputs.version }}
+        body_path: release-notes.md
+        files: |
+          release-assets/*
+        draft: ${{ inputs.draft || false }}
+        prerelease: ${{ needs.pre-release-validation.outputs.is-prerelease }}
+        generate_release_notes: true
+        discussion_category_name: "Releases"
+        make_latest: ${{ !fromJson(needs.pre-release-validation.outputs.is-prerelease) }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Update latest release info
+      if: ${{ !fromJson(needs.pre-release-validation.outputs.is-prerelease) }}
+      run: |
+        Write-Host "🏷️ Updating latest release information..." -ForegroundColor Cyan
+        
+        # This could be extended to update documentation, websites, etc.
+        $version = '${{ needs.pre-release-validation.outputs.version }}'
+        Write-Host "✅ Released String_Multitool $version as latest stable version"
+
+  # Job 4: Post-release Tasks
+  post-release:
+    name: Post-release Tasks
+    runs-on: windows-latest
+    timeout-minutes: 10
+    needs: [pre-release-validation, create-release]
+    if: success()
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Create post-release branch
+      if: ${{ !fromJson(needs.pre-release-validation.outputs.is-prerelease) }}
+      run: |
+        $version = '${{ needs.pre-release-validation.outputs.version }}'
+        $branchName = "post-release/$version"
+        
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        
+        git checkout -b $branchName
+        
+        # Update version for next development cycle
+        $nextVersion = '${{ needs.pre-release-validation.outputs.clean-version }}'
+        $versionParts = $nextVersion.Split('.')
+        $versionParts[2] = [int]$versionParts[2] + 1
+        $nextDevVersion = "$($versionParts -join '.')-dev"
+        
+        Write-Host "Preparing for next development version: $nextDevVersion"
+        
+        # This could update version files, documentation, etc.
+        # For now, just create a placeholder commit
+        echo "# Development Notes`n`nPreparing for version $nextDevVersion" | Out-File -FilePath "DEVELOPMENT.md" -Encoding UTF8
+        
+        git add DEVELOPMENT.md
+        git commit -m "chore: prepare for next development cycle ($nextDevVersion)"
+        
+        Write-Host "✅ Created post-release branch: $branchName"
+    
+    - name: Notify stakeholders
+      run: |
+        Write-Host "📢 Release notification tasks..." -ForegroundColor Cyan
+        
+        # This could be extended to:
+        # - Send notifications to Discord/Slack
+        # - Update documentation sites
+        # - Trigger downstream builds
+        # - Update package managers
+        
+        $version = '${{ needs.pre-release-validation.outputs.version }}'
+        $isPrerelease = '${{ needs.pre-release-validation.outputs.is-prerelease }}'
+        
+        if ($isPrerelease -eq 'true') {
+            Write-Host "✅ Pre-release $version published successfully"
+        } else {
+            Write-Host "✅ Stable release $version published successfully"
+        }
+
+  # Summary Job
+  release-summary:
+    name: Release Summary
+    runs-on: windows-latest
+    timeout-minutes: 5
+    needs: [pre-release-validation, build, create-release, post-release]
+    if: always()
+    
+    steps:
+    - name: Generate Release Summary
+      run: |
+        Write-Host "🎯 Release Pipeline Summary" -ForegroundColor Cyan
+        Write-Host "===========================" -ForegroundColor Cyan
+        
+        $version = '${{ needs.pre-release-validation.outputs.version }}'
+        $isPrerelease = '${{ needs.pre-release-validation.outputs.is-prerelease }}'
+        
+        Write-Host "📦 Version: $version" -ForegroundColor Yellow
+        Write-Host "🏷️ Type: $(if ($isPrerelease -eq 'true') { 'Pre-release' } else { 'Stable Release' })" -ForegroundColor Yellow
+        Write-Host "🕒 Timestamp: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss UTC')" -ForegroundColor Yellow
+        
+        $jobs = @{
+            'Pre-release Validation' = '${{ needs.pre-release-validation.result }}'
+            'Build' = '${{ needs.build.result }}'
+            'Create Release' = '${{ needs.create-release.result }}'
+            'Post-release Tasks' = '${{ needs.post-release.result }}'
+        }
+        
+        Write-Host "`n📊 Job Results:" -ForegroundColor Yellow
+        $allPassed = $true
+        foreach ($job in $jobs.GetEnumerator()) {
+            $status = $job.Value
+            $icon = switch ($status) {
+                'success' { '✅' }
+                'skipped' { '⏭️' }
+                default { '❌'; $allPassed = $false }
+            }
+            Write-Host "$icon $($job.Key): $status"
+        }
+        
+        Write-Host ""
+        if ($allPassed) {
+            Write-Host "🎉 Release pipeline completed successfully!" -ForegroundColor Green
+            Write-Host "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/$version" -ForegroundColor Cyan
+        } else {
+            Write-Host "❌ Release pipeline encountered issues. Please review the results." -ForegroundColor Red
+            exit 1
+        }

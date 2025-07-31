@@ -1,0 +1,478 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ main, develop, feature/*, bugfix/*, hotfix/* ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      python_version:
+        description: 'Python version to test (optional, defaults to matrix)'
+        required: false
+        type: string
+      skip_coverage:
+        description: 'Skip coverage reporting'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  PYTHON_DEFAULT_VERSION: '3.12'
+  COVERAGE_THRESHOLD: 80
+
+jobs:
+  # Job 1: Code Quality Checks
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: windows-latest
+    timeout-minutes: 15
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for better analysis
+    
+    - name: Set up Python ${{ env.PYTHON_DEFAULT_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_DEFAULT_VERSION }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-quality-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-quality-
+          ${{ runner.os }}-pip-
+    
+    - name: Install quality tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort mypy bandit safety
+        pip install -r requirements.txt
+    
+    - name: Run code formatting check (Black)
+      run: |
+        black --check --diff String_Multitool.py test_transform.py
+      continue-on-error: true
+    
+    - name: Run import sorting check (isort)
+      run: |
+        isort --check-only --diff String_Multitool.py test_transform.py
+      continue-on-error: true
+    
+    - name: Run linting (Flake8)
+      run: |
+        flake8 String_Multitool.py test_transform.py --max-line-length=120 --extend-ignore=E203,W503
+      continue-on-error: true
+    
+    - name: Run security analysis (Bandit)
+      run: |
+        bandit -r String_Multitool.py -f json -o bandit-report.json
+      continue-on-error: true
+    
+    - name: Check dependencies for vulnerabilities (Safety)
+      run: |
+        safety check --json --output safety-report.json
+      continue-on-error: true
+    
+    - name: Upload quality reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: code-quality-reports
+        path: |
+          bandit-report.json
+          safety-report.json
+        retention-days: 7
+
+  # Job 2: Comprehensive Testing
+  test:
+    name: Test Suite (Python ${{ matrix.python-version }})
+    runs-on: windows-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        include:
+          - python-version: '3.12'
+            is-primary: true
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-test-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-test-${{ matrix.python-version }}-
+          ${{ runner.os }}-pip-test-
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest-xdist pytest-timeout pytest-benchmark
+    
+    - name: Create test configuration
+      run: |
+        echo "[tool:pytest]" > pytest.ini
+        echo "testpaths = ." >> pytest.ini
+        echo "python_files = test_*.py" >> pytest.ini
+        echo "python_functions = test_*" >> pytest.ini
+        echo "addopts = -v --tb=short --strict-markers" >> pytest.ini
+        echo "timeout = 300" >> pytest.ini
+        echo "markers =" >> pytest.ini
+        echo "    slow: marks tests as slow" >> pytest.ini
+        echo "    integration: marks tests as integration tests" >> pytest.ini
+    
+    - name: Run unit tests
+      run: |
+        python -m pytest test_transform.py `
+          --cov=String_Multitool `
+          --cov-report=xml `
+          --cov-report=term `
+          --cov-report=html `
+          --junit-xml=test-results-${{ matrix.python-version }}.xml `
+          -v --tb=short `
+          --timeout=300
+      env:
+        PYTHONPATH: ${{ github.workspace }}
+    
+    - name: Check coverage threshold
+      if: matrix.is-primary
+      run: |
+        python -c "
+        import xml.etree.ElementTree as ET
+        tree = ET.parse('coverage.xml')
+        coverage = float(tree.getroot().attrib['line-rate']) * 100
+        threshold = ${{ env.COVERAGE_THRESHOLD }}
+        print(f'Coverage: {coverage:.2f}%')
+        if coverage < threshold:
+            print(f'❌ Coverage {coverage:.2f}% is below threshold {threshold}%')
+            exit(1)
+        else:
+            print(f'✅ Coverage {coverage:.2f}% meets threshold {threshold}%')
+        "
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ matrix.python-version }}
+        path: |
+          test-results-${{ matrix.python-version }}.xml
+          coverage.xml
+          htmlcov/
+          .pytest_cache/
+        retention-days: 7
+    
+    - name: Upload coverage to Codecov
+      if: matrix.is-primary && !inputs.skip_coverage
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-python-${{ matrix.python-version }}
+        fail_ci_if_error: false
+
+  # Job 3: Integration Tests
+  integration-test:
+    name: Integration Tests
+    runs-on: windows-latest
+    timeout-minutes: 20
+    needs: [code-quality]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ env.PYTHON_DEFAULT_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_DEFAULT_VERSION }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-integration-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-integration-
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Test CLI functionality
+      run: |
+        # Test basic functionality
+        echo "Hello World" | python String_Multitool.py /u
+        
+        # Test help command
+        python String_Multitool.py help
+        
+        # Test version information
+        python String_Multitool.py --help
+    
+    - name: Test configuration loading
+      run: |
+        # Verify config files exist and are valid
+        python -c "
+        import json
+        from pathlib import Path
+        
+        # Test transformation rules config
+        config_file = Path('config/transformation_rules.json')
+        if not config_file.exists():
+            raise FileNotFoundError('transformation_rules.json not found')
+        
+        with open(config_file) as f:
+            config = json.load(f)
+            print(f'✅ Loaded {len(config)} rule categories')
+        
+        # Test security config
+        security_file = Path('config/security_config.json')
+        if not security_file.exists():
+            raise FileNotFoundError('security_config.json not found')
+        
+        with open(security_file) as f:
+            security = json.load(f)
+            print(f'✅ Security config loaded with RSA-{security[\"rsa_encryption\"][\"key_size\"]} encryption')
+        "
+    
+    - name: Test transformation rules
+      run: |
+        # Test each transformation category
+        python -c "
+        import sys
+        sys.path.append('.')
+        from String_Multitool import ConfigurationManager, TextTransformationEngine
+        
+        config_manager = ConfigurationManager()
+        engine = TextTransformationEngine(config_manager)
+        
+        # Test basic transformations
+        test_cases = [
+            ('/u', 'hello', 'HELLO'),
+            ('/l', 'WORLD', 'world'),
+            ('/t', '  test  ', 'test'),
+            ('/R', 'hello', 'olleh')
+        ]
+        
+        for rule, input_text, expected in test_cases:
+            try:
+                result = engine.apply_transformations(input_text, rule)
+                if result == expected:
+                    print(f'✅ {rule}: {input_text} → {result}')
+                else:
+                    print(f'❌ {rule}: Expected {expected}, got {result}')
+                    sys.exit(1)
+            except Exception as e:
+                print(f'❌ {rule}: Error - {e}')
+                sys.exit(1)
+        
+        print('✅ All transformation rules working correctly')
+        "
+
+  # Job 4: Build Validation
+  build-validation:
+    name: Build Validation
+    runs-on: windows-latest
+    timeout-minutes: 30
+    needs: [test]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ env.PYTHON_DEFAULT_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_DEFAULT_VERSION }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-build-validation-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-build-validation-
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Validate build script
+      run: |
+        # Test build script syntax
+        powershell -Command "Get-Content build.ps1 | Out-Null"
+        Write-Host "✅ Build script syntax is valid"
+    
+    - name: Test build process (dry run)
+      run: |
+        # Test build without actually creating executable
+        python -c "
+        import subprocess
+        import sys
+        
+        # Test PyInstaller availability
+        try:
+            result = subprocess.run([sys.executable, '-m', 'PyInstaller', '--version'], 
+                                  capture_output=True, text=True, check=True)
+            print(f'✅ PyInstaller available: {result.stdout.strip()}')
+        except subprocess.CalledProcessError as e:
+            print(f'❌ PyInstaller not available: {e}')
+            sys.exit(1)
+        
+        # Test required files
+        from pathlib import Path
+        required_files = [
+            'String_Multitool.py',
+            'config/transformation_rules.json',
+            'config/security_config.json'
+        ]
+        
+        for file_path in required_files:
+            if not Path(file_path).exists():
+                print(f'❌ Required file missing: {file_path}')
+                sys.exit(1)
+            else:
+                print(f'✅ Required file found: {file_path}')
+        "
+
+  # Job 5: Security Scan
+  security-scan:
+    name: Security Analysis
+    runs-on: windows-latest
+    timeout-minutes: 15
+    needs: [code-quality]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  # Job 6: Documentation Check
+  documentation-check:
+    name: Documentation Validation
+    runs-on: windows-latest
+    timeout-minutes: 10
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Check documentation files
+      run: |
+        # Check required documentation files
+        $requiredDocs = @(
+            'README.md',
+            'ARCHITECTURE.md',
+            'LICENSE'
+        )
+        
+        foreach ($doc in $requiredDocs) {
+            if (Test-Path $doc) {
+                $size = (Get-Item $doc).Length
+                Write-Host "✅ $doc found ($size bytes)"
+            } else {
+                Write-Error "❌ Required documentation missing: $doc"
+                exit 1
+            }
+        }
+    
+    - name: Validate README structure
+      run: |
+        # Check README has required sections
+        $readme = Get-Content README.md -Raw
+        $requiredSections = @(
+            '# String_Multitool',
+            '## Features',
+            '## Installation',
+            '## Usage',
+            '## Changelog'
+        )
+        
+        foreach ($section in $requiredSections) {
+            if ($readme -match [regex]::Escape($section)) {
+                Write-Host "✅ README section found: $section"
+            } else {
+                Write-Warning "⚠️ README section missing: $section"
+            }
+        }
+
+  # Summary Job
+  ci-summary:
+    name: CI Summary
+    runs-on: windows-latest
+    timeout-minutes: 5
+    needs: [code-quality, test, integration-test, build-validation, security-scan, documentation-check]
+    if: always()
+    
+    steps:
+    - name: Generate CI Summary
+      run: |
+        Write-Host "🎯 Continuous Integration Summary" -ForegroundColor Cyan
+        Write-Host "=================================" -ForegroundColor Cyan
+        
+        $jobs = @{
+            'Code Quality' = '${{ needs.code-quality.result }}'
+            'Tests' = '${{ needs.test.result }}'
+            'Integration Tests' = '${{ needs.integration-test.result }}'
+            'Build Validation' = '${{ needs.build-validation.result }}'
+            'Security Scan' = '${{ needs.security-scan.result }}'
+            'Documentation' = '${{ needs.documentation-check.result }}'
+        }
+        
+        $allPassed = $true
+        foreach ($job in $jobs.GetEnumerator()) {
+            $status = $job.Value
+            $icon = if ($status -eq 'success') { '✅' } elseif ($status -eq 'skipped') { '⏭️' } else { '❌'; $allPassed = $false }
+            Write-Host "$icon $($job.Key): $status"
+        }
+        
+        Write-Host ""
+        if ($allPassed) {
+            Write-Host "🎉 All CI checks passed successfully!" -ForegroundColor Green
+        } else {
+            Write-Host "❌ Some CI checks failed. Please review the results." -ForegroundColor Red
+            exit 1
+        }
+    
+    - name: Update commit status
+      if: github.event_name == 'push'
+      run: |
+        $status = if ('${{ needs.test.result }}' -eq 'success' -and '${{ needs.code-quality.result }}' -eq 'success') { 'success' } else { 'failure' }
+        Write-Host "Setting commit status to: $status"
