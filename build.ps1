@@ -99,10 +99,10 @@ function Write-BuildLog {
     }
     
     $prefix = switch ($Level) {
-        "Info" { "ℹ️" }
-        "Success" { "✅" }
-        "Warning" { "⚠️" }
-        "Error" { "❌" }
+        "Info" { "[INFO]" }
+        "Success" { "[PASS]" }
+        "Warning" { "[WARN]" }
+        "Error" { "[FAIL]" }
     }
     
     Write-Host "[$timestamp] $prefix $Message" -ForegroundColor $colors[$Level]
@@ -338,22 +338,22 @@ function Show-BuildSummary {
     $zipFile = Join-Path $script:Config.OutputDir "$($script:Config.PortableDir).zip"
     $exeFile = Join-Path $outputDir "$($script:Config.AppName).exe"
     
-    Write-Host "📁 Output Directory: $outputDir" -ForegroundColor Cyan
-    Write-Host "📦 ZIP Package: $zipFile" -ForegroundColor Cyan
+    Write-Host "Output Directory: $outputDir" -ForegroundColor Cyan
+    Write-Host "ZIP Package: $zipFile" -ForegroundColor Cyan
     
     # Display file sizes
     if (Test-Path $exeFile) {
         $exeSize = [math]::Round((Get-Item $exeFile).Length / 1MB, 2)
-        Write-Host "📊 Executable Size: $exeSize MB" -ForegroundColor Cyan
+        Write-Host "Executable Size: $exeSize MB" -ForegroundColor Cyan
     }
     
     if (Test-Path $zipFile) {
         $zipSize = [math]::Round((Get-Item $zipFile).Length / 1MB, 2)
-        Write-Host "📊 ZIP Package Size: $zipSize MB" -ForegroundColor Cyan
+        Write-Host "ZIP Package Size: $zipSize MB" -ForegroundColor Cyan
     }
     
-    Write-Host "🎯 Build Version: $($script:Config.Version)" -ForegroundColor Cyan
-    Write-Host "⏱️  Build Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -ForegroundColor Cyan
+    Write-Host "Build Version: $($script:Config.Version)" -ForegroundColor Cyan
+    Write-Host "Build Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -ForegroundColor Cyan
 }
 
 #endregion
@@ -367,7 +367,7 @@ function Invoke-Build {
     $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
     
     try {
-        Write-Host "🚀 String_Multitool Enterprise Build System v2.0" -ForegroundColor Magenta
+        Write-Host "String_Multitool Enterprise Build System v2.0" -ForegroundColor Magenta
         Write-Host "=" * 60 -ForegroundColor Magenta
         
         # Execute build pipeline
@@ -388,7 +388,7 @@ function Invoke-Build {
         Write-BuildLog "Build completed successfully in $($stopwatch.Elapsed.TotalSeconds.ToString('F2')) seconds" -Level Success
         Show-BuildSummary
         
-        Write-Host "`n🎉 Ready for distribution!" -ForegroundColor Green
+        Write-Host "`nReady for distribution!" -ForegroundColor Green
     }
     catch {
         $stopwatch.Stop()

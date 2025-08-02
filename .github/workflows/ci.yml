@@ -20,6 +20,8 @@ on:
 env:
   PYTHON_DEFAULT_VERSION: '3.12'
   COVERAGE_THRESHOLD: 50
+  PYTHONIOENCODING: utf-8
+  PYTHONLEGACYWINDOWSSTDIO: utf-8
 
 jobs:
   # Job 1: Code Quality Checks
@@ -347,7 +349,7 @@ jobs:
       run: |
         # Test build script syntax
         powershell -Command "Get-Content build.ps1 | Out-Null"
-        Write-Host "✅ Build script syntax is valid"
+        Write-Host "[PASS] Build script syntax is valid"
     
     - name: Test build process (dry run)
       run: |
@@ -360,9 +362,9 @@ jobs:
         try:
             result = subprocess.run([sys.executable, '-m', 'PyInstaller', '--version'], 
                                   capture_output=True, text=True, check=True)
-            print('✅ PyInstaller available: {}'.format(result.stdout.strip()))
+            print('[PASS] PyInstaller available: {}'.format(result.stdout.strip()))
         except subprocess.CalledProcessError as e:
-            print('❌ PyInstaller not available: {}'.format(str(e)))
+            print('[FAIL] PyInstaller not available: {}'.format(str(e)))
             sys.exit(1)
         
         # Test required files
@@ -375,11 +377,13 @@ jobs:
         
         for file_path in required_files:
             if not Path(file_path).exists():
-                print('❌ Required file missing: {}'.format(file_path))
+                print('[FAIL] Required file missing: {}'.format(file_path))
                 sys.exit(1)
             else:
-                print('✅ Required file found: {}'.format(file_path))
+                print('[PASS] Required file found: {}'.format(file_path))
         "
+      env:
+        PYTHONIOENCODING: utf-8
 
   # Job 5: Security Scan
   security-scan:
@@ -442,9 +446,9 @@ jobs:
         foreach ($doc in $requiredDocs) {
             if (Test-Path $doc) {
                 $size = (Get-Item $doc).Length
-                Write-Host "✅ $doc found ($size bytes)"
+                Write-Host "[PASS] $doc found ($size bytes)"
             } else {
-                Write-Error "❌ Required documentation missing: $doc"
+                Write-Error "[FAIL] Required documentation missing: $doc"
                 exit 1
             }
         }
@@ -463,9 +467,9 @@ jobs:
         
         foreach ($section in $requiredSections) {
             if ($readme -match [regex]::Escape($section)) {
-                Write-Host "✅ README section found: $section"
+                Write-Host "[PASS] README section found: $section"
             } else {
-                Write-Warning "⚠️ README section missing: $section"
+                Write-Warning "[WARN] README section missing: $section"
             }
         }
 
