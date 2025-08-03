@@ -132,6 +132,7 @@ dmypy.json
 # IDE files
 .vscode/
 .idea/
+.kiro/
 *.swp
 *.swo
 *~
@@ -167,6 +168,10 @@ rsa/*
 logs/
 logs/*.log
 *.log
+
+# Daemon mode files
+daemon.pid
+*.pid
 
 # Application temporary files
 *.tmp
