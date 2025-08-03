@@ -198,10 +198,24 @@ python String_Multitool.py
 # 
 # Available commands: help, refresh, auto, status, clear, copy, commands, quit
 # Enter transformation rules (e.g., /t/l) or command:
-# Rules: /t/l
+# Note: Transformation rules will use the latest clipboard content
+# 
+# Rules: /u
+# [CLIPBOARD] Using fresh content: 'hello world' -> 'new text from clipboard'
 # ✅ Text copied to clipboard
-# Result: 'transformed text'
+# Result: 'NEW TEXT FROM CLIPBOARD'
 ```
+
+#### Dynamic Clipboard Processing
+
+The interactive mode automatically uses the **latest clipboard content** for each transformation:
+
+1. **Copy Text**: Copy "hello-world" to clipboard
+2. **Apply Rule**: Type `/u` → Result: "HELLO-WORLD"
+3. **Copy New Text**: Copy "test_string" to clipboard  
+4. **Apply Rule**: Type `/s` → Result: "test_string" (not "HELLO_WORLD")
+
+This allows seamless workflow without restarting the application for each new text.
 
 #### Interactive Commands
 
@@ -236,6 +250,65 @@ Rules: /t/s                  # Trim and convert to snake_case
 Rules: auto on               # Enable auto-detection
 Rules: status                # Check session status
 Rules: copy                  # Copy result back to clipboard
+```
+
+### Daemon Mode (Continuous Monitoring)
+
+For continuous clipboard monitoring and automatic transformation:
+
+```bash
+python String_Multitool.py --daemon
+```
+
+**Daemon Mode Workflow:**
+1. **Start Daemon Mode**: `python String_Multitool.py --daemon`
+2. **Set Transformation**: Choose a preset or custom rules
+3. **Start Monitoring**: Begin automatic clipboard processing
+4. **Copy Text**: Any text copied to clipboard gets automatically transformed
+5. **Continue Working**: Daemon runs in background until stopped
+
+**Example Daemon Session:**
+```bash
+python String_Multitool.py --daemon
+
+# Set transformation preset
+Daemon> preset uppercase
+[DAEMON] Preset 'uppercase' activated: /u
+
+# Start monitoring
+Daemon> start
+[DAEMON] Starting clipboard monitoring...
+[DAEMON] Active transformation: /u
+[DAEMON] Press Ctrl+C to stop
+
+# Now copy "hello world" to clipboard
+[DAEMON] Transformed: 'hello world' -> 'HELLO WORLD'
+
+# Copy "test-string" to clipboard  
+[DAEMON] Transformed: 'test-string' -> 'TEST-STRING'
+
+# Stop daemon
+Daemon> stop
+[DAEMON] Stopped after 0:02:15
+[DAEMON] Transformations applied: 2
+```
+
+**Available Presets:**
+- `uppercase`: Convert to UPPERCASE
+- `lowercase`: Convert to lowercase
+- `snake_case`: Convert to snake_case
+- `pascal_case`: Convert to PascalCase
+- `camel_case`: Convert to camelCase
+- `trim_lowercase`: Trim whitespace and convert to lowercase
+- `hyphen_to_underscore`: Convert hyphens to underscores
+
+**Custom Rules:**
+```bash
+# Set custom transformation rules
+Daemon> rules /t/l/s
+[DAEMON] Active rules set: /t/l/s
+
+# This will: trim -> lowercase -> snake_case
 ```
 
 ### File Processing

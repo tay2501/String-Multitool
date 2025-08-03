@@ -1345,6 +1345,296 @@ class CommandProcessor:
         )
 
 
+class DaemonMode:
+    """Daemon mode for continuous clipboard monitoring and transformation."""
+    
+    def __init__(self, config_manager: ConfigurationManager, transformation_engine: TextTransformationEngine):
+        """Initialize daemon mode.
+        
+        Args:
+            config_manager: Configuration manager instance
+            transformation_engine: Text transformation engine instance
+        """
+        self.config_manager = config_manager
+        self.transformation_engine = transformation_engine
+        self.io_manager = InputOutputManager()
+        
+        # Load daemon configuration
+        try:
+            daemon_config_path = Path("config/daemon_config.json")
+            if daemon_config_path.exists():
+                with open(daemon_config_path, 'r', encoding='utf-8') as f:
+                    self.daemon_config = json.load(f)
+            else:
+                self.daemon_config = self._get_default_daemon_config()
+        except Exception as e:
+            print(f"Warning: Could not load daemon config: {e}")
+            self.daemon_config = self._get_default_daemon_config()
+        
+        # Initialize state
+        self.is_running = False
+        self.last_clipboard_content = ""
+        self.active_rules = []
+        self.clipboard_monitor = None
+        self.stats = {
+            'transformations_applied': 0,
+            'start_time': None,
+            'last_transformation': None
+        }
+    
+    def _get_default_daemon_config(self) -> Dict[str, Any]:
+        """Get default daemon configuration."""
+        return {
+            "daemon_mode": {
+                "enabled": True,
+                "check_interval": 0.5,
+                "max_clipboard_size": 1048576
+            },
+            "auto_transformation": {
+                "enabled": True,
+                "default_rules": [],
+                "active_preset": "",
+                "custom_rules": []
+            },
+            "clipboard_monitoring": {
+                "enabled": True,
+                "ignore_empty": True,
+                "ignore_duplicates": True,
+                "min_length": 1,
+                "max_length": 10000
+            }
+        }
+    
+    def set_transformation_rules(self, rules: List[str]) -> None:
+        """Set active transformation rules.
+        
+        Args:
+            rules: List of transformation rule strings
+        """
+        self.active_rules = rules
+        print(f"[DAEMON] Active rules set: {' -> '.join(rules) if rules else 'None'}")
+    
+    def set_preset(self, preset_name: str) -> bool:
+        """Set transformation preset.
+        
+        Args:
+            preset_name: Name of the preset to activate
+            
+        Returns:
+            True if preset was set successfully, False otherwise
+        """
+        presets = self.daemon_config.get("auto_transformation", {}).get("rule_presets", {})
+        
+        if preset_name in presets:
+            preset_rules = presets[preset_name]
+            # Handle both string and list formats
+            if isinstance(preset_rules, str):
+                self.active_rules = [preset_rules]
+            else:
+                self.active_rules = preset_rules
+            
+            self.daemon_config["auto_transformation"]["active_preset"] = preset_name
+            print(f"[DAEMON] Preset '{preset_name}' activated: {' -> '.join(self.active_rules)}")
+            return True
+        else:
+            print(f"[DAEMON] Preset '{preset_name}' not found. Available: {list(presets.keys())}")
+            return False
+    
+    def start_monitoring(self) -> None:
+        """Start daemon monitoring in background thread."""
+        if self.is_running:
+            print("[DAEMON] Already running")
+            return
+        
+        if not CLIPBOARD_AVAILABLE:
+            print("[DAEMON] Error: Clipboard functionality not available")
+            return
+        
+        if not self.active_rules:
+            print("[DAEMON] No transformation rules set. Use 'preset' or 'rules' to configure.")
+            return
+        
+        self.is_running = True
+        self.stats['start_time'] = datetime.now()
+        
+        print(f"[DAEMON] Check interval: {self.daemon_config['daemon_mode']['check_interval']}s")
+        print(f"[DAEMON] Active transformation: {' -> '.join(self.active_rules)}")
+        
+        # Start monitoring in background thread
+        self.monitor_thread = threading.Thread(target=self._monitor_clipboard, daemon=True)
+        self.monitor_thread.start()
+    
+    def start(self) -> None:
+        """Start daemon mode (legacy method for compatibility)."""
+        if self.is_running:
+            print("[DAEMON] Already running")
+            return
+        
+        if not CLIPBOARD_AVAILABLE:
+            print("[DAEMON] Error: Clipboard functionality not available")
+            return
+        
+        self.is_running = True
+        self.stats['start_time'] = datetime.now()
+        
+        print("[DAEMON] Starting clipboard monitoring...")
+        print(f"[DAEMON] Check interval: {self.daemon_config['daemon_mode']['check_interval']}s")
+        
+        if self.active_rules:
+            print(f"[DAEMON] Active transformation: {' -> '.join(self.active_rules)}")
+        else:
+            print("[DAEMON] No transformation rules set. Use 'set_preset' or 'set_rules' to configure.")
+        
+        print("[DAEMON] Press Ctrl+C to stop")
+        print("-" * 50)
+        
+        try:
+            self._monitor_clipboard()
+        except KeyboardInterrupt:
+            self.stop()
+    
+    def stop(self) -> None:
+        """Stop daemon mode."""
+        if not self.is_running:
+            return
+        
+        self.is_running = False
+        
+        # Show statistics
+        if self.stats['start_time']:
+            runtime = datetime.now() - self.stats['start_time']
+            print(f"\n[DAEMON] Stopped after {runtime}")
+            print(f"[DAEMON] Transformations applied: {self.stats['transformations_applied']}")
+        
+        print("[DAEMON] Clipboard monitoring stopped")
+    
+    def _monitor_clipboard(self) -> None:
+        """Main clipboard monitoring loop."""
+        check_interval = self.daemon_config["daemon_mode"]["check_interval"]
+        
+        while self.is_running:
+            try:
+                current_content = self.io_manager.get_clipboard_text()
+                
+                if self._should_process_content(current_content):
+                    self._process_clipboard_content(current_content)
+                
+                # Use shorter sleep intervals for better responsiveness
+                for _ in range(int(check_interval * 10)):
+                    if not self.is_running:
+                        break
+                    time.sleep(0.1)
+                
+            except KeyboardInterrupt:
+                break
+            except Exception as e:
+                print(f"\r[DAEMON] Error monitoring clipboard: {e}", flush=True)
+                time.sleep(check_interval)
+    
+    def _should_process_content(self, content: str) -> bool:
+        """Check if clipboard content should be processed.
+        
+        Args:
+            content: Clipboard content to check
+            
+        Returns:
+            True if content should be processed, False otherwise
+        """
+        config = self.daemon_config["clipboard_monitoring"]
+        
+        # Check if monitoring is enabled
+        if not config.get("enabled", True):
+            return False
+        
+        # Check if we have active rules
+        if not self.active_rules:
+            return False
+        
+        # Check if content is different from last processed (both input and output)
+        if config.get("ignore_duplicates", True):
+            if content == self.last_clipboard_content:
+                return False
+            # Also check against the original content before transformation
+            if hasattr(self, '_last_input_content') and content == self._last_input_content:
+                return False
+        
+        # Check if content is empty
+        if config.get("ignore_empty", True) and not content.strip():
+            return False
+        
+        # Check content length
+        min_length = config.get("min_length", 1)
+        max_length = config.get("max_length", 10000)
+        
+        if len(content) < min_length or len(content) > max_length:
+            return False
+        
+        # Check ignore patterns
+        ignore_patterns = config.get("ignore_patterns", [])
+        for pattern in ignore_patterns:
+            if re.match(pattern, content):
+                return False
+        
+        return True
+    
+    def _process_clipboard_content(self, content: str) -> None:
+        """Process clipboard content with active transformation rules.
+        
+        Args:
+            content: Clipboard content to process
+        """
+        try:
+            # Apply transformation rules sequentially
+            result = content
+            for rule in self.active_rules:
+                result = self.transformation_engine.apply_transformations(result, rule)
+            
+            # Skip if transformation didn't change the content
+            if result == content:
+                return
+            
+            # Update clipboard with transformed content (silently)
+            try:
+                import pyperclip
+                pyperclip.copy(result)
+            except Exception:
+                pass  # Silently fail if clipboard update fails
+            
+            # Update statistics and state
+            self.stats['transformations_applied'] += 1
+            self.stats['last_transformation'] = datetime.now()
+            self.last_clipboard_content = result
+            
+            # Show transformation result (only when content actually changed)
+            display_input = content[:50] + "..." if len(content) > 50 else content
+            display_output = result[:50] + "..." if len(result) > 50 else result
+            
+            # Use \r to overwrite current line and avoid interfering with command input
+            print(f"\r[DAEMON] Transformed: '{display_input}' -> '{display_output}'", end='', flush=True)
+            print()  # Add newline after transformation message
+            
+        except Exception as e:
+            print(f"\r[DAEMON] Error processing content: {e}", flush=True)
+    
+    def get_status(self) -> Dict[str, Any]:
+        """Get daemon status information.
+        
+        Returns:
+            Dictionary containing status information
+        """
+        status = {
+            'running': self.is_running,
+            'active_rules': self.active_rules,
+            'active_preset': self.daemon_config.get("auto_transformation", {}).get("active_preset", ""),
+            'stats': self.stats.copy()
+        }
+        
+        if self.stats['start_time']:
+            status['runtime'] = str(datetime.now() - self.stats['start_time'])
+        
+        return status
+
+
 class ApplicationInterface:
     """Main application interface and user interaction handler."""
     
@@ -1353,6 +1643,7 @@ class ApplicationInterface:
         self.config_manager = ConfigurationManager()
         self.transformation_engine = TextTransformationEngine(self.config_manager)
         self.io_manager = InputOutputManager()
+        self.daemon_mode = DaemonMode(self.config_manager, self.transformation_engine)
     
     def display_help(self) -> None:
         """Display comprehensive help information."""
@@ -1365,6 +1656,7 @@ class ApplicationInterface:
         print("Usage:")
         print("  String_Multitool.py                    # Interactive mode (clipboard input)")
         print("  String_Multitool.py /t/l               # Apply trim + lowercase to clipboard")
+        print("  String_Multitool.py --daemon           # Daemon mode (continuous monitoring)")
         print("  echo 'text' | String_Multitool.py      # Interactive mode (pipe input)")
         print("  echo 'text' | String_Multitool.py /t/l # Apply trim + lowercase to piped text")
         print()
@@ -1413,6 +1705,15 @@ class ApplicationInterface:
             print(f"  • Keys Location: {rsa_config['key_directory']}/")
             print("  • Auto-generated on first use")
             print("  • Supports unlimited text size")
+        
+        print()
+        print("Daemon Mode:")
+        print("  String_Multitool.py --daemon")
+        print("  • Continuous clipboard monitoring")
+        print("  • Automatic transformation application")
+        print("  • Configurable transformation presets")
+        print("  • Background operation")
+        print("  • Real-time clipboard processing")
     
     def run_interactive_mode(self, input_text: str) -> None:
         """Run application in interactive mode with enhanced clipboard functionality.
@@ -1475,12 +1776,23 @@ class ApplicationInterface:
                     else:
                         # Handle transformation rules
                         try:
-                            # Handle decryption with fresh clipboard content
-                            if user_input.strip() == '/dec':
-                                fresh_content = self.io_manager.get_clipboard_text()
-                                session.update_working_text(fresh_content, "clipboard")
+                            # Always get fresh clipboard content for transformation rules
+                            # unless the input came from pipe initially
+                            if session.text_source != "pipe":
+                                try:
+                                    fresh_content = self.io_manager.get_clipboard_text()
+                                    # Show if clipboard content changed
+                                    if fresh_content != session.current_text:
+                                        old_display = session.current_text[:30] + "..." if len(session.current_text) > 30 else session.current_text
+                                        new_display = fresh_content[:30] + "..." if len(fresh_content) > 30 else fresh_content
+                                        print(f"[CLIPBOARD] Using fresh content: '{old_display}' -> '{new_display}'")
+                                    
+                                    session.update_working_text(fresh_content, "clipboard")
+                                except Exception as e:
+                                    print(f"Warning: Could not read clipboard: {e}")
+                                    print("Using current working text instead.")
                             
-                            # Apply transformations
+                            # Apply transformations to current working text
                             result = self.transformation_engine.apply_transformations(session.current_text, user_input)
                             self.io_manager.set_output_text(result)
                             
@@ -1527,6 +1839,8 @@ class ApplicationInterface:
         print()
         print("Available commands: help, refresh, auto, status, clear, copy, commands, quit")
         print("Enter transformation rules (e.g., /t/l) or command:")
+        if status.text_source == "clipboard":
+            print("Note: Transformation rules will use the latest clipboard content")
         print()
     
     def run_command_mode(self, rule_string: str) -> None:
@@ -1556,12 +1870,134 @@ class ApplicationInterface:
             print(f"❌ Error: {e}", file=sys.stderr)
             sys.exit(1)
     
+    def run_daemon_mode(self) -> None:
+        """Run application in daemon mode."""
+        print("String_Multitool - Daemon Mode")
+        print("=" * 40)
+        print("Continuous clipboard monitoring and transformation")
+        print()
+        
+        # Show available presets
+        daemon_config_path = Path("config/daemon_config.json")
+        if daemon_config_path.exists():
+            try:
+                with open(daemon_config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    presets = config.get("auto_transformation", {}).get("rule_presets", {})
+                    
+                    if presets:
+                        print("Available presets:")
+                        for name, rules in presets.items():
+                            if isinstance(rules, str):
+                                print(f"  {name}: {rules}")
+                            else:
+                                print(f"  {name}: {' -> '.join(rules)}")
+                        print()
+            except Exception:
+                pass
+        
+        print("Commands:")
+        print("  preset <name>     - Set transformation preset")
+        print("  rules <rules>     - Set custom transformation rules (e.g., '/t/l')")
+        print("  start             - Start daemon monitoring")
+        print("  stop              - Stop daemon monitoring")
+        print("  status            - Show daemon status")
+        print("  quit              - Exit daemon mode")
+        print()
+        
+        while True:
+            try:
+                try:
+                    user_input = input("Daemon> ").strip()
+                except EOFError:
+                    print("\nGoodbye!")
+                    break
+                
+                if not user_input:
+                    continue
+                
+                parts = user_input.split()
+                command = parts[0].lower()
+                
+                if command in ['quit', 'q', 'exit']:
+                    if self.daemon_mode.is_running:
+                        self.daemon_mode.stop()
+                    print("Goodbye!")
+                    break
+                
+                elif command == 'preset':
+                    if len(parts) < 2:
+                        print("Usage: preset <name>")
+                        continue
+                    
+                    preset_name = parts[1]
+                    self.daemon_mode.set_preset(preset_name)
+                
+                elif command == 'rules':
+                    if len(parts) < 2:
+                        print("Usage: rules <rule_string>")
+                        print("Example: rules /t/l")
+                        continue
+                    
+                    rule_string = ' '.join(parts[1:])
+                    try:
+                        # Validate rules by parsing them
+                        parsed_rules = self.transformation_engine.parse_rule_string(rule_string)
+                        rule_list = [rule_string]  # Store as single rule string for sequential application
+                        self.daemon_mode.set_transformation_rules(rule_list)
+                    except Exception as e:
+                        print(f"Error: Invalid rule string: {e}")
+                
+                elif command == 'start':
+                    if self.daemon_mode.is_running:
+                        print("[DAEMON] Already running")
+                    else:
+                        # Start daemon monitoring without blocking command input
+                        self.daemon_mode.start_monitoring()
+                        print("[DAEMON] Monitoring started in background")
+                
+                elif command == 'stop':
+                    self.daemon_mode.stop()
+                
+                elif command == 'status':
+                    status = self.daemon_mode.get_status()
+                    print(f"Status: {'Running' if status['running'] else 'Stopped'}")
+                    print(f"Active rules: {' -> '.join(status['active_rules']) if status['active_rules'] else 'None'}")
+                    print(f"Active preset: {status['active_preset'] or 'None'}")
+                    print(f"Transformations applied: {status['stats']['transformations_applied']}")
+                    if status.get('runtime'):
+                        print(f"Runtime: {status['runtime']}")
+                
+                elif command == 'help':
+                    print("Daemon Mode Commands:")
+                    print("  preset <name>     - Set transformation preset")
+                    print("  rules <rules>     - Set custom transformation rules")
+                    print("  start             - Start daemon monitoring")
+                    print("  stop              - Stop daemon monitoring")
+                    print("  status            - Show daemon status")
+                    print("  quit              - Exit daemon mode")
+                
+                else:
+                    print(f"Unknown command: {command}. Type 'help' for available commands.")
+                
+            except KeyboardInterrupt:
+                if self.daemon_mode.is_running:
+                    self.daemon_mode.stop()
+                print("\nGoodbye!")
+                break
+            except Exception as e:
+                print(f"Error: {e}")
+    
     def run(self) -> None:
         """Main application entry point."""
         # Parse command line arguments
         if len(sys.argv) > 1:
             if sys.argv[1] in ['-h', '--help', 'help']:
                 self.display_help()
+                return
+            
+            if sys.argv[1] in ['-d', '--daemon', 'daemon']:
+                self.run_daemon_mode()
                 return
             
             # Command mode - join all arguments to handle quoted strings

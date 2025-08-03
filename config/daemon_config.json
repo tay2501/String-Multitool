@@ -1,0 +1,50 @@
+{
+  "daemon_mode": {
+    "enabled": true,
+    "auto_start": false,
+    "check_interval": 1.0,
+    "max_clipboard_size": 1048576,
+    "log_level": "INFO",
+    "log_file": "logs/daemon.log",
+    "pid_file": "daemon.pid"
+  },
+  "auto_transformation": {
+    "enabled": true,
+    "default_rules": [],
+    "rule_presets": {
+      "uppercase": "/u",
+      "lowercase": "/l",
+      "snake_case": "/s",
+      "pascal_case": "/p",
+      "camel_case": "/c",
+      "trim_lowercase": "/t/l",
+      "hyphen_to_underscore": "/hu"
+    },
+    "active_preset": "",
+    "custom_rules": []
+  },
+  "clipboard_monitoring": {
+    "enabled": true,
+    "ignore_empty": true,
+    "ignore_duplicates": true,
+    "ignore_patterns": [
+      "^\\s*$",
+      "^https?://",
+      "^[a-fA-F0-9]{32,}$"
+    ],
+    "min_length": 1,
+    "max_length": 10000
+  },
+  "notifications": {
+    "enabled": true,
+    "show_transformations": true,
+    "show_errors": true,
+    "sound_enabled": false
+  },
+  "hotkeys": {
+    "enabled": false,
+    "toggle_daemon": "ctrl+shift+t",
+    "apply_preset": "ctrl+shift+a",
+    "show_status": "ctrl+shift+s"
+  }
+}
