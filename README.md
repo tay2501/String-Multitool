@@ -1,6 +1,21 @@
+<a href='https://ko-fi.com/Z8Z31J3LMW' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi6.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+
 # String_Multitool
 
 An advanced, enterprise-grade text transformation tool with modular architecture, configurable rules, and military-grade RSA encryption. Features pipe support, intuitive rule-based syntax, and extensible configuration system for professional development workflows.
+
+## Table of Contents
+
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Transformation Rules](#transformation-rules)
+- [Usage Examples](#usage-examples)
+- [Interactive Mode](#interactive-mode)
+  - [Auto-Detection Feature](#auto-detection-feature-detailed-guide)
+- [Daemon Mode](#daemon-mode-continuous-monitoring)
+- [Use Cases](#use-cases)
+- [Installation & Setup](#installation--setup)
+- [Development](#development)
 
 ## Features
 
@@ -11,6 +26,8 @@ An advanced, enterprise-grade text transformation tool with modular architecture
 - **Sequential Processing**: Chain multiple transformations (e.g., `/t/l/u`)
 - **Argument Support**: Advanced rules with parameters (e.g., `/r 'old' 'new'`)
 - **Clipboard Integration**: Automatically copies results to clipboard
+- **Auto-Detection**: Smart clipboard monitoring with notifications in interactive mode
+- **Daemon Mode**: Continuous background processing for automated workflows
 - **Cross-Platform**: Works on Windows, macOS, and Linux
 - **Unicode Support**: Full-width ↔ half-width character conversion for East Asian text
 
@@ -53,6 +70,17 @@ echo "  HELLO WORLD  " | python String_Multitool.py /t/l
 
 # File input with rules
 Get-Content file.txt | python String_Multitool.py /t/l
+
+# Interactive mode with auto-detection
+python String_Multitool.py
+Rules: auto on               # Enable clipboard monitoring
+Rules: /t/s                  # Set transformation rule
+# Copy text from any app → automatic notification → type 'refresh' to process
+
+# Daemon mode (fully automatic)
+python String_Multitool.py --daemon
+Daemon> rules /hu            # Set hyphen-to-underscore rule
+Daemon> start                # Start automatic processing
 ```
 
 ## Transformation Rules
@@ -251,6 +279,160 @@ Rules: auto on               # Enable auto-detection
 Rules: status                # Check session status
 Rules: copy                  # Copy result back to clipboard
 ```
+
+#### Auto-Detection Feature (Detailed Guide)
+
+Auto-detection is a powerful feature that **automatically monitors clipboard changes during interactive mode** and notifies you when new content is available.
+
+##### 🔍 What is Auto-Detection?
+
+Auto-detection monitors your clipboard in the background while you work in interactive mode. When new content is copied to the clipboard, it automatically notifies you, allowing for efficient batch processing of multiple text snippets.
+
+##### 📋 How It Works
+
+1. **Enable Monitoring**: Use `auto on` to start clipboard monitoring
+2. **Background Monitoring**: Checks clipboard every 1 second for changes
+3. **Automatic Notification**: Displays alert when new content is detected
+4. **Manual Processing**: Use `refresh` to load the new content when ready
+
+##### 🎯 When to Use Auto-Detection
+
+**Perfect for these scenarios:**
+
+**1. Batch Text Processing**
+```bash
+Rules: auto on               # Enable monitoring
+Rules: /t/s                  # Set transformation rule
+
+# Copy text from document → [CLIPBOARD CHANGED] notification
+Rules: refresh               # Load new content
+Rules: copy                  # Process and copy result
+# Repeat for next text snippet
+```
+
+**2. Code Review & Variable Naming**
+```bash
+Rules: auto on               # Start monitoring
+Rules: /p                    # PascalCase conversion
+
+# Copy variable names from IDE → automatic notification
+# Transform to consistent naming → copy back to IDE
+# Continue with next variable
+```
+
+**3. Document Formatting Workflow**
+```bash
+Rules: auto on               # Enable detection
+Rules: /t/l                  # Trim and lowercase
+
+# Copy text from Word/Email → notification appears
+# Apply formatting → paste back to document
+# Move to next section → copy → notification
+```
+
+##### ⚡ Auto-Detection vs Daemon Mode
+
+| Feature | Auto-Detection | Daemon Mode |
+|---------|----------------|-------------|
+| **Location** | Inside Interactive Mode | Separate Background Process |
+| **Control** | Manual processing after notification | Fully automatic transformation |
+| **Flexibility** | Change rules anytime | Fixed rules until restart |
+| **Use Case** | Interactive workflow | Set-and-forget automation |
+| **Processing** | On-demand with `refresh` | Immediate automatic processing |
+
+##### 🛠 Auto-Detection Commands
+
+```bash
+auto on          # Enable automatic clipboard monitoring
+auto off         # Disable monitoring
+auto             # Toggle current state
+status           # Check if monitoring is active
+refresh          # Load detected clipboard changes
+```
+
+##### 💡 Practical Examples
+
+**Example 1: API Response Formatting**
+```bash
+python String_Multitool.py
+Rules: auto on               # Start monitoring
+Rules: /t                    # Set trim rule
+
+# Copy JSON from Postman → [CLIPBOARD CHANGED] New content detected!
+Rules: refresh               # Load the JSON
+Rules: /p                    # Convert to PascalCase
+Rules: copy                  # Copy formatted result
+
+# Copy next API response → [CLIPBOARD CHANGED] notification
+Rules: refresh               # Process next response
+```
+
+**Example 2: Database Column Names**
+```bash
+Rules: auto on               # Enable monitoring
+Rules: /s                    # snake_case conversion
+
+# Copy "UserFirstName" from schema → notification
+Rules: refresh               # Load: "UserFirstName"
+# Result: "user_first_name"
+Rules: copy                  # Copy converted name
+
+# Copy "OrderCreatedDate" → notification
+Rules: refresh               # Load and convert automatically
+```
+
+**Example 3: Multi-Language Text Processing**
+```bash
+Rules: auto on               # Start monitoring
+Rules: /fh                   # Full-width to half-width
+
+# Copy Japanese text with full-width chars → notification
+Rules: refresh               # Load: "ＴＢＬ－ＣＨＡ１"
+# Result: "TBL-CHA1"
+Rules: copy                  # Copy normalized text
+```
+
+##### 🔧 Configuration Options
+
+Customize auto-detection behavior in `config/security_config.json`:
+
+```json
+{
+  "interactive_mode": {
+    "clipboard_refresh": {
+      "auto_detection_interval": 1.0,           // Check interval (seconds)
+      "enable_auto_detection_by_default": false, // Auto-enable on startup
+      "max_content_size": 1048576,              // Max clipboard size (1MB)
+      "show_character_count": true,             // Show char count in status
+      "show_timestamps": true                   // Show last update time
+    }
+  }
+}
+```
+
+##### 📊 Status Information
+
+Check auto-detection status anytime:
+
+```bash
+Rules: status
+# =============================================
+# Input text: 'your clipboard content...' (25 chars, from clipboard)
+# Auto-detection: ON                    ← Monitoring active
+# Monitor active: Yes                   ← Background monitoring running
+# Last updated: 2 seconds ago          ← Time since last clipboard change
+# =============================================
+```
+
+##### 🚀 Pro Tips
+
+1. **Efficient Workflow**: Enable auto-detection at the start of your session
+2. **Rule Changes**: Change transformation rules anytime while monitoring continues
+3. **Batch Processing**: Perfect for processing multiple similar text snippets
+4. **Resource Friendly**: Uses minimal system resources (1-second intervals)
+5. **Cross-Application**: Works with any application that uses system clipboard
+
+**Auto-detection makes interactive mode incredibly efficient for repetitive text processing tasks!**
 
 ### Daemon Mode (Continuous Monitoring)
 
