@@ -27,7 +27,7 @@ import secrets
 import time
 import threading
 from pathlib import Path
-from typing import List, Optional, Callable, Dict, Any, Tuple
+from typing import Callable, Any
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -57,7 +57,7 @@ except ImportError:
     CRYPTO_AVAILABLE = False
 
 
-@dataclass
+@dataclass(kw_only=True)
 class TransformationRule:
     """Data class representing a transformation rule."""
     name: str
@@ -65,10 +65,10 @@ class TransformationRule:
     example: str
     function: Callable[[str], str]
     requires_args: bool = False
-    default_args: List[str] = None
+    default_args: list[str] | None = None
 
 
-@dataclass
+@dataclass(kw_only=True)
 class SessionState:
     """Represents current interactive session state."""
     current_text: str
@@ -79,13 +79,13 @@ class SessionState:
     clipboard_monitor_active: bool
 
 
-@dataclass
+@dataclass(kw_only=True)
 class CommandResult:
     """Result of command processing."""
     success: bool
     message: str
     should_continue: bool = True
-    updated_text: Optional[str] = None
+    updated_text: str | None = None
 
 
 class ConfigurationManager:
@@ -101,7 +101,7 @@ class ConfigurationManager:
         self._transformation_rules = None
         self._security_config = None
     
-    def load_transformation_rules(self) -> Dict[str, Any]:
+    def load_transformation_rules(self) -> dict[str, Any]:
         """Load transformation rules from configuration file."""
         if self._transformation_rules is None:
             config_file = self.config_dir / "transformation_rules.json"
@@ -115,7 +115,7 @@ class ConfigurationManager:
         
         return self._transformation_rules
     
-    def load_security_config(self) -> Dict[str, Any]:
+    def load_security_config(self) -> dict[str, Any]:
         """Load security configuration from configuration file."""
         if self._security_config is None:
             config_file = self.config_dir / "security_config.json"
@@ -158,7 +158,7 @@ class CryptographyManager:
         """Ensure the key directory exists with proper permissions."""
         self.key_directory.mkdir(mode=0o700, exist_ok=True)
     
-    def _generate_key_pair(self) -> Tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
+    def _generate_key_pair(self) -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
         """Generate a new RSA key pair with enhanced security settings.
         
         Returns:
@@ -213,7 +213,7 @@ class CryptographyManager:
         print(f"   Private key: {self.private_key_path}")
         print(f"   Public key:  {self.public_key_path}")
     
-    def _load_key_pair(self) -> Tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
+    def _load_key_pair(self) -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
         """Load existing key pair from files.
         
         Returns:
@@ -237,7 +237,7 @@ class CryptographyManager:
         
         return private_key, public_key
     
-    def ensure_key_pair(self) -> Tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
+    def ensure_key_pair(self) -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
         """Ensure RSA key pair exists, create if not found.
         
         Returns:
@@ -617,7 +617,7 @@ class TextTransformationEngine:
             raise RuntimeError("Cryptography not available")
         return self.crypto_manager.decrypt_text(text)
     
-    def parse_rule_string(self, rule_string: str) -> List[Tuple[str, List[str]]]:
+    def parse_rule_string(self, rule_string: str) -> list[tuple[str, list[str]]]:
         """Parse rule string into list of (rule, arguments) tuples.
         
         Args:
@@ -691,7 +691,7 @@ class TextTransformationEngine:
         
         return result
     
-    def get_available_rules(self) -> Dict[str, TransformationRule]:
+    def get_available_rules(self) -> dict[str, TransformationRule]:
         """Get all available transformation rules.
         
         Returns:
@@ -719,7 +719,7 @@ class ClipboardMonitor:
         self.change_callback = None
         self.max_content_size = 1024 * 1024  # 1MB limit
     
-    def start_monitoring(self, change_callback: Optional[Callable[[str], None]] = None) -> None:
+    def start_monitoring(self, change_callback: Callable[[str], None] | None = None) -> None:
         """Start clipboard monitoring in background.
         
         Args:
@@ -1010,7 +1010,7 @@ class InteractiveSession:
         # We'll just store the notification for the main thread to handle
         pass
     
-    def check_clipboard_changes(self) -> Optional[str]:
+    def check_clipboard_changes(self) -> str | None:
         """Check for clipboard changes (for manual polling).
         
         Returns:
@@ -1382,7 +1382,7 @@ class DaemonMode:
             'last_transformation': None
         }
     
-    def _get_default_daemon_config(self) -> Dict[str, Any]:
+    def _get_default_daemon_config(self) -> dict[str, Any]:
         """Get default daemon configuration."""
         return {
             "daemon_mode": {
@@ -1405,7 +1405,7 @@ class DaemonMode:
             }
         }
     
-    def set_transformation_rules(self, rules: List[str]) -> None:
+    def set_transformation_rules(self, rules: list[str]) -> None:
         """Set active transformation rules.
         
         Args:
@@ -1616,7 +1616,7 @@ class DaemonMode:
         except Exception as e:
             print(f"\r[DAEMON] Error processing content: {e}", flush=True)
     
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get daemon status information.
         
         Returns:

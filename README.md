@@ -12,7 +12,7 @@ An advanced, enterprise-grade text transformation tool with modular architecture
 - **Argument Support**: Advanced rules with parameters (e.g., `/r 'old' 'new'`)
 - **Clipboard Integration**: Automatically copies results to clipboard
 - **Cross-Platform**: Works on Windows, macOS, and Linux
-- **Unicode Support**: Full-width ↔ half-width character conversion for Japanese text
+- **Unicode Support**: Full-width ↔ half-width character conversion for East Asian text
 
 ### Enterprise Features
 - **Modular Architecture**: Clean separation of concerns with dedicated managers
@@ -28,7 +28,7 @@ An advanced, enterprise-grade text transformation tool with modular architecture
 
 ```bash
 # Clone the repository
-git clone String-Multitool
+git clone <repository-url>
 cd String_Multitool
 
 # Install dependencies
@@ -90,13 +90,13 @@ Get-Content file.txt | python String_Multitool.py /t/l
 
 | Rule | Name | Example |
 |------|------|---------|
-| `/S '<replacement>'` | Slugify | `/S '+'` → `http://foo.bar` → `http+foo+bar` |
+| `/s '<replacement>'` | Slugify | `/s '+'` → `http://foo.bar` → `http+foo+bar` |
 | `/r '<find>' '<replace>'` | Replace | `/r 'old' 'new'` → `old text` → `new text` |
 | `/enc` | RSA Encrypt | `Secret message` → `Base64 encrypted text` |
 | `/dec` | RSA Decrypt | `Base64 encrypted text` → `Secret message` |
 
 **Default Arguments:**
-- `/S` (no argument) uses `-` as replacement
+- `/s` (no argument) uses `-` as replacement
 - `/r '<find>'` (no replacement) removes the substring
 
 ## Usage Examples
@@ -115,7 +115,7 @@ echo "The Quick Brown Fox" | python String_Multitool.py /s/u
 # Result: "THE_QUICK_BROWN_FOX"
 
 # Trim, slugify with plus, then uppercase
-echo "  hello world test  " | python String_Multitool.py /t/S/u
+echo "  hello world test  " | python String_Multitool.py /t/s/u
 # Result: "HELLO-WORLD-TEST"
 ```
 
@@ -123,7 +123,7 @@ echo "  hello world test  " | python String_Multitool.py /t/S/u
 
 ```bash
 # Slugify with custom replacement
-echo "http://foo.bar/baz" | python String_Multitool.py "/S '+'"
+echo "http://foo.bar/baz" | python String_Multitool.py "/s '+'"
 # Result: "http+foo+bar+baz"
 
 # Replace text
@@ -134,13 +134,13 @@ echo "I'm Will, Will's son" | python String_Multitool.py "/r 'Will' 'Bill'"
 echo "remove this text" | python String_Multitool.py "/r 'this'"
 # Result: "remove  text"
 
-# RSA Encryption with Japanese text support
-echo "秘密のメッセージ Secret message" | python String_Multitool.py "/enc"
+# RSA Encryption with Unicode text support
+echo "Secret message with Unicode 🔒" | python String_Multitool.py "/enc"
 # Result: Base64 encoded encrypted text (supports any text size)
 
 # RSA Decryption (assumes encrypted text is in clipboard)
 python String_Multitool.py "/dec"
-# Result: Original message with Japanese characters restored
+# Result: Original message with Unicode characters restored
 ```
 
 ### RSA Encryption/Decryption
@@ -156,7 +156,7 @@ The application includes RSA encryption capabilities with hybrid AES+RSA encrypt
 - **Hybrid Encryption**: Uses AES-256-CBC for data + RSA-4096 for key encryption
 - **Unlimited Size**: Can encrypt text of any length (no 190-byte RSA limit)
 - **Base64 Output**: Encrypted data is base64 encoded for safe text handling
-- **Japanese Support**: Full UTF-8 support for Japanese and other Unicode text
+- **Unicode Support**: Full UTF-8 support for Unicode text including East Asian characters
 
 **Security Features:**
 - RSA-4096 bit keys for military-grade security
@@ -173,7 +173,7 @@ The application includes RSA encryption capabilities with hybrid AES+RSA encrypt
 **Example Usage:**
 ```bash
 # Encrypt a message
-echo "機密データ Confidential data" | python String_Multitool.py "/enc"
+echo "Confidential data with Unicode 🔐" | python String_Multitool.py "/enc"
 # Output: Base64 encoded encrypted text
 
 # Decrypt (assumes encrypted text is in clipboard)
@@ -332,7 +332,7 @@ echo "user_profile_settings" | python String_Multitool.py /uh  # user-profile-se
 echo "user-profile-settings" | python String_Multitool.py /hu  # user_profile_settings
 ```
 
-### Japanese Text Processing
+### East Asian Text Processing
 ```bash
 # Convert full-width to half-width
 echo "ＴＢＬ－ＣＨＡ１" | python String_Multitool.py /fh  # TBL-CHA1
@@ -470,7 +470,8 @@ String_Multitool/
 ├── String_Multitool.py              # Main application with modular architecture
 ├── config/                          # Configuration files
 │   ├── transformation_rules.json    # Rule definitions and metadata
-│   └── security_config.json        # Security and encryption settings
+│   ├── security_config.json        # Security and encryption settings
+│   └── daemon_config.json          # Daemon mode configuration
 ├── rsa/                            # RSA key storage (auto-generated, git-ignored)
 │   ├── rsa                         # Private key (PEM format)
 │   └── rsa.pub                     # Public key (PEM format)
@@ -568,6 +569,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Added pipe support for stdin/stdout
 - Implemented sequential rule processing
 - Added argument support for advanced rules
-- Improved Unicode handling for Japanese text
+- Improved Unicode handling for East Asian text
 - Simplified command-line interface
 - Added comprehensive test suite
