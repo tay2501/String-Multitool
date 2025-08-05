@@ -918,7 +918,23 @@ class InteractiveSession:
         self.text_source = "clipboard"  # clipboard, pipe, manual
         self.last_update_time = datetime.now()
         self.clipboard_monitor = ClipboardMonitor(io_manager)
-        self.auto_detection_enabled = False
+        
+        # Load default auto-detection setting from config
+        try:
+            config_manager = ConfigurationManager()
+            security_config = config_manager.load_security_config()
+            default_auto_detection = security_config.get("interactive_mode", {}).get(
+                "clipboard_refresh", {}
+            ).get("enable_auto_detection_by_default", False)
+            self.auto_detection_enabled = default_auto_detection
+            
+            # Start monitoring if enabled by default
+            if self.auto_detection_enabled:
+                self.clipboard_monitor.start_monitoring(self._on_clipboard_change)
+        except Exception:
+            # Fallback to False if config loading fails
+            self.auto_detection_enabled = False
+            
         self.session_start_time = datetime.now()
     
     def initialize_with_text(self, text: str, source: str = "clipboard") -> None:

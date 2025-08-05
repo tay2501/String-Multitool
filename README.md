@@ -71,11 +71,11 @@ echo "  HELLO WORLD  " | python String_Multitool.py /t/l
 # File input with rules
 Get-Content file.txt | python String_Multitool.py /t/l
 
-# Interactive mode with auto-detection
+# Interactive mode with auto-detection (enabled by default)
 python String_Multitool.py
-Rules: auto on               # Enable clipboard monitoring
 Rules: /t/s                  # Set transformation rule
 # Copy text from any app → automatic notification → type 'refresh' to process
+# Use 'auto off' to disable monitoring if needed
 
 # Daemon mode (fully automatic)
 python String_Multitool.py --daemon
@@ -222,7 +222,7 @@ python String_Multitool.py
 # String_Multitool - Interactive Mode
 # =============================================
 # Input text: 'your clipboard content...' (25 chars, from clipboard)
-# Auto-detection: OFF
+# Auto-detection: ON
 # 
 # Available commands: help, refresh, auto, status, clear, copy, commands, quit
 # Enter transformation rules (e.g., /t/l) or command:
@@ -290,10 +290,11 @@ Auto-detection monitors your clipboard in the background while you work in inter
 
 ##### 📋 How It Works
 
-1. **Enable Monitoring**: Use `auto on` to start clipboard monitoring
+1. **Auto-Enabled**: Monitoring starts automatically when entering interactive mode
 2. **Background Monitoring**: Checks clipboard every 1 second for changes
 3. **Automatic Notification**: Displays alert when new content is detected
 4. **Manual Processing**: Use `refresh` to load the new content when ready
+5. **Optional Control**: Use `auto off` to disable monitoring if needed
 
 ##### 🎯 When to Use Auto-Detection
 
@@ -301,8 +302,7 @@ Auto-detection monitors your clipboard in the background while you work in inter
 
 **1. Batch Text Processing**
 ```bash
-Rules: auto on               # Enable monitoring
-Rules: /t/s                  # Set transformation rule
+Rules: /t/s                  # Set transformation rule (auto-detection already ON)
 
 # Copy text from document → [CLIPBOARD CHANGED] notification
 Rules: refresh               # Load new content
@@ -312,8 +312,7 @@ Rules: copy                  # Process and copy result
 
 **2. Code Review & Variable Naming**
 ```bash
-Rules: auto on               # Start monitoring
-Rules: /p                    # PascalCase conversion
+Rules: /p                    # PascalCase conversion (auto-detection already ON)
 
 # Copy variable names from IDE → automatic notification
 # Transform to consistent naming → copy back to IDE
@@ -322,8 +321,7 @@ Rules: /p                    # PascalCase conversion
 
 **3. Document Formatting Workflow**
 ```bash
-Rules: auto on               # Enable detection
-Rules: /t/l                  # Trim and lowercase
+Rules: /t/l                  # Trim and lowercase (auto-detection already ON)
 
 # Copy text from Word/Email → notification appears
 # Apply formatting → paste back to document
@@ -354,8 +352,7 @@ refresh          # Load detected clipboard changes
 
 **Example 1: API Response Formatting**
 ```bash
-python String_Multitool.py
-Rules: auto on               # Start monitoring
+python String_Multitool.py  # Auto-detection starts automatically
 Rules: /t                    # Set trim rule
 
 # Copy JSON from Postman → [CLIPBOARD CHANGED] New content detected!
@@ -369,8 +366,7 @@ Rules: refresh               # Process next response
 
 **Example 2: Database Column Names**
 ```bash
-Rules: auto on               # Enable monitoring
-Rules: /s                    # snake_case conversion
+Rules: /s                    # snake_case conversion (auto-detection already ON)
 
 # Copy "UserFirstName" from schema → notification
 Rules: refresh               # Load: "UserFirstName"
@@ -383,8 +379,7 @@ Rules: refresh               # Load and convert automatically
 
 **Example 3: Multi-Language Text Processing**
 ```bash
-Rules: auto on               # Start monitoring
-Rules: /fh                   # Full-width to half-width
+Rules: /fh                   # Full-width to half-width (auto-detection already ON)
 
 # Copy Japanese text with full-width chars → notification
 Rules: refresh               # Load: "ＴＢＬ－ＣＨＡ１"
@@ -401,7 +396,7 @@ Customize auto-detection behavior in `config/security_config.json`:
   "interactive_mode": {
     "clipboard_refresh": {
       "auto_detection_interval": 1.0,           // Check interval (seconds)
-      "enable_auto_detection_by_default": false, // Auto-enable on startup
+      "enable_auto_detection_by_default": true,  // Auto-enable on startup
       "max_content_size": 1048576,              // Max clipboard size (1MB)
       "show_character_count": true,             // Show char count in status
       "show_timestamps": true                   // Show last update time
@@ -426,11 +421,12 @@ Rules: status
 
 ##### 🚀 Pro Tips
 
-1. **Efficient Workflow**: Enable auto-detection at the start of your session
+1. **Efficient Workflow**: Auto-detection is enabled by default - just start using it!
 2. **Rule Changes**: Change transformation rules anytime while monitoring continues
 3. **Batch Processing**: Perfect for processing multiple similar text snippets
 4. **Resource Friendly**: Uses minimal system resources (1-second intervals)
 5. **Cross-Application**: Works with any application that uses system clipboard
+6. **Optional Control**: Use `auto off` to disable monitoring when not needed
 
 **Auto-detection makes interactive mode incredibly efficient for repetitive text processing tasks!**
 
