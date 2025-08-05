@@ -168,7 +168,7 @@ class TestInteractiveSession:
         """Test session initialization."""
         assert session.current_text == ""
         assert session.text_source == "clipboard"
-        assert not session.auto_detection_enabled
+        assert session.auto_detection_enabled  # Now defaults to True
     
     def test_update_working_text(self, session):
         """Test updating working text."""
@@ -185,7 +185,7 @@ class TestInteractiveSession:
         assert status.current_text == "test"
         assert status.text_source == "clipboard"
         assert status.character_count == 4
-        assert not status.auto_detection_enabled
+        assert status.auto_detection_enabled  # Now defaults to True
     
     @patch('String_Multitool.pyperclip')
     def test_refresh_from_clipboard(self, mock_pyperclip, session):
@@ -223,7 +223,7 @@ class TestCommandProcessor:
         mock_status = Mock()
         mock_status.character_count = 10
         mock_status.text_source = "clipboard"
-        mock_status.auto_detection_enabled = False
+        mock_status.auto_detection_enabled = True
         mock_status.clipboard_monitor_active = False
         
         processor.session.get_status_info.return_value = mock_status
@@ -463,7 +463,7 @@ def test_dataclass_structures():
         text_source="clipboard",
         last_update_time=datetime.now(),
         character_count=4,
-        auto_detection_enabled=False,
+        auto_detection_enabled=True,
         clipboard_monitor_active=False
     )
     assert state.current_text == "test"
