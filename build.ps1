@@ -30,7 +30,7 @@
 .NOTES
     Author: String_Multitool Development Team
     Version: 2.0.0
-    Requires: PowerShell 5.1+, Python 3.8+
+    Requires: PowerShell 5.1+, Python 3.10+
 #>
 
 [CmdletBinding()]

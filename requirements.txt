@@ -1,5 +1,6 @@
 # Core dependencies for String_Multitool
 # Minimum required packages for basic functionality
+# Requires Python 3.10 or higher
 
 # Clipboard operations (required for both manual and hotkey modes)
 pyperclip>=1.8.0

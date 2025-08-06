@@ -17,7 +17,7 @@ This directory contains the CI/CD pipeline workflows for String_Multitool, desig
 6. **Documentation Check** - Validate documentation completeness
 
 **Features:**
-- Matrix testing across Python 3.8-3.12
+- Matrix testing across Python 3.10-3.12
 - Code quality gates with configurable thresholds
 - Comprehensive test coverage reporting
 - Security vulnerability scanning

@@ -29,6 +29,7 @@ An advanced, enterprise-grade text transformation tool with modular architecture
 - **Auto-Detection**: Smart clipboard monitoring with notifications in interactive mode
 - **Daemon Mode**: Continuous background processing for automated workflows
 - **Cross-Platform**: Works on Windows, macOS, and Linux
+- **Modern Python**: Requires Python 3.10+ with latest language features
 - **Unicode Support**: Full-width ↔ half-width character conversion for East Asian text
 
 ### Enterprise Features
@@ -548,7 +549,7 @@ echo -e "A0001\nA0002\nA0003" | python String_Multitool.py /dlb
 
 ### Requirements
 
-- Python 3.6+
+- Python 3.10+
 - `pyperclip` library for clipboard operations
 
 ### Setup

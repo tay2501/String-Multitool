@@ -25,7 +25,7 @@ If applicable, add screenshots to help explain your problem.
 
 **Environment:**
  - OS: [e.g. Windows 11]
- - Python Version: [e.g. 3.11] (if running from source)
+ - Python Version: [e.g. 3.12] (if running from source)
  - Application Version: [e.g. 1.0.0]
  - Installation Method: [Portable executable / Python script]
 

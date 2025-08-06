@@ -14,8 +14,9 @@ Usage:
     String_Multitool.py /dec                     # Decrypt clipboard text with RSA
 
 Author: String_Multitool Development Team
-Version: 2.1.0
+Version: 2.2.0
 License: MIT
+Requires: Python 3.10+
 """
 
 import sys

@@ -6,7 +6,7 @@ Thank you for your interest in contributing to Clipboard Transformer! This docum
 
 ### Prerequisites
 
-- Python 3.8 or higher
+- Python 3.10 or higher
 - Git
 - Windows 10/11 (for testing)
 

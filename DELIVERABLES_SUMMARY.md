@@ -153,7 +153,7 @@ python manual_transform.py
 
 ### System Requirements
 - **OS**: Windows 10/11
-- **Python**: 3.8+ (for script mode)
+- **Python**: 3.10+ (for script mode)
 - **Memory**: <50MB RAM
 - **Storage**: <100MB disk space
 
