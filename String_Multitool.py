@@ -1759,7 +1759,13 @@ class ApplicationInterface:
                     if session.auto_detection_enabled:
                         new_content = session.check_clipboard_changes()
                         if new_content is not None and new_content != session.current_text:
+                            # Display clipboard content preview
+                            display_content = new_content[:100] + "..." if len(new_content) > 100 else new_content
+                            # Replace newlines with visible characters for better display
+                            display_content = display_content.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+                            
                             print(f"\n🔔 Clipboard changed! New content available ({len(new_content)} chars)")
+                            print(f"   Content: '{display_content}'")
                             print("   Type 'refresh' to load new content or continue with current text.")
                     
                     # Get user input
@@ -1853,6 +1859,23 @@ class ApplicationInterface:
         print("=" * 45)
         print(f"Input text: '{display_text}' ({status.character_count} chars, from {status.text_source})")
         print(f"Auto-detection: {'ON' if status.auto_detection_enabled else 'OFF'}")
+        
+        # Show full clipboard content if available at startup
+        if status.text_source == "clipboard" and session.current_text.strip():
+            print()
+            print("📋 Current clipboard content:")
+            # Display full content with proper formatting
+            full_content = session.current_text
+            if len(full_content) <= 200:
+                # Show full content for shorter text
+                formatted_content = full_content.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+                print(f"   '{formatted_content}'")
+            else:
+                # Show first 200 characters for longer text
+                preview = full_content[:200] + "..."
+                formatted_preview = preview.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+                print(f"   '{formatted_preview}'")
+        
         print()
         print("Available commands: help, refresh, auto, status, clear, copy, commands, quit")
         print("Enter transformation rules (e.g., /t/l) or command:")

@@ -22,7 +22,7 @@ An advanced, enterprise-grade text transformation tool with modular architecture
 ### Core Functionality
 - **Intuitive Syntax**: Use `/rule` format for transformations (e.g., `/t/l` for trim + lowercase)
 - **Pipe Support**: Works with stdin/stdout for seamless integration with shell commands
-- **Interactive Mode**: Prompt-based interface when no arguments provided
+- **Interactive Mode**: Prompt-based interface with startup clipboard content display
 - **Sequential Processing**: Chain multiple transformations (e.g., `/t/l/u`)
 - **Argument Support**: Advanced rules with parameters (e.g., `/r 'old' 'new'`)
 - **Clipboard Integration**: Automatically copies results to clipboard
@@ -224,7 +224,10 @@ python String_Multitool.py
 # =============================================
 # Input text: 'your clipboard content...' (25 chars, from clipboard)
 # Auto-detection: ON
-# 
+#
+# 📋 Current clipboard content:
+#    'your clipboard content here'
+#
 # Available commands: help, refresh, auto, status, clear, copy, commands, quit
 # Enter transformation rules (e.g., /t/l) or command:
 # Note: Transformation rules will use the latest clipboard content
@@ -292,10 +295,12 @@ Auto-detection monitors your clipboard in the background while you work in inter
 ##### 📋 How It Works
 
 1. **Auto-Enabled**: Monitoring starts automatically when entering interactive mode
-2. **Background Monitoring**: Checks clipboard every 1 second for changes
-3. **Automatic Notification**: Displays alert when new content is detected
-4. **Manual Processing**: Use `refresh` to load the new content when ready
-5. **Optional Control**: Use `auto off` to disable monitoring if needed
+2. **Startup Display**: Shows current clipboard content (up to 200 chars) at startup
+3. **Background Monitoring**: Checks clipboard every 1 second for changes
+4. **Smart Notification**: Displays alert with content preview when new content is detected
+5. **Content Preview**: Shows first 100 characters of new clipboard content
+6. **Manual Processing**: Use `refresh` to load the new content when ready
+7. **Optional Control**: Use `auto off` to disable monitoring if needed
 
 ##### 🎯 When to Use Auto-Detection
 
@@ -305,7 +310,8 @@ Auto-detection monitors your clipboard in the background while you work in inter
 ```bash
 Rules: /t/s                  # Set transformation rule (auto-detection already ON)
 
-# Copy text from document → [CLIPBOARD CHANGED] notification
+# Copy text from document → 🔔 Clipboard changed! New content available (25 chars)
+#                            Content: 'new text from document'
 Rules: refresh               # Load new content
 Rules: copy                  # Process and copy result
 # Repeat for next text snippet
@@ -315,7 +321,8 @@ Rules: copy                  # Process and copy result
 ```bash
 Rules: /p                    # PascalCase conversion (auto-detection already ON)
 
-# Copy variable names from IDE → automatic notification
+# Copy variable names from IDE → 🔔 Clipboard changed! New content available (15 chars)
+#                                Content: 'userFirstName'
 # Transform to consistent naming → copy back to IDE
 # Continue with next variable
 ```
@@ -324,9 +331,11 @@ Rules: /p                    # PascalCase conversion (auto-detection already ON)
 ```bash
 Rules: /t/l                  # Trim and lowercase (auto-detection already ON)
 
-# Copy text from Word/Email → notification appears
+# Copy text from Word/Email → 🔔 Clipboard changed! New content available (42 chars)
+#                              Content: '  IMPORTANT DOCUMENT SECTION TITLE  '
 # Apply formatting → paste back to document
-# Move to next section → copy → notification
+# Move to next section → copy → 🔔 Clipboard changed! New content available (28 chars)
+#                                Content: 'Next section content here'
 ```
 
 ##### ⚡ Auto-Detection vs Daemon Mode
@@ -356,12 +365,14 @@ refresh          # Load detected clipboard changes
 python String_Multitool.py  # Auto-detection starts automatically
 Rules: /t                    # Set trim rule
 
-# Copy JSON from Postman → [CLIPBOARD CHANGED] New content detected!
+# Copy JSON from Postman → 🔔 Clipboard changed! New content available (156 chars)
+#                          Content: '{"user": "john", "status": "active", "data": {...}}'
 Rules: refresh               # Load the JSON
 Rules: /p                    # Convert to PascalCase
 Rules: copy                  # Copy formatted result
 
-# Copy next API response → [CLIPBOARD CHANGED] notification
+# Copy next API response → 🔔 Clipboard changed! New content available (89 chars)
+#                           Content: '{"result": "success", "message": "Operation completed"}'
 Rules: refresh               # Process next response
 ```
 
@@ -369,12 +380,14 @@ Rules: refresh               # Process next response
 ```bash
 Rules: /s                    # snake_case conversion (auto-detection already ON)
 
-# Copy "UserFirstName" from schema → notification
+# Copy "UserFirstName" from schema → 🔔 Clipboard changed! New content available (13 chars)
+#                                    Content: 'UserFirstName'
 Rules: refresh               # Load: "UserFirstName"
 # Result: "user_first_name"
 Rules: copy                  # Copy converted name
 
-# Copy "OrderCreatedDate" → notification
+# Copy "OrderCreatedDate" → 🔔 Clipboard changed! New content available (16 chars)
+#                              Content: 'OrderCreatedDate'
 Rules: refresh               # Load and convert automatically
 ```
 
@@ -382,7 +395,8 @@ Rules: refresh               # Load and convert automatically
 ```bash
 Rules: /fh                   # Full-width to half-width (auto-detection already ON)
 
-# Copy Japanese text with full-width chars → notification
+# Copy Japanese text with full-width chars → 🔔 Clipboard changed! New content available (9 chars)
+#                                           Content: 'ＴＢＬ－ＣＨＡ１'
 Rules: refresh               # Load: "ＴＢＬ－ＣＨＡ１"
 # Result: "TBL-CHA1"
 Rules: copy                  # Copy normalized text
@@ -423,11 +437,12 @@ Rules: status
 ##### 🚀 Pro Tips
 
 1. **Efficient Workflow**: Auto-detection is enabled by default - just start using it!
-2. **Rule Changes**: Change transformation rules anytime while monitoring continues
-3. **Batch Processing**: Perfect for processing multiple similar text snippets
-4. **Resource Friendly**: Uses minimal system resources (1-second intervals)
-5. **Cross-Application**: Works with any application that uses system clipboard
-6. **Optional Control**: Use `auto off` to disable monitoring when not needed
+2. **Content Preview**: Notification shows first 100 characters of new clipboard content
+3. **Rule Changes**: Change transformation rules anytime while monitoring continues
+4. **Batch Processing**: Perfect for processing multiple similar text snippets
+5. **Resource Friendly**: Uses minimal system resources (1-second intervals)
+6. **Cross-Application**: Works with any application that uses system clipboard
+7. **Optional Control**: Use `auto off` to disable monitoring when not needed
 
 **Auto-detection makes interactive mode incredibly efficient for repetitive text processing tasks!**
 
