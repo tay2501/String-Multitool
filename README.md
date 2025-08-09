@@ -80,7 +80,7 @@ Rules: daemon                # Switch to daemon mode without restarting
 
 # Daemon mode (fully automatic)
 python String_Multitool.py --daemon
-Daemon> rules /hu            # Set hyphen-to-underscore rule
+Daemon> /hu                  # Set hyphen-to-underscore rule (shortcut)
 Daemon> start                # Start automatic processing
 Daemon> interactive          # Switch back to interactive mode
 ```
@@ -471,6 +471,10 @@ python String_Multitool.py --daemon
 Daemon> preset uppercase
 [DAEMON] Preset 'uppercase' activated: /u
 
+# Or set rules directly (shortcut)
+Daemon> /u
+[DAEMON] Active rules set: /u
+
 # Start monitoring
 Daemon> start
 [DAEMON] Starting clipboard monitoring...
@@ -500,8 +504,12 @@ Daemon> stop
 
 **Custom Rules:**
 ```bash
-# Set custom transformation rules
+# Set custom transformation rules (traditional way)
 Daemon> rules /t/l/s
+[DAEMON] Active rules set: /t/l/s
+
+# Set transformation rules directly (shortcut)
+Daemon> /t/l/s
 [DAEMON] Active rules set: /t/l/s
 
 # This will: trim -> lowercase -> snake_case
@@ -510,6 +518,7 @@ Daemon> rules /t/l/s
 **Daemon Commands:**
 - `preset <name>` - Set transformation preset
 - `rules <rules>` - Set custom transformation rules
+- `/rule` - Set transformation rule directly (shortcut)
 - `start` - Start daemon monitoring
 - `stop` - Stop daemon monitoring
 - `status` - Show daemon status

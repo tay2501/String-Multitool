@@ -1960,7 +1960,8 @@ class ApplicationInterface:
         
         print("Commands:")
         print("  preset <name>     - Set transformation preset")
-        print("  rules <rules>     - Set custom transformation rules (e.g., '/t/l')")
+        print("  rules <rules>     - Set custom transformation rules")
+        print("  /rule             - Set transformation rule directly (e.g., '/t/l')")
         print("  start             - Start daemon monitoring")
         print("  stop              - Stop daemon monitoring")
         print("  status            - Show daemon status")
@@ -1977,6 +1978,19 @@ class ApplicationInterface:
                     break
                 
                 if not user_input:
+                    continue
+                
+                # Check if input is a transformation rule (starts with /)
+                if user_input.startswith('/'):
+                    try:
+                        # Validate rules by parsing them
+                        parsed_rules = self.transformation_engine.parse_rule_string(user_input)
+                        rule_list = [user_input]  # Store as single rule string for sequential application
+                        # Set rules directly without duplicate logging
+                        self.daemon_mode.active_rules = rule_list
+                        print(f"[DAEMON] Active rules set: {user_input}")
+                    except Exception as e:
+                        print(f"Error: Invalid rule string: {e}")
                     continue
                 
                 parts = user_input.split()
@@ -2050,6 +2064,7 @@ class ApplicationInterface:
                     print("Daemon Mode Commands:")
                     print("  preset <name>     - Set transformation preset")
                     print("  rules <rules>     - Set custom transformation rules")
+                    print("  /rule             - Set transformation rule directly (e.g., '/t/l')")
                     print("  start             - Start daemon monitoring")
                     print("  stop              - Stop daemon monitoring")
                     print("  status            - Show daemon status")
