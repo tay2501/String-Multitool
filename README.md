@@ -76,12 +76,13 @@ Get-Content file.txt | python String_Multitool.py /t/l
 python String_Multitool.py
 Rules: /t/s                  # Set transformation rule
 # Copy text from any app → automatic notification → type 'refresh' to process
-# Use 'auto off' to disable monitoring if needed
+Rules: daemon                # Switch to daemon mode without restarting
 
 # Daemon mode (fully automatic)
 python String_Multitool.py --daemon
 Daemon> rules /hu            # Set hyphen-to-underscore rule
 Daemon> start                # Start automatic processing
+Daemon> interactive          # Switch back to interactive mode
 ```
 
 ## Transformation Rules
@@ -263,6 +264,7 @@ The interactive mode now supports powerful clipboard management commands:
 - `status` - Show detailed session information
 - `commands`, `cmd` - List all available commands
 - `help` - Show transformation rules
+- `daemon` - Switch to daemon mode
 - `quit`, `q`, `exit` - Exit application
 
 #### Dynamic Clipboard Workflow
@@ -504,6 +506,40 @@ Daemon> rules /t/l/s
 
 # This will: trim -> lowercase -> snake_case
 ```
+
+**Daemon Commands:**
+- `preset <name>` - Set transformation preset
+- `rules <rules>` - Set custom transformation rules
+- `start` - Start daemon monitoring
+- `stop` - Stop daemon monitoring
+- `status` - Show daemon status
+- `interactive` - Switch to interactive mode
+- `quit` - Exit daemon mode
+
+#### Mode Switching
+
+Seamlessly switch between interactive and daemon modes without restarting:
+
+```bash
+# Start in interactive mode
+python String_Multitool.py
+Rules: /u                    # Apply transformations
+Rules: daemon                # Switch to daemon mode
+
+# Now in daemon mode
+Daemon> rules /l             # Set lowercase rule
+Daemon> start                # Start monitoring
+Daemon> interactive          # Switch back to interactive mode
+
+# Back in interactive mode
+Rules: /s                    # Continue with transformations
+```
+
+**Benefits:**
+- **No Restart Required**: Switch modes instantly
+- **Preserve Context**: Current clipboard content is maintained
+- **Flexible Workflow**: Choose the right mode for each task
+- **Efficient**: No need to exit and restart the application
 
 ### File Processing
 

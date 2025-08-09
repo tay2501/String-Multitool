@@ -1106,6 +1106,7 @@ class CommandProcessor:
         'help': 'Show transformation rules',
         'h': 'Short alias for help',
         '?': 'Short alias for help',
+        'daemon': 'Switch to daemon mode',
         'quit': 'Exit application',
         'q': 'Short alias for quit',
         'exit': 'Exit application'
@@ -1189,6 +1190,9 @@ class CommandProcessor:
         
         if command.startswith('auto'):
             return self._handle_auto_command(command)
+        
+        if command == 'daemon':
+            return self._handle_daemon_command()
         
         # Unknown command
         return CommandResult(
@@ -1351,6 +1355,14 @@ class CommandProcessor:
         return CommandResult(
             success=True,
             message="\n".join(lines)
+        )
+    
+    def _handle_daemon_command(self) -> CommandResult:
+        """Handle daemon mode switch command."""
+        return CommandResult(
+            success=True,
+            message="SWITCH_TO_DAEMON",  # Special message to trigger daemon mode switch
+            should_continue=False  # Exit interactive mode to switch to daemon
         )
     
     def _handle_help_command(self) -> CommandResult:
@@ -1787,6 +1799,16 @@ class ApplicationInterface:
                             self.display_help()
                             continue
                         
+                        if result.message == "SWITCH_TO_DAEMON":
+                            print("🔄 Switching to daemon mode...")
+                            print("   Interactive mode will exit and daemon mode will start.")
+                            print()
+                            # Clean up interactive session
+                            session.cleanup()
+                            # Start daemon mode
+                            self.run_daemon_mode()
+                            return
+                        
                         print(result.message)
                         
                         if result.updated_text is not None:
@@ -1942,6 +1964,7 @@ class ApplicationInterface:
         print("  start             - Start daemon monitoring")
         print("  stop              - Stop daemon monitoring")
         print("  status            - Show daemon status")
+        print("  interactive       - Switch to interactive mode")
         print("  quit              - Exit daemon mode")
         print()
         
@@ -2007,6 +2030,21 @@ class ApplicationInterface:
                     print(f"Transformations applied: {status['stats']['transformations_applied']}")
                     if status.get('runtime'):
                         print(f"Runtime: {status['runtime']}")
+                
+                elif command == 'interactive':
+                    print("🔄 Switching to interactive mode...")
+                    print("   Daemon mode will exit and interactive mode will start.")
+                    print()
+                    # Stop daemon if running
+                    if self.daemon_mode.is_running:
+                        self.daemon_mode.stop()
+                    # Start interactive mode
+                    try:
+                        input_text = self.io_manager.get_input_text()
+                        self.run_interactive_mode(input_text)
+                    except Exception as e:
+                        print(f"❌ Error starting interactive mode: {e}")
+                    return
                 
                 elif command == 'help':
                     print("Daemon Mode Commands:")
