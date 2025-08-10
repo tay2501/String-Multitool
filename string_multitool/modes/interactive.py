@@ -5,6 +5,8 @@ This module provides interactive session management and command processing
 with comprehensive error handling and type safety.
 """
 
+from __future__ import annotations
+
 import time
 from datetime import datetime
 from typing import Any
@@ -43,19 +45,22 @@ class InteractiveSession:
         if transformation_engine is None:
             raise ValidationError("Transformation engine cannot be None")
         
-        self.io_manager = io_manager
-        self.transformation_engine = transformation_engine
-        self.current_text = ""
-        self.text_source = TextSource.CLIPBOARD
-        self.last_update_time = datetime.now()
-        self.clipboard_monitor = ClipboardMonitor(io_manager)
+        # Instance variable annotations following PEP 526
+        self.io_manager: IOManagerProtocol = io_manager
+        self.transformation_engine: TransformationEngineProtocol = transformation_engine
+        self.current_text: str = ""
+        self.text_source: TextSource = TextSource.CLIPBOARD
+        self.last_update_time: datetime = datetime.now()
+        self.clipboard_monitor: ClipboardMonitor = ClipboardMonitor(io_manager)
+        self.auto_detection_enabled: bool = False
+        self.session_start_time: datetime = datetime.now()
         
         # Load default auto-detection setting from config
         try:
             from ..core.config import ConfigurationManager
-            config_manager = ConfigurationManager()
-            security_config = config_manager.load_security_config()
-            default_auto_detection = security_config.get("interactive_mode", {}).get(
+            config_manager: ConfigurationManager = ConfigurationManager()
+            security_config: dict[str, Any] = config_manager.load_security_config()
+            default_auto_detection: bool = security_config.get("interactive_mode", {}).get(
                 "clipboard_refresh", {}
             ).get("enable_auto_detection_by_default", False)
             self.auto_detection_enabled = default_auto_detection
@@ -66,8 +71,6 @@ class InteractiveSession:
         except Exception:
             # Fallback to False if config loading fails
             self.auto_detection_enabled = False
-            
-        self.session_start_time = datetime.now()
     
     def initialize_with_text(self, text: str, source: str = "clipboard") -> None:
         """Initialize session with initial text.
@@ -86,7 +89,7 @@ class InteractiveSession:
             )
         
         try:
-            text_source = TextSource(source)
+            text_source: TextSource = TextSource(source)
         except ValueError as e:
             raise ValidationError(
                 f"Invalid text source: {source}",
@@ -220,15 +223,15 @@ class InteractiveSession:
             Formatted time string
         """
         delta = datetime.now() - self.last_update_time
-        total_seconds = int(delta.total_seconds())
+        total_seconds: int = int(delta.total_seconds())
         
         if total_seconds < 60:
             return f"{total_seconds} seconds ago"
         elif total_seconds < 3600:
-            minutes = total_seconds // 60
+            minutes: int = total_seconds // 60
             return f"{minutes} minute{'s' if minutes != 1 else ''} ago"
         else:
-            hours = total_seconds // 3600
+            hours: int = total_seconds // 3600
             return f"{hours} hour{'s' if hours != 1 else ''} ago"
     
     def cleanup(self) -> None:
@@ -289,7 +292,8 @@ class CommandProcessor:
         if session is None:
             raise ValidationError("Session cannot be None")
         
-        self.session = session
+        # Instance variable annotations following PEP 526
+        self.session: InteractiveSession = session
     
     def is_command(self, input_text: str) -> bool:
         """Check if input text is a command (not a transformation rule).
@@ -306,7 +310,7 @@ class CommandProcessor:
         input_text = input_text.strip().lower()
         
         # Check all known commands
-        all_commands = {**self.CLIPBOARD_COMMANDS, **self.SYSTEM_COMMANDS}
+        all_commands: dict[str, str] = {**self.CLIPBOARD_COMMANDS, **self.SYSTEM_COMMANDS}
         if input_text in all_commands:
             return True
         
@@ -390,9 +394,9 @@ class CommandProcessor:
     def _handle_refresh_command(self) -> CommandResult:
         """Handle clipboard refresh command."""
         try:
-            new_content = self.session.refresh_from_clipboard()
-            char_count = len(new_content)
-            display_text = new_content[:50] + "..." if len(new_content) > 50 else new_content
+            new_content: str = self.session.refresh_from_clipboard()
+            char_count: int = len(new_content)
+            display_text: str = new_content[:50] + "..." if len(new_content) > 50 else new_content
             
             return CommandResult(
                 success=True,
@@ -408,11 +412,11 @@ class CommandProcessor:
     def _handle_status_command(self) -> CommandResult:
         """Handle status command."""
         try:
-            status = self.session.get_status_info()
-            display_text = self.session.get_display_text(100)
-            time_since = self.session.get_time_since_update()
+            status: SessionState = self.session.get_status_info()
+            display_text: str = self.session.get_display_text(100)
+            time_since: str = self.session.get_time_since_update()
             
-            lines = [
+            lines: list[str] = [
                 "📊 Session Status:",
                 f"   Text: '{display_text}'",
                 f"   Length: {status.character_count} characters",
@@ -458,7 +462,7 @@ class CommandProcessor:
                 )
             
             self.session.io_manager.set_output_text(self.session.current_text)
-            char_count = len(self.session.current_text)
+            char_count: int = len(self.session.current_text)
             
             return CommandResult(
                 success=True,
@@ -474,15 +478,15 @@ class CommandProcessor:
     def _handle_auto_command(self, command: str) -> CommandResult:
         """Handle auto-detection command."""
         try:
-            parts = command.split()
+            parts: list[str] = command.split()
             
             if len(parts) == 1:
                 # Toggle auto-detection
-                current_status = self.session.get_status_info()
-                new_state = not current_status.auto_detection_enabled
+                current_status: SessionState = self.session.get_status_info()
+                new_state: bool = not current_status.auto_detection_enabled
             elif len(parts) == 2:
                 # Explicit on/off
-                arg = parts[1].lower()
+                arg: str = parts[1].lower()
                 if arg in ['on', 'true', '1', 'enable']:
                     new_state = True
                 elif arg in ['off', 'false', '0', 'disable']:
@@ -498,10 +502,10 @@ class CommandProcessor:
                     message="❌ Too many arguments. Use 'auto' or 'auto on/off'."
                 )
             
-            success = self.session.toggle_auto_detection(new_state)
+            success: bool = self.session.toggle_auto_detection(new_state)
             
             if success:
-                state_text = "enabled" if new_state else "disabled"
+                state_text: str = "enabled" if new_state else "disabled"
                 return CommandResult(
                     success=True,
                     message=f"✅ Auto-detection {state_text}."
@@ -520,7 +524,7 @@ class CommandProcessor:
     
     def _handle_commands_command(self) -> CommandResult:
         """Handle commands list command."""
-        lines = [
+        lines: list[str] = [
             "📋 Available Interactive Commands:",
             "",
             "Clipboard Operations:",

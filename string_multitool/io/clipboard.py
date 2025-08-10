@@ -5,12 +5,14 @@ This module provides clipboard change detection and monitoring
 capabilities for auto-detection functionality.
 """
 
+from __future__ import annotations
+
 import time
 import threading
 from typing import Callable
 
 from ..exceptions import ClipboardError, ValidationError
-from ..core.types import IOManagerProtocol
+from ..core.types import IOManagerProtocol, ThreadCallback
 
 
 class ClipboardMonitor:
@@ -32,16 +34,17 @@ class ClipboardMonitor:
         if io_manager is None:
             raise ValidationError("IO manager cannot be None")
         
-        self.io_manager = io_manager
-        self.is_monitoring = False
-        self.last_content = ""
-        self.check_interval = 1.0  # seconds
-        self.max_content_size = 1024 * 1024  # 1MB limit
+        # Instance variable annotations following PEP 526
+        self.io_manager: IOManagerProtocol = io_manager
+        self.is_monitoring: bool = False
+        self.last_content: str = ""
+        self.check_interval: float = 1.0  # seconds
+        self.max_content_size: int = 1024 * 1024  # 1MB limit
         self._monitor_thread: threading.Thread | None = None
-        self._stop_event = threading.Event()
-        self._change_callback: Callable[[str], None] | None = None
+        self._stop_event: threading.Event = threading.Event()
+        self._change_callback: ThreadCallback = None
     
-    def start_monitoring(self, change_callback: Callable[[str], None] | None = None) -> None:
+    def start_monitoring(self, change_callback: ThreadCallback = None) -> None:
         """Start clipboard monitoring in background.
         
         Args:

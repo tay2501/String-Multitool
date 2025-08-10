@@ -5,6 +5,8 @@ This module provides continuous clipboard monitoring and automatic
 transformation capabilities with comprehensive configuration support.
 """
 
+from __future__ import annotations
+
 import json
 import time
 import threading
@@ -14,6 +16,7 @@ from typing import Any
 
 from ..exceptions import ConfigurationError, ValidationError, TransformationError
 from ..core.types import TransformationEngineProtocol, ConfigManagerProtocol
+from ..io.manager import InputOutputManager
 
 
 class DaemonMode:
@@ -43,15 +46,20 @@ class DaemonMode:
         if config_manager is None:
             raise ValidationError("Config manager cannot be None")
         
-        self.transformation_engine = transformation_engine
-        self.config_manager = config_manager
-        
-        # Initialize state
-        self.is_running = False
-        self.last_clipboard_content = ""
+        # Instance variable annotations following PEP 526
+        self.transformation_engine: TransformationEngineProtocol = transformation_engine
+        self.config_manager: ConfigManagerProtocol = config_manager
+        self.is_running: bool = False
+        self.last_clipboard_content: str = ""
         self.active_rules: list[str] = []
         self.clipboard_monitor: threading.Thread | None = None
         self.active_preset: str | None = None
+        self.daemon_config: dict[str, Any] = {}
+        self.stats: dict[str, Any] = {
+            'transformations_applied': 0,
+            'start_time': None,
+            'last_transformation': None
+        }
         
         # Load daemon configuration
         try:
@@ -61,13 +69,6 @@ class DaemonMode:
                 f"Failed to load daemon configuration: {e}",
                 {"error_type": type(e).__name__}
             ) from e
-        
-        # Statistics
-        self.stats = {
-            'transformations_applied': 0,
-            'start_time': None,
-            'last_transformation': None
-        }
     
     def start_monitoring(self) -> None:
         """Start daemon monitoring in a separate thread.
@@ -183,16 +184,16 @@ class DaemonMode:
             raise ValidationError("Preset name cannot be empty")
         
         try:
-            presets = self.daemon_config.get("auto_transformation", {}).get("rule_presets", {})
+            presets: dict[str, Any] = self.daemon_config.get("auto_transformation", {}).get("rule_presets", {})
             
             if preset_name not in presets:
-                available_presets = list(presets.keys())
+                available_presets: list[str] = list(presets.keys())
                 raise ConfigurationError(
                     f"Unknown preset: {preset_name}",
                     {"preset_name": preset_name, "available_presets": available_presets}
                 )
             
-            preset_rules = presets[preset_name]
+            preset_rules: str | list[str] = presets[preset_name]
             if isinstance(preset_rules, str):
                 self.active_rules = [preset_rules]
             else:
@@ -216,7 +217,7 @@ class DaemonMode:
         Returns:
             Dictionary containing status information
         """
-        status = {
+        status: dict[str, Any] = {
             'running': self.is_running,
             'active_rules': self.active_rules.copy(),
             'active_preset': self.active_preset,
@@ -235,7 +236,7 @@ class DaemonMode:
         Returns:
             Daemon configuration dictionary
         """
-        daemon_config_path = Path("config/daemon_config.json")
+        daemon_config_path: Path = Path("config/daemon_config.json")
         
         if daemon_config_path.exists():
             try:
@@ -277,19 +278,19 @@ class DaemonMode:
     
     def _monitor_clipboard(self) -> None:
         """Main clipboard monitoring loop."""
-        check_interval = self.daemon_config["daemon_mode"]["check_interval"]
+        check_interval: float = self.daemon_config["daemon_mode"]["check_interval"]
         
         while self.is_running:
             try:
-                from ..io.manager import InputOutputManager
-                io_manager = InputOutputManager()
-                current_content = io_manager.get_clipboard_text()
+                io_manager: InputOutputManager = InputOutputManager()
+                current_content: str = io_manager.get_clipboard_text()
                 
                 if self._should_process_content(current_content):
                     self._process_clipboard_content(current_content)
                 
                 # Use shorter sleep intervals for better responsiveness
-                for _ in range(int(check_interval * 10)):
+                sleep_iterations: int = int(check_interval * 10)
+                for _ in range(sleep_iterations):
                     if not self.is_running:
                         break
                     time.sleep(0.1)
@@ -309,7 +310,7 @@ class DaemonMode:
         Returns:
             True if content should be processed, False otherwise
         """
-        config = self.daemon_config["clipboard_monitoring"]
+        config: dict[str, Any] = self.daemon_config["clipboard_monitoring"]
         
         # Check if monitoring is enabled
         if not config.get("enabled", True):
@@ -329,8 +330,8 @@ class DaemonMode:
             return False
         
         # Check content length
-        min_length = config.get("min_length", 1)
-        max_length = config.get("max_length", 10000)
+        min_length: int = config.get("min_length", 1)
+        max_length: int = config.get("max_length", 10000)
         
         if len(content) < min_length or len(content) > max_length:
             return False
@@ -345,7 +346,7 @@ class DaemonMode:
         """
         try:
             # Apply transformation rules sequentially
-            result = content
+            result: str = content
             for rule in self.active_rules:
                 result = self.transformation_engine.apply_transformations(result, rule)
             
@@ -366,8 +367,8 @@ class DaemonMode:
             self.last_clipboard_content = result
             
             # Show transformation result (only when content actually changed)
-            display_input = content[:50] + "..." if len(content) > 50 else content
-            display_output = result[:50] + "..." if len(result) > 50 else result
+            display_input: str = content[:50] + "..." if len(content) > 50 else content
+            display_output: str = result[:50] + "..." if len(result) > 50 else result
             
             # Use \r to overwrite current line and avoid interfering with command input
             print(f"\r[DAEMON] Transformed: '{display_input}' -> '{display_output}'", end='', flush=True)

@@ -4,15 +4,17 @@ Setup script for String_Multitool.
 """
 
 from setuptools import setup, find_packages
-import os
+from pathlib import Path
 
-# Read the contents of README file
-this_directory = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+# Read the contents of README file using pathlib
+this_directory = Path(__file__).parent.resolve()
+readme_path = this_directory / 'README.md'
+with open(readme_path, encoding='utf-8') as f:
     long_description = f.read()
 
-# Read requirements
-with open('requirements.txt') as f:
+# Read requirements using pathlib
+requirements_path = this_directory / 'requirements.txt'
+with open(requirements_path, encoding='utf-8') as f:
     requirements = [line.strip() for line in f if line.strip() and not line.startswith('#')]
 
 setup(

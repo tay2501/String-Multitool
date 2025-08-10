@@ -5,14 +5,18 @@ This module handles RSA encryption and decryption operations with
 enhanced security features and proper error handling.
 """
 
-import os
+from __future__ import annotations
+
 import base64
 import secrets
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+# Import logging utilities
+from ..utils.logger import get_logger, log_info, log_error, log_warning, log_debug
 
 from ..exceptions import CryptographyError, ConfigurationError
-from .types import ConfigurableComponent, CryptoManagerProtocol
+from .types import ConfigurableComponent, CryptoManagerProtocol, ConfigManagerProtocol
 
 try:
     from cryptography.hazmat.primitives import hashes, serialization
@@ -23,6 +27,12 @@ try:
 except ImportError:
     CRYPTOGRAPHY_AVAILABLE = False
 
+if TYPE_CHECKING:
+    from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
+else:
+    RSAPrivateKey = Any
+    RSAPublicKey = Any
+
 
 class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
     """Manages RSA encryption and decryption operations with enhanced security.
@@ -31,7 +41,7 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
     following cryptographic best practices.
     """
     
-    def __init__(self, config_manager) -> None:
+    def __init__(self, config_manager: ConfigManagerProtocol) -> None:
         """Initialize cryptography manager.
         
         Args:
@@ -50,10 +60,12 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
             security_config = config_manager.load_security_config()
             super().__init__(security_config)
             
-            self.rsa_config = security_config["rsa_encryption"]
-            self.key_directory = Path(self.rsa_config["key_directory"])
-            self.private_key_path = self.key_directory / self.rsa_config["private_key_file"]
-            self.public_key_path = self.key_directory / f"{self.rsa_config['private_key_file']}.pub"
+            # Instance variable annotations following PEP 526
+            self.config_manager: ConfigManagerProtocol = config_manager
+            self.rsa_config: dict[str, Any] = security_config["rsa_encryption"]
+            self.key_directory: Path = Path(self.rsa_config["key_directory"])
+            self.private_key_path: Path = self.key_directory / self.rsa_config["private_key_file"]
+            self.public_key_path: Path = self.key_directory / f"{self.rsa_config['private_key_file']}.pub"
             
         except KeyError as e:
             raise ConfigurationError(
@@ -118,11 +130,11 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
                 {"text_length": len(text), "error_type": type(e).__name__}
             ) from e
     
-    def decrypt_text(self, encrypted_text: str) -> str:
+    def decrypt_text(self, text: str) -> str:
         """Decrypt text using hybrid AES+RSA decryption.
         
         Args:
-            encrypted_text: Base64 encoded encrypted data
+            text: Base64 encoded encrypted data
             
         Returns:
             Decrypted text
@@ -131,11 +143,11 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
             CryptographyError: If decryption fails
         """
         try:
-            if not encrypted_text:
+            if not text:
                 raise CryptographyError("Cannot decrypt empty text")
             
             # Decode base64
-            combined_data = base64.b64decode(encrypted_text.encode('ascii'))
+            combined_data = base64.b64decode(text.encode('ascii'))
             
             # Extract components
             key_size = self.rsa_config["key_size"] // 8  # Convert bits to bytes
@@ -168,10 +180,10 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
         except Exception as e:
             raise CryptographyError(
                 f"Decryption failed: {e}",
-                {"encrypted_length": len(encrypted_text), "error_type": type(e).__name__}
+                {"encrypted_length": len(text), "error_type": type(e).__name__}
             ) from e
     
-    def ensure_key_pair(self) -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
+    def ensure_key_pair(self) -> tuple[RSAPrivateKey, RSAPublicKey]:
         """Ensure RSA key pair exists, create if not found.
         
         Returns:
@@ -192,7 +204,8 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
                     pass
             
             # Generate new key pair
-            print("Generating new RSA key pair...")
+            logger = get_logger(__name__)
+            log_info(logger, "Generating new RSA key pair...")
             return self._generate_key_pair()
             
         except Exception as e:
@@ -211,7 +224,7 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
                 {"directory": str(self.key_directory)}
             ) from e
     
-    def _generate_key_pair(self) -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
+    def _generate_key_pair(self) -> tuple[RSAPrivateKey, RSAPublicKey]:
         """Generate a new RSA key pair with enhanced security settings."""
         try:
             private_key = rsa.generate_private_key(
@@ -232,7 +245,7 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
                 {"key_size": self.rsa_config["key_size"]}
             ) from e
     
-    def _save_key_pair(self, private_key: rsa.RSAPrivateKey, public_key: rsa.RSAPublicKey) -> None:
+    def _save_key_pair(self, private_key: RSAPrivateKey, public_key: RSAPublicKey) -> None:
         """Save key pair to files with secure permissions."""
         try:
             # Serialize keys
@@ -254,17 +267,18 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
             with open(self.public_key_path, 'wb') as file:
                 file.write(public_pem)
             
-            # Set secure file permissions
+            # Set secure file permissions using pathlib
             try:
-                os.chmod(self.private_key_path, int(self.rsa_config["private_key_permissions"], 8))
-                os.chmod(self.public_key_path, int(self.rsa_config["public_key_permissions"], 8))
+                self.private_key_path.chmod(int(self.rsa_config["private_key_permissions"], 8))
+                self.public_key_path.chmod(int(self.rsa_config["public_key_permissions"], 8))
             except OSError:
                 # Windows doesn't support chmod the same way
                 pass
             
-            print(f"RSA key pair saved securely:")
-            print(f"   Private key: {self.private_key_path}")
-            print(f"   Public key:  {self.public_key_path}")
+            logger = get_logger(__name__)
+            log_info(logger, f"RSA key pair saved securely:")
+            log_info(logger, f"   Private key: {self.private_key_path}")
+            log_info(logger, f"   Public key:  {self.public_key_path}")
             
         except Exception as e:
             raise CryptographyError(
@@ -272,7 +286,7 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
                 {"private_path": str(self.private_key_path), "public_path": str(self.public_key_path)}
             ) from e
     
-    def _load_key_pair(self) -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
+    def _load_key_pair(self) -> tuple[RSAPrivateKey, RSAPublicKey]:
         """Load existing key pair from files."""
         try:
             with open(self.private_key_path, 'rb') as file:
@@ -283,15 +297,49 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
                 )
             
             with open(self.public_key_path, 'rb') as file:
-                public_key = serialization.load_pem_public_key(
+                public_key_data = serialization.load_pem_public_key(
                     file.read(),
                     backend=default_backend()
                 )
             
-            return private_key, public_key
+            # Ensure we have RSA keys
+            if not isinstance(private_key, rsa.RSAPrivateKey):
+                raise CryptographyError("Private key is not an RSA key")
+            if not isinstance(public_key_data, rsa.RSAPublicKey):
+                raise CryptographyError("Public key is not an RSA key")
+            
+            return private_key, public_key_data
             
         except Exception as e:
             raise CryptographyError(
                 f"Failed to load key pair: {e}",
                 {"private_path": str(self.private_key_path), "public_path": str(self.public_key_path)}
             ) from e
+    
+    def generate_key_pair(self) -> None:
+        """Generate new RSA key pair.
+        
+        Raises:
+            CryptographyError: If key generation fails
+        """
+        try:
+            self._generate_key_pair()
+        except Exception as e:
+            raise CryptographyError(
+                f"Key pair generation failed: {e}",
+                {"error_type": type(e).__name__}
+            ) from e
+    
+    def load_keys(self) -> bool:
+        """Load existing RSA key pair.
+        
+        Returns:
+            True if keys loaded successfully, False otherwise
+        """
+        try:
+            if self.private_key_path.exists() and self.public_key_path.exists():
+                self._load_key_pair()
+                return True
+            return False
+        except Exception:
+            return False

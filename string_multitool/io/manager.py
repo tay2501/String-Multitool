@@ -5,8 +5,13 @@ This module handles all input and output operations including
 clipboard access and pipe input detection.
 """
 
+from __future__ import annotations
+
 import sys
 from typing import Any
+
+# Import logging utilities
+from ..utils.logger import get_logger, log_info, log_error, log_warning, log_debug
 
 from ..exceptions import ClipboardError
 from ..core.types import IOManagerProtocol
@@ -24,6 +29,11 @@ class InputOutputManager:
     This class provides centralized I/O handling with proper error
     management and fallback mechanisms.
     """
+    
+    def __init__(self) -> None:
+        """Initialize the I/O manager."""
+        # Instance variable annotations following PEP 526
+        self.clipboard_available: bool = CLIPBOARD_AVAILABLE
     
     def get_input_text(self) -> str:
         """Get input text from the most appropriate source.
@@ -88,10 +98,29 @@ class InputOutputManager:
         
         try:
             pyperclip.copy(text)
-            print("✅ Text copied to clipboard")
+            logger = get_logger(__name__)
+            log_info(logger, "✅ Text copied to clipboard")
             
         except Exception as e:
             raise ClipboardError(
                 f"Error copying to clipboard: {e}",
                 {"text_length": len(text), "error_type": type(e).__name__}
             ) from e
+    
+    def get_pipe_input(self) -> str | None:
+        """Get input from pipe if available.
+        
+        Returns:
+            Piped input text or None if no pipe input
+        """
+        try:
+            if not sys.stdin.isatty():
+                # Input is piped
+                return sys.stdin.read().strip()
+            else:
+                # No pipe input available
+                return None
+                
+        except Exception:
+            # If there's any error reading from stdin, return None
+            return None

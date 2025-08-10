@@ -5,6 +5,8 @@ This module handles loading and validation of configuration files,
 providing type-safe access to application settings.
 """
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 from typing import Any
@@ -20,16 +22,20 @@ class ConfigurationManager(ConfigurableComponent[dict[str, Any]]):
     caching and validation capabilities.
     """
     
-    def __init__(self, config_dir: str = "config") -> None:
+    def __init__(self, config_dir: str | Path = "config") -> None:
         """Initialize configuration manager.
         
         Args:
-            config_dir: Directory containing configuration files
+            config_dir: Directory containing configuration files (str or Path)
             
         Raises:
             ConfigurationError: If config directory doesn't exist
         """
-        self.config_dir = Path(config_dir)
+        # Instance variable annotations following PEP 526
+        self.config_dir: Path = Path(config_dir) if not isinstance(config_dir, Path) else config_dir
+        self._transformation_rules: dict[str, Any] | None = None
+        self._security_config: dict[str, Any] | None = None
+        
         if not self.config_dir.exists():
             raise ConfigurationError(
                 f"Configuration directory not found: {config_dir}",
@@ -37,8 +43,6 @@ class ConfigurationManager(ConfigurableComponent[dict[str, Any]]):
             )
         
         super().__init__({})
-        self._transformation_rules: dict[str, Any] | None = None
-        self._security_config: dict[str, Any] | None = None
     
     def load_transformation_rules(self) -> dict[str, Any]:
         """Load transformation rules from configuration file.
@@ -89,7 +93,7 @@ class ConfigurationManager(ConfigurableComponent[dict[str, Any]]):
         """
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
-                data = json.load(file)
+                data: Any = json.load(file)
                 
             if not isinstance(data, dict):
                 raise ConfigurationError(

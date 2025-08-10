@@ -133,6 +133,8 @@ dmypy.json
 .vscode/
 .idea/
 .kiro/
+.claude/
+CLAUDE.md
 *.swp
 *.swo
 *~
@@ -147,13 +149,12 @@ ehthumbs.db
 Thumbs.db
 desktop.ini
 
-# Clipboard Transformer specific files
+# String_Multitool specific files
 # Personal configuration files (use .sample versions as templates)
-config/transformations.json
-config/transformations.json.bak
 config/*_personal.json
 config/*_local.json
 config/*_user.json
+config/*.json.bak
 
 # RSA encryption keys (NEVER commit these!)
 rsa/
@@ -232,9 +233,7 @@ __pycache__.bak/
 
 # IDE workspace files
 *.code-workspace
-.vscode/settings.json
-.vscode/launch.json
-.vscode/tasks.json
+# Note: .vscode/settings.json is tracked for Python interpreter configuration
 
 # macOS specific
 .AppleDouble
@@ -253,3 +252,76 @@ $RECYCLE.BIN/
 *.msm
 *.msp
 *.lnk
+
+# Python 3.13+ specific files
+*.pyi
+*.pth
+.Python.bak
+Lib/
+Scripts/
+
+# Modern Python development tools
+.ruff_cache/
+.black/
+.isort.cfg.bak
+setup.cfg.bak
+pyproject.toml.bak
+
+# Jupyter Lab and modern notebook files
+.jupyter/
+.lab/
+*.ipynb_checkpoints/
+.voila/
+
+# Modern package managers
+poetry.lock.bak
+Pipfile.bak
+requirements*.txt.bak
+uv.lock
+pdm.lock
+
+# Type checking
+.pyright/
+.pylsp/
+pyrightconfig.json.bak
+# Note: pyrightconfig.json is tracked for Pylance configuration
+
+# AI/ML related (commonly used with modern Python projects)
+.wandb/
+mlruns/
+.neptune/
+models/
+checkpoints/
+
+# User interaction history files (as requested)
+# These files contain AI-user communication logs
+claude_conversation_*.md
+claude_session_*.json
+ai_interaction_log.txt
+conversation_history.md
+chat_history_*.txt
+session_*.log
+user_ai_communication.md
+development_notes_*.md
+
+# Modern CI/CD files
+.github/workflows/*.yml.bak
+.gitlab-ci.yml.bak
+azure-pipelines.yml.bak
+.circleci/config.yml.bak
+
+# Container and deployment
+.devcontainer/
+.dockerignore.bak
+Dockerfile.bak
+docker-compose*.yml.bak
+
+# Security scanning results
+.bandit
+.safety
+.semgrep/
+
+# Performance profiling
+.prof
+*.pstats
+.benchmark/

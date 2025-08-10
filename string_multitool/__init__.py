@@ -5,6 +5,8 @@ A powerful command-line text transformation tool with intuitive rule-based synta
 pipe support, and secure RSA encryption capabilities.
 """
 
+from __future__ import annotations
+
 from .exceptions import (
     StringMultitoolError,
     ConfigurationError,

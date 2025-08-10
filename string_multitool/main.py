@@ -5,10 +5,15 @@ This module provides the primary application interface and coordinates
 all components to deliver the complete functionality.
 """
 
+from __future__ import annotations
+
 import sys
 import json
 from pathlib import Path
 from typing import Any
+
+# Import logging utilities
+from .utils.logger import get_logger, log_info, log_error, log_warning, log_debug
 
 from .exceptions import (
     StringMultitoolError, ConfigurationError, TransformationError,
@@ -17,7 +22,7 @@ from .exceptions import (
 from .core.config import ConfigurationManager
 from .core.crypto import CryptographyManager
 from .core.transformations import TextTransformationEngine
-from .core.types import TextSource
+from .core.types import TextSource, CommandResult, TransformationRuleType
 from .io.manager import InputOutputManager
 from .modes.interactive import InteractiveSession, CommandProcessor
 from .modes.daemon import DaemonMode
@@ -37,21 +42,23 @@ class ApplicationInterface:
             ConfigurationError: If initialization fails
         """
         try:
-            # Initialize core components
-            self.config_manager = ConfigurationManager()
-            self.io_manager = InputOutputManager()
-            self.transformation_engine = TextTransformationEngine(self.config_manager)
+            # Initialize core components with explicit type annotations
+            self.config_manager: ConfigurationManager = ConfigurationManager()
+            self.io_manager: InputOutputManager = InputOutputManager()
+            self.transformation_engine: TextTransformationEngine = TextTransformationEngine(self.config_manager)
             
             # Initialize cryptography manager (optional)
+            self.crypto_manager: CryptographyManager | None
             try:
                 self.crypto_manager = CryptographyManager(self.config_manager)
                 self.transformation_engine.set_crypto_manager(self.crypto_manager)
             except CryptographyError as e:
-                print(f"Warning: Cryptography not available: {e}")
+                logger = get_logger(__name__)
+                log_warning(logger, f"Cryptography not available: {e}")
                 self.crypto_manager = None
             
-            # Initialize daemon mode
-            self.daemon_mode = DaemonMode(self.transformation_engine, self.config_manager)
+            # Initialize daemon mode with explicit type annotation
+            self.daemon_mode: DaemonMode = DaemonMode(self.transformation_engine, self.config_manager)
             
         except Exception as e:
             raise ConfigurationError(
@@ -70,11 +77,11 @@ class ApplicationInterface:
         """
         try:
             # Create interactive session
-            session = InteractiveSession(self.io_manager, self.transformation_engine)
-            command_processor = CommandProcessor(session)
+            session: InteractiveSession = InteractiveSession(self.io_manager, self.transformation_engine)
+            command_processor: CommandProcessor = CommandProcessor(session)
             
             # Initialize session with input text
-            text_source = "pipe" if not sys.stdin.isatty() else "clipboard"
+            text_source: str = "pipe" if not sys.stdin.isatty() else "clipboard"
             session.initialize_with_text(input_text, text_source)
             
             # Display initial status
@@ -85,47 +92,52 @@ class ApplicationInterface:
                 try:
                     # Check for clipboard changes if auto-detection is enabled
                     if session.auto_detection_enabled:
-                        new_content = session.check_clipboard_changes()
+                        new_content: str | None = session.check_clipboard_changes()
                         if new_content is not None and new_content != session.current_text:
                             # Display clipboard content preview
-                            display_content = new_content[:100] + "..." if len(new_content) > 100 else new_content
+                            display_content: str = new_content[:100] + "..." if len(new_content) > 100 else new_content
                             # Replace newlines with visible characters for better display
                             display_content = display_content.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
                             
-                            print(f"\n🔔 Clipboard changed! New content available ({len(new_content)} chars)")
-                            print(f"   Content: '{display_content}'")
-                            print("   Type 'refresh' to load new content or continue with current text.")
+                            logger = get_logger(__name__)
+                            log_info(logger, f"\n🔔 Clipboard changed! New content available ({len(new_content)} chars)")
+                            log_info(logger, f"   Content: '{display_content}'")
+                            log_info(logger, "   Type 'refresh' to load new content or continue with current text.")
                     
                     # Get user input
                     try:
-                        user_input = input("Rules: ").strip()
+                        user_input: str = input("Rules: ").strip()
                     except EOFError:
-                        print("\nGoodbye!")
+                        logger = get_logger(__name__)
+                        log_info(logger, "\nGoodbye!")
                         break
                     
                     if not user_input:
-                        print("Please enter a rule, command, or 'help'")
+                        logger = get_logger(__name__)
+                        log_info(logger, "Please enter a rule, command, or 'help'")
                         continue
                     
                     # Process command or transformation rule
                     if command_processor.is_command(user_input):
-                        result = command_processor.process_command(user_input)
+                        result: CommandResult = command_processor.process_command(user_input)
                         
                         if result.message == "SHOW_HELP":
                             self.display_help()
                             continue
                         
                         if result.message == "SWITCH_TO_DAEMON":
-                            print("🔄 Switching to daemon mode...")
-                            print("   Interactive mode will exit and daemon mode will start.")
-                            print()
+                            logger = get_logger(__name__)
+                            log_info(logger, "🔄 Switching to daemon mode...")
+                            log_info(logger, "   Interactive mode will exit and daemon mode will start.")
+                            log_info(logger, "")
                             # Clean up interactive session
                             session.cleanup()
                             # Start daemon mode
                             self.run_daemon_mode()
                             return
                         
-                        print(result.message)
+                        logger = get_logger(__name__)
+                        log_info(logger, result.message)
                         
                         if result.updated_text is not None:
                             # Text was updated by command
@@ -139,42 +151,48 @@ class ApplicationInterface:
                         try:
                             # Always get fresh clipboard content for transformation rules
                             # unless the input came from pipe initially
-                            if session.text_source != "pipe":
+                            if session.text_source != TextSource.PIPE:
                                 try:
-                                    fresh_content = self.io_manager.get_clipboard_text()
+                                    fresh_content: str = self.io_manager.get_clipboard_text()
                                     # Show if clipboard content changed
                                     if fresh_content != session.current_text:
-                                        display_old = session.current_text[:30] + "..." if len(session.current_text) > 30 else session.current_text
-                                        display_new = fresh_content[:30] + "..." if len(fresh_content) > 30 else fresh_content
-                                        print(f"[CLIPBOARD] Using fresh content: '{display_old}' -> '{display_new}'")
+                                        display_old: str = session.current_text[:30] + "..." if len(session.current_text) > 30 else session.current_text
+                                        display_new: str = fresh_content[:30] + "..." if len(fresh_content) > 30 else fresh_content
+                                        logger = get_logger(__name__)
+                                        log_info(logger, f"[CLIPBOARD] Using fresh content: '{display_old}' -> '{display_new}'")
                                         session.update_working_text(fresh_content, "clipboard")
                                 except Exception:
                                     # If clipboard access fails, use current text
                                     pass
                             
                             # Apply transformation
-                            result = self.transformation_engine.apply_transformations(
+                            transformation_result: str = self.transformation_engine.apply_transformations(
                                 session.current_text, user_input
                             )
                             
                             # Copy result to clipboard
-                            self.io_manager.set_output_text(result)
+                            self.io_manager.set_output_text(transformation_result)
                             
                             # Display result
-                            display_result = result[:100] + "..." if len(result) > 100 else result
-                            print(f"Result: '{display_result}'")
-                            print("✅ Transformation completed successfully!")
+                            display_result: str = transformation_result[:100] + "..." if len(transformation_result) > 100 else transformation_result
+                            logger = get_logger(__name__)
+                            log_info(logger, f"Result: '{display_result}'")
+                            log_info(logger, "✅ Transformation completed successfully!")
                             
                         except (ValidationError, TransformationError) as e:
-                            print(f"❌ Transformation error: {e}")
+                            logger = get_logger(__name__)
+                            log_error(logger, f"❌ Transformation error: {e}")
                         except Exception as e:
-                            print(f"❌ Unexpected error: {e}")
+                            logger = get_logger(__name__)
+                            log_error(logger, f"❌ Unexpected error: {e}")
                 
                 except KeyboardInterrupt:
-                    print("\nGoodbye!")
+                    logger = get_logger(__name__)
+                    log_info(logger, "\nGoodbye!")
                     break
                 except Exception as e:
-                    print(f"❌ Error: {e}")
+                    logger = get_logger(__name__)
+                    log_error(logger, f"❌ Error: {e}")
             
             # Cleanup
             session.cleanup()
@@ -196,25 +214,28 @@ class ApplicationInterface:
         """
         try:
             # Get input text
-            input_text = self.io_manager.get_input_text()
+            input_text: str = self.io_manager.get_input_text()
             
             # Apply transformations
-            result = self.transformation_engine.apply_transformations(input_text, rule_string)
+            result: str = self.transformation_engine.apply_transformations(input_text, rule_string)
             
             # Output result
             self.io_manager.set_output_text(result)
             
             # Display applied rules and result for user feedback
-            display_result = result[:100] + "..." if len(result) > 100 else result
-            print(f"Applied: {rule_string}")
-            print(f"Result: '{display_result}'")
-            print("✅ Transformation completed successfully!")
+            display_result: str = result[:100] + "..." if len(result) > 100 else result
+            logger = get_logger(__name__)
+            log_info(logger, f"Applied: {rule_string}")
+            log_info(logger, f"Result: '{display_result}'")
+            log_info(logger, "✅ Transformation completed successfully!")
             
         except (ValidationError, TransformationError, ClipboardError) as e:
-            print(f"❌ Error: {e}", file=sys.stderr)
+            logger = get_logger(__name__)
+            log_error(logger, f"❌ Error: {e}")
             sys.exit(1)
         except Exception as e:
-            print(f"❌ Unexpected error: {e}", file=sys.stderr)
+            logger = get_logger(__name__)
+            log_error(logger, f"❌ Unexpected error: {e}")
             sys.exit(1)
     
     def run_daemon_mode(self) -> None:
@@ -224,47 +245,51 @@ class ApplicationInterface:
             StringMultitoolError: If daemon mode fails
         """
         try:
-            print("String_Multitool - Daemon Mode")
-            print("=" * 40)
-            print("Continuous clipboard monitoring and transformation")
-            print()
+            logger = get_logger(__name__)
+            log_info(logger, "String_Multitool - Daemon Mode")
+            log_info(logger, "=" * 40)
+            log_info(logger, "Continuous clipboard monitoring and transformation")
+            log_info(logger, "")
             
             # Show available presets
-            daemon_config_path = Path("config/daemon_config.json")
+            daemon_config_path: Path = Path("config/daemon_config.json")
             if daemon_config_path.exists():
                 try:
                     with open(daemon_config_path, 'r', encoding='utf-8') as f:
-                        config = json.load(f)
-                        presets = config.get("auto_transformation", {}).get("rule_presets", {})
+                        config: dict[str, Any] = json.load(f)
+                        presets: dict[str, Any] = config.get("auto_transformation", {}).get("rule_presets", {})
                         
                         if presets:
-                            print("Available presets:")
+                            logger = get_logger(__name__)
+                            log_info(logger, "Available presets:")
                             for name, rules in presets.items():
                                 if isinstance(rules, str):
-                                    print(f"  {name}: {rules}")
+                                    log_info(logger, f"  {name}: {rules}")
                                 else:
-                                    print(f"  {name}: {' -> '.join(rules)}")
-                            print()
+                                    log_info(logger, f"  {name}: {' -> '.join(rules)}")
+                            log_info(logger, "")
                 except Exception:
                     pass
             
-            print("Commands:")
-            print("  preset <n>     - Set transformation preset")
-            print("  rules <rules>     - Set custom transformation rules")
-            print("  /rule             - Set transformation rule directly (e.g., '/t/l')")
-            print("  start             - Start daemon monitoring")
-            print("  stop              - Stop daemon monitoring")
-            print("  status            - Show daemon status")
-            print("  interactive       - Switch to interactive mode")
-            print("  quit              - Exit daemon mode")
-            print()
+            logger = get_logger(__name__)
+            log_info(logger, "Commands:")
+            log_info(logger, "  preset <n>     - Set transformation preset")
+            log_info(logger, "  rules <rules>     - Set custom transformation rules")
+            log_info(logger, "  /rule             - Set transformation rule directly (e.g., '/t/l')")
+            log_info(logger, "  start             - Start daemon monitoring")
+            log_info(logger, "  stop              - Stop daemon monitoring")
+            log_info(logger, "  status            - Show daemon status")
+            log_info(logger, "  interactive       - Switch to interactive mode")
+            log_info(logger, "  quit              - Exit daemon mode")
+            log_info(logger, "")
             
             while True:
                 try:
                     try:
-                        user_input = input("Daemon> ").strip()
+                        user_input: str = input("Daemon> ").strip()
                     except EOFError:
-                        print("\nGoodbye!")
+                        logger = get_logger(__name__)
+                        log_info(logger, "\nGoodbye!")
                         break
                     
                     if not user_input:
@@ -274,114 +299,132 @@ class ApplicationInterface:
                     if user_input.startswith('/'):
                         try:
                             # Validate rules by parsing them
-                            parsed_rules = self.transformation_engine.parse_rule_string(user_input)
-                            rule_list = [user_input]  # Store as single rule string for sequential application
+                            # parsed_rules: list[tuple[str, list[str]]] = self.transformation_engine.parse_rule_string(user_input)
+                            rule_list: list[str] = [user_input]  # Store as single rule string for sequential application
                             # Set rules directly without duplicate logging
                             self.daemon_mode.active_rules = rule_list
-                            print(f"[DAEMON] Active rules set: {user_input}")
+                            logger = get_logger(__name__)
+                            log_info(logger, f"[DAEMON] Active rules set: {user_input}")
                         except Exception as e:
-                            print(f"Error: Invalid rule string: {e}")
+                            logger = get_logger(__name__)
+                            log_error(logger, f"Error: Invalid rule string: {e}")
                         continue
                     
-                    parts = user_input.split()
-                    command = parts[0].lower()
+                    parts: list[str] = user_input.split()
+                    command: str = parts[0].lower()
                     
                     if command in ['quit', 'q', 'exit']:
                         if self.daemon_mode.is_running:
                             self.daemon_mode.stop()
-                        print("Goodbye!")
+                        logger = get_logger(__name__)
+                        log_info(logger, "Goodbye!")
                         break
                     
                     elif command == 'preset':
                         if len(parts) < 2:
-                            print("Usage: preset <n>")
+                            logger = get_logger(__name__)
+                            log_info(logger, "Usage: preset <n>")
                             continue
                         
-                        preset_name = parts[1]
+                        preset_name: str = parts[1]
                         try:
                             self.daemon_mode.set_preset(preset_name)
                         except (ValidationError, ConfigurationError) as e:
-                            print(f"Error: {e}")
+                            logger = get_logger(__name__)
+                            log_error(logger, f"Error: {e}")
                     
                     elif command == 'rules':
                         if len(parts) < 2:
-                            print("Usage: rules <rule_string>")
-                            print("Example: rules /t/l")
+                            logger = get_logger(__name__)
+                            log_info(logger, "Usage: rules <rule_string>")
+                            log_info(logger, "Example: rules /t/l")
                             continue
                         
-                        rule_string = ' '.join(parts[1:])
+                        rule_string: str = ' '.join(parts[1:])
                         try:
                             # Validate rules by parsing them
-                            parsed_rules = self.transformation_engine.parse_rule_string(rule_string)
-                            rule_list = [rule_string]  # Store as single rule string for sequential application
-                            self.daemon_mode.set_transformation_rules(rule_list)
+                            # parsed_daemon_rules: list[tuple[str, list[str]]] = self.transformation_engine.parse_rule_string(rule_string)
+                            daemon_rule_list: list[str] = [rule_string]  # Store as single rule string for sequential application
+                            self.daemon_mode.set_transformation_rules(daemon_rule_list)
                         except Exception as e:
-                            print(f"Error: Invalid rule string: {e}")
+                            logger = get_logger(__name__)
+                            log_error(logger, f"Error: Invalid rule string: {e}")
                     
                     elif command == 'start':
                         try:
                             if self.daemon_mode.is_running:
-                                print("[DAEMON] Already running")
+                                logger = get_logger(__name__)
+                                log_info(logger, "[DAEMON] Already running")
                             else:
                                 # Start daemon monitoring without blocking command input
                                 self.daemon_mode.start_monitoring()
-                                print("[DAEMON] Check interval: 1.0s")
-                                print(f"[DAEMON] Active transformation: {' -> '.join(self.daemon_mode.active_rules)}")
-                                print("[DAEMON] Monitoring started in background")
+                                logger = get_logger(__name__)
+                                log_info(logger, "[DAEMON] Check interval: 1.0s")
+                                log_info(logger, f"[DAEMON] Active transformation: {' -> '.join(self.daemon_mode.active_rules)}")
+                                log_info(logger, "[DAEMON] Monitoring started in background")
                         except (ValidationError, TransformationError) as e:
-                            print(f"Error: {e}")
+                            logger = get_logger(__name__)
+                            log_error(logger, f"Error: {e}")
                     
                     elif command == 'stop':
                         try:
                             self.daemon_mode.stop()
                         except TransformationError as e:
-                            print(f"Error: {e}")
+                            logger = get_logger(__name__)
+                            log_error(logger, f"Error: {e}")
                     
                     elif command == 'status':
-                        status = self.daemon_mode.get_status()
-                        print(f"Status: {'Running' if status['running'] else 'Stopped'}")
-                        print(f"Active rules: {' -> '.join(status['active_rules']) if status['active_rules'] else 'None'}")
-                        print(f"Active preset: {status['active_preset'] or 'None'}")
-                        print(f"Transformations applied: {status['stats']['transformations_applied']}")
+                        status: dict[str, Any] = self.daemon_mode.get_status()
+                        logger = get_logger(__name__)
+                        log_info(logger, f"Status: {'Running' if status['running'] else 'Stopped'}")
+                        log_info(logger, f"Active rules: {' -> '.join(status['active_rules']) if status['active_rules'] else 'None'}")
+                        log_info(logger, f"Active preset: {status['active_preset'] or 'None'}")
+                        log_info(logger, f"Transformations applied: {status['stats']['transformations_applied']}")
                         if status.get('runtime'):
-                            print(f"Runtime: {status['runtime']}")
+                            log_info(logger, f"Runtime: {status['runtime']}")
                     
                     elif command == 'interactive':
-                        print("🔄 Switching to interactive mode...")
-                        print("   Daemon mode will exit and interactive mode will start.")
-                        print()
+                        logger = get_logger(__name__)
+                        log_info(logger, "🔄 Switching to interactive mode...")
+                        log_info(logger, "   Daemon mode will exit and interactive mode will start.")
+                        log_info(logger, "")
                         # Stop daemon if running
                         if self.daemon_mode.is_running:
                             self.daemon_mode.stop()
                         # Start interactive mode
                         try:
-                            input_text = self.io_manager.get_input_text()
+                            input_text: str = self.io_manager.get_input_text()
                             self.run_interactive_mode(input_text)
                         except Exception as e:
-                            print(f"❌ Error starting interactive mode: {e}")
+                            logger = get_logger(__name__)
+                            log_error(logger, f"❌ Error starting interactive mode: {e}")
                         return
                     
                     elif command == 'help':
-                        print("Daemon Mode Commands:")
-                        print("  preset <n>     - Set transformation preset")
-                        print("  rules <rules>     - Set custom transformation rules")
-                        print("  /rule             - Set transformation rule directly (e.g., '/t/l')")
-                        print("  start             - Start daemon monitoring")
-                        print("  stop              - Stop daemon monitoring")
-                        print("  status            - Show daemon status")
-                        print("  interactive       - Switch to interactive mode")
-                        print("  quit              - Exit daemon mode")
+                        logger = get_logger(__name__)
+                        log_info(logger, "Daemon Mode Commands:")
+                        log_info(logger, "  preset <n>     - Set transformation preset")
+                        log_info(logger, "  rules <rules>     - Set custom transformation rules")
+                        log_info(logger, "  /rule             - Set transformation rule directly (e.g., '/t/l')")
+                        log_info(logger, "  start             - Start daemon monitoring")
+                        log_info(logger, "  stop              - Stop daemon monitoring")
+                        log_info(logger, "  status            - Show daemon status")
+                        log_info(logger, "  interactive       - Switch to interactive mode")
+                        log_info(logger, "  quit              - Exit daemon mode")
                     
                     else:
-                        print(f"Unknown command: {command}. Type 'help' for available commands.")
+                        logger = get_logger(__name__)
+                        log_info(logger, f"Unknown command: {command}. Type 'help' for available commands.")
                     
                 except KeyboardInterrupt:
                     if self.daemon_mode.is_running:
                         self.daemon_mode.stop()
-                    print("\nGoodbye!")
+                    logger = get_logger(__name__)
+                    log_info(logger, "\nGoodbye!")
                     break
                 except Exception as e:
-                    print(f"Error: {e}")
+                    logger = get_logger(__name__)
+                    log_error(logger, f"Error: {e}")
                     
         except Exception as e:
             raise StringMultitoolError(
@@ -392,26 +435,25 @@ class ApplicationInterface:
     def display_help(self) -> None:
         """Display comprehensive help information."""
         try:
-            available_rules = self.transformation_engine.get_available_rules()
-            rules_config = self.config_manager.load_transformation_rules()
+            available_rules: dict[str, Any] = self.transformation_engine.get_available_rules()
+            # rules_config: dict[str, Any] = self.config_manager.load_transformation_rules()
             
-            print("String_Multitool - Advanced Text Transformation Tool")
-            print("=" * 55)
-            print()
-            print("Usage:")
-            print("  String_Multitool.py                    # Interactive mode (clipboard input)")
-            print("  String_Multitool.py /t/l               # Apply trim + lowercase to clipboard")
-            print("  String_Multitool.py --daemon           # Daemon mode (continuous monitoring)")
-            print("  echo 'text' | String_Multitool.py      # Interactive mode (pipe input)")
-            print("  echo 'text' | String_Multitool.py /t/l # Apply trim + lowercase to piped text")
-            print()
-            print("Available Transformation Rules:")
-            print("-" * 35)
+            logger = get_logger(__name__)
+            log_info(logger, "String_Multitool - Advanced Text Transformation Tool")
+            log_info(logger, "=" * 55)
+            log_info(logger, "")
+            log_info(logger, "Usage:")
+            log_info(logger, "  String_Multitool.py                    # Interactive mode (clipboard input)")
+            log_info(logger, "  String_Multitool.py /t/l               # Apply trim + lowercase to clipboard")
+            log_info(logger, "  String_Multitool.py --daemon           # Daemon mode (continuous monitoring)")
+            log_info(logger, "  echo 'text' | String_Multitool.py      # Interactive mode (pipe input)")
+            log_info(logger, "  echo 'text' | String_Multitool.py /t/l # Apply trim + lowercase to piped text")
+            log_info(logger, "")
+            log_info(logger, "Available Transformation Rules:")
+            log_info(logger, "-" * 35)
             
             # Display rules by category
-            from .core.types import TransformationRuleType
-            
-            category_display_names = {
+            category_display_names: dict[TransformationRuleType, str] = {
                 TransformationRuleType.BASIC: "Basic Transformations",
                 TransformationRuleType.CASE: "Case Transformations", 
                 TransformationRuleType.STRING_OPS: "String Operations",
@@ -420,92 +462,95 @@ class ApplicationInterface:
             }
             
             # Group rules by category
-            rules_by_category = {}
+            rules_by_category: dict[Any, list[tuple[str, Any]]] = {}
             for rule_key, rule in available_rules.items():
-                category = rule.rule_type
+                category: Any = rule.rule_type
                 if category not in rules_by_category:
                     rules_by_category[category] = []
                 rules_by_category[category].append((rule_key, rule))
             
             # Display each category
             for category, rules in rules_by_category.items():
-                category_name = category_display_names.get(category, str(category))
-                print(f"\n{category_name}:")
+                category_name: str = category_display_names.get(category, str(category))
+                log_info(logger, f"\n{category_name}:")
                 
                 for rule_key, rule in rules:
                     if rule.requires_args:
-                        print(f"  /{rule_key} '<args>' - {rule.name}")
+                        log_info(logger, f"  /{rule_key} '<args>' - {rule.name}")
                     else:
-                        print(f"  /{rule_key} - {rule.name}")
-                    print(f"    Example: {rule.example}")
+                        log_info(logger, f"  /{rule_key} - {rule.name}")
+                    log_info(logger, f"    Example: {rule.example}")
             
-            print()
-            print("Usage Examples:")
-            print("  /t                        # Trim whitespace")
-            print("  /t/l                      # Trim then lowercase")
-            print("  /enc                      # Encrypt with RSA")
-            print("  /dec                      # Decrypt with RSA")
-            print("  /S '-'                    # Slugify with hyphen")
-            print("  /r 'old' 'new'            # Replace 'old' with 'new'")
+            log_info(logger, "")
+            log_info(logger, "Usage Examples:")
+            log_info(logger, "  /t                        # Trim whitespace")
+            log_info(logger, "  /t/l                      # Trim then lowercase")
+            log_info(logger, "  /enc                      # Encrypt with RSA")
+            log_info(logger, "  /dec                      # Decrypt with RSA")
+            log_info(logger, "  /S '-'                    # Slugify with hyphen")
+            log_info(logger, "  /r 'old' 'new'            # Replace 'old' with 'new'")
             
             if self.crypto_manager:
-                print()
-                print("RSA Encryption Information:")
-                print("  • Key Size: RSA-4096")
-                print("  • AES Encryption: AES-256-CBC")
-                print("  • Hash Algorithm: SHA256")
-                print("  • Keys Location: rsa/")
-                print("  • Auto-generated on first use")
-                print("  • Supports unlimited text size")
+                log_info(logger, "")
+                log_info(logger, "RSA Encryption Information:")
+                log_info(logger, "  • Key Size: RSA-4096")
+                log_info(logger, "  • AES Encryption: AES-256-CBC")
+                log_info(logger, "  • Hash Algorithm: SHA256")
+                log_info(logger, "  • Keys Location: rsa/")
+                log_info(logger, "  • Auto-generated on first use")
+                log_info(logger, "  • Supports unlimited text size")
             
-            print()
-            print("Daemon Mode:")
-            print("  String_Multitool.py --daemon")
-            print("  • Continuous clipboard monitoring")
-            print("  • Automatic transformation application")
-            print("  • Configurable transformation presets")
-            print("  • Background operation")
-            print("  • Real-time clipboard processing")
+            log_info(logger, "")
+            log_info(logger, "Daemon Mode:")
+            log_info(logger, "  String_Multitool.py --daemon")
+            log_info(logger, "  • Continuous clipboard monitoring")
+            log_info(logger, "  • Automatic transformation application")
+            log_info(logger, "  • Configurable transformation presets")
+            log_info(logger, "  • Background operation")
+            log_info(logger, "  • Real-time clipboard processing")
             
         except Exception as e:
-            print(f"❌ Error displaying help: {e}", file=sys.stderr)
+            logger = get_logger(__name__)
+            log_error(logger, f"Error displaying help: {e}")
     
     def _display_interactive_header(self, session: InteractiveSession) -> None:
         """Display interactive mode header with current status."""
         try:
-            status = session.get_status_info()
-            display_text = session.get_display_text()
+            status: Any = session.get_status_info()
+            display_text: str = session.get_display_text()
             
-            print("String_Multitool - Interactive Mode")
-            print("=" * 45)
-            print(f"Input text: '{display_text}' ({status.character_count} chars, from {status.text_source.value})")
-            print(f"Auto-detection: {'ON' if status.auto_detection_enabled else 'OFF'}")
+            logger = get_logger(__name__)
+            log_info(logger, "String_Multitool - Interactive Mode")
+            log_info(logger, "=" * 45)
+            log_info(logger, f"Input text: '{display_text}' ({status.character_count} chars, from {status.text_source.value})")
+            log_info(logger, f"Auto-detection: {'ON' if status.auto_detection_enabled else 'OFF'}")
             
             # Show full clipboard content if available at startup
             if status.text_source == TextSource.CLIPBOARD and session.current_text.strip():
-                print()
-                print("📋 Current clipboard content:")
+                log_info(logger, "")
+                log_info(logger, "📋 Current clipboard content:")
                 # Display full content with proper formatting
-                full_content = session.current_text
+                full_content: str = session.current_text
                 if len(full_content) <= 200:
                     # Show full content for shorter text
-                    formatted_content = full_content.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
-                    print(f"   '{formatted_content}'")
+                    formatted_content: str = full_content.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+                    log_info(logger, f"   '{formatted_content}'")
                 else:
                     # Show first 200 characters for longer text
-                    preview = full_content[:200] + "..."
-                    formatted_preview = preview.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
-                    print(f"   '{formatted_preview}'")
+                    preview: str = full_content[:200] + "..."
+                    formatted_preview: str = preview.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+                    log_info(logger, f"   '{formatted_preview}'")
             
-            print()
-            print("Available commands: help, refresh, auto, status, clear, copy, commands, quit")
-            print("Enter transformation rules (e.g., /t/l) or command:")
+            log_info(logger, "")
+            log_info(logger, "Available commands: help, refresh, auto, status, clear, copy, commands, quit")
+            log_info(logger, "Enter transformation rules (e.g., /t/l) or command:")
             if status.text_source == TextSource.CLIPBOARD:
-                print("Note: Transformation rules will use the latest clipboard content")
-            print()
+                log_info(logger, "Note: Transformation rules will use the latest clipboard content")
+            log_info(logger, "")
             
         except Exception as e:
-            print(f"Warning: Could not display header: {e}")
+            logger = get_logger(__name__)
+            log_warning(logger, f"Could not display header: {e}")
     
     def run(self) -> None:
         """Main application entry point.
@@ -525,32 +570,44 @@ class ApplicationInterface:
                     return
                 
                 # Command mode - join all arguments to handle quoted strings
-                rule_string = ' '.join(sys.argv[1:])
+                rule_string: str = ' '.join(sys.argv[1:])
                 self.run_command_mode(rule_string)
             else:
                 # Interactive mode
-                input_text = self.io_manager.get_input_text()
+                input_text: str = self.io_manager.get_input_text()
                 self.run_interactive_mode(input_text)
                 
         except (ConfigurationError, ValidationError, TransformationError, 
                 CryptographyError, ClipboardError) as e:
-            print(f"❌ Error: {e}", file=sys.stderr)
+            logger = get_logger(__name__)
+            log_error(logger, str(e), exc_info=False)
             sys.exit(1)
         except KeyboardInterrupt:
-            print("\nGoodbye!")
+            logger = get_logger(__name__)
+            log_info(logger, "\nGoodbye!")
             sys.exit(0)
         except Exception as e:
-            print(f"❌ Unexpected error: {e}", file=sys.stderr)
+            logger = get_logger(__name__)
+            log_error(logger, f"Unexpected error: {e}")
             sys.exit(1)
 
 
 def main() -> None:
-    """Application entry point."""
+    """Application entry point with Typer integration."""
     try:
-        app = ApplicationInterface()
-        app.run()
+        # Check for modern CLI usage (subcommands)
+        if len(sys.argv) > 1 and sys.argv[1] in ['interactive', 'transform', 'encrypt', 'decrypt', 'daemon', 'rules', 'version']:
+            # Use new Typer CLI
+            from .cli import run_cli
+            run_cli()
+        else:
+            # Use legacy CLI for backward compatibility
+            # Explicitly typed app variable to avoid Pylance warnings
+            app: 'ApplicationInterface' = ApplicationInterface()
+            app.run()
     except Exception as e:
-        print(f"❌ Fatal error: {e}", file=sys.stderr)
+        logger = get_logger(__name__)
+        log_error(logger, f"Fatal error: {e}")
         sys.exit(1)
 
 

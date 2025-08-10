@@ -49,12 +49,22 @@ An advanced, enterprise-grade text transformation tool with modular architecture
 git clone <repository-url>
 cd String_Multitool
 
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment
+# Windows:
+.venv\Scripts\activate
+# macOS/Linux:
+source .venv/bin/activate
+
 # Install dependencies
 pip install -r requirements.txt
 ```
 
 ### Basic Usage
 
+#### Legacy CLI (Backward Compatible)
 ```bash
 # Interactive mode (clipboard input)
 python String_Multitool.py
@@ -62,12 +72,36 @@ python String_Multitool.py
 # Apply rules to clipboard
 python String_Multitool.py /t/l
 
-# Pipe input with interactive mode
-echo "  HELLO WORLD  " | python String_Multitool.py
-
 # Pipe input with rules
 echo "  HELLO WORLD  " | python String_Multitool.py /t/l
 # Result: "hello world" (trimmed and lowercased)
+```
+
+#### Modern Typer CLI (Recommended)
+```bash
+# Interactive mode
+string-multitool interactive
+
+# Transform text with rules
+string-multitool transform "/t/l" --text "  HELLO WORLD  "
+echo "  HELLO WORLD  " | string-multitool transform "/t/l"
+
+# Encrypt/decrypt text
+string-multitool encrypt --text "Secret message"
+string-multitool decrypt  # Uses clipboard content
+
+# Daemon mode with presets
+string-multitool daemon --preset uppercase
+string-multitool daemon --rules "/t/l"
+
+# Show available rules
+string-multitool rules
+string-multitool rules --category case
+string-multitool rules --search "uppercase"
+
+# Version information
+string-multitool version
+```
 
 # File input with rules
 Get-Content file.txt | python String_Multitool.py /t/l
@@ -452,8 +486,21 @@ Rules: status
 
 For continuous clipboard monitoring and automatic transformation:
 
+#### Legacy CLI
 ```bash
 python String_Multitool.py --daemon
+```
+
+#### Modern Typer CLI
+```bash
+# Start daemon with preset
+string-multitool daemon --preset uppercase
+
+# Start daemon with custom rules
+string-multitool daemon --rules "/t/l/s"
+
+# Start daemon interactively
+string-multitool daemon
 ```
 
 **Daemon Mode Workflow:**
@@ -619,11 +666,17 @@ echo -e "A0001\nA0002\nA0003" | python String_Multitool.py /dlb
 git clone <repository-url>
 cd String_Multitool
 
+# Create and activate virtual environment
+python -m venv .venv
+.venv\Scripts\activate  # Windows
+source .venv/bin/activate  # macOS/Linux
+
 # Install dependencies
 pip install -r requirements.txt
 
 # Test installation
-python String_Multitool.py help
+python String_Multitool.py help  # Legacy CLI
+string-multitool version          # Modern CLI
 ```
 
 ### Dependencies
@@ -631,8 +684,14 @@ python String_Multitool.py help
 The application requires the following dependencies:
 
 ```
-pyperclip>=1.8.0     # Clipboard operations
+pyperclip>=1.8.0      # Clipboard operations
+pynput>=1.7.0         # Input handling for daemon mode
+watchdog>=3.0.0       # File system monitoring
 cryptography>=41.0.0  # RSA encryption/decryption
+typer>=0.9.0          # Modern CLI framework
+rich>=13.0.0          # Rich terminal output
+pytest>=7.0.0         # Testing framework
+pyinstaller>=5.0.0    # Executable building
 ```
 
 ## Command Reference
@@ -706,18 +765,38 @@ echo "test text" | python String_Multitool.py /rule
 
 ```
 String_Multitool/
-├── String_Multitool.py              # Main application with modular architecture
-├── config/                          # Configuration files
-│   ├── transformation_rules.json    # Rule definitions and metadata
-│   ├── security_config.json        # Security and encryption settings
-│   └── daemon_config.json          # Daemon mode configuration
-├── rsa/                            # RSA key storage (auto-generated, git-ignored)
-│   ├── rsa                         # Private key (PEM format)
-│   └── rsa.pub                     # Public key (PEM format)
-├── test_transform.py               # Test suite
-├── requirements.txt                # Dependencies
-├── .gitignore                      # Git ignore rules
-└── README.md                      # Documentation
+├── String_Multitool.py              # Legacy entry point (backward compatible)
+├── string_multitool/               # Main package directory
+│   ├── __init__.py                 # Package initialization
+│   ├── main.py                     # Application interface
+│   ├── cli.py                      # Modern Typer CLI
+│   ├── exceptions.py               # Custom exceptions
+│   ├── core/                       # Core functionality
+│   │   ├── config.py               # Configuration manager
+│   │   ├── crypto.py               # Encryption/decryption
+│   │   ├── transformations.py      # Text transformation engine
+│   │   └── types.py                # Type definitions
+│   ├── io/                         # Input/Output operations
+│   │   ├── clipboard.py            # Clipboard operations
+│   │   └── manager.py              # IO manager
+│   ├── modes/                      # Application modes
+│   │   ├── daemon.py               # Daemon mode
+│   │   └── interactive.py          # Interactive mode
+│   └── utils/                      # Utilities
+│       └── logger.py               # Logging utilities
+├── config/                         # Configuration files
+│   ├── transformation_rules.json   # Rule definitions
+│   ├── security_config.json       # Security settings
+│   └── daemon_config.json         # Daemon configuration
+├── rsa/                           # RSA key storage (auto-generated)
+├── .vscode/                       # VSCode configuration
+│   └── settings.json              # Python interpreter settings
+├── test_transform.py              # Test suite
+├── pyproject.toml                 # Project configuration
+├── pyrightconfig.json             # Pylance configuration
+├── requirements.txt               # Dependencies
+├── .gitignore                     # Git ignore rules
+└── README.md                     # Documentation
 ```
 
 ### Architecture Overview
@@ -777,6 +856,14 @@ def _my_new_rule(self, text: str) -> str:
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Changelog
+
+### Version 2.3.0 (Modern CLI & Type Safety)
+- **Modern Typer CLI**: Professional command-line interface with subcommands
+- **Enhanced Type Safety**: Comprehensive type hints and Pylance compatibility
+- **Modular Architecture**: Clean separation into packages and modules
+- **IDE Integration**: VSCode configuration for optimal development experience
+- **Build System**: Modern pyproject.toml configuration
+- **Documentation**: Updated for new CLI interface and architecture
 
 ### Version 2.2.0 (Dynamic Clipboard Enhancement)
 - **Dynamic Clipboard Refresh**: Refresh input text from clipboard during interactive sessions

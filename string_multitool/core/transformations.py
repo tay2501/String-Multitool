@@ -5,6 +5,8 @@ This module provides the core text transformation functionality with
 configurable rules and comprehensive error handling.
 """
 
+from __future__ import annotations
+
 import re
 from typing import Any
 
@@ -35,7 +37,8 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]]):
             transformation_config = config_manager.load_transformation_rules()
             super().__init__(transformation_config)
             
-            self.config_manager = config_manager
+            # Instance variable annotations following PEP 526
+            self.config_manager: ConfigManagerProtocol = config_manager
             self.crypto_manager: CryptoManagerProtocol | None = None
             self._available_rules: dict[str, TransformationRule] | None = None
             
@@ -126,15 +129,15 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]]):
                 )
             
             # Remove leading slash and split by slash
-            rules_part = rule_string[1:]
+            rules_part: str = rule_string[1:]
             if not rules_part:
                 raise ValidationError("Empty rule string after '/'")
             
             # Handle quoted arguments
-            parts = self._parse_with_quotes(rules_part)
-            parsed_rules = []
-            current_rule = None
-            current_args = []
+            parts: list[str] = self._parse_with_quotes(rules_part)
+            parsed_rules: list[tuple[str, list[str]]] = []
+            current_rule: str | None = None
+            current_args: list[str] = []
             
             for part in parts:
                 if part.startswith('/'):
@@ -306,14 +309,14 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]]):
         Returns:
             List of parsed parts
         """
-        parts = []
-        current_part = ""
-        in_quotes = False
-        quote_char = None
-        i = 0
+        parts: list[str] = []
+        current_part: str = ""
+        in_quotes: bool = False
+        quote_char: str | None = None
+        i: int = 0
         
         while i < len(text):
-            char = text[i]
+            char: str = text[i]
             
             if not in_quotes:
                 if char in ['"', "'"]:
@@ -548,3 +551,56 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]]):
         lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
         quoted_lines = [f"'{line.strip()}'" for line in lines if line.strip()]
         return ',\r\n'.join(quoted_lines)
+    
+    def validate_rule_string(self, rule_string: str) -> tuple[bool, str | None]:
+        """Validate rule string format.
+        
+        Args:
+            rule_string: Rule string to validate
+            
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        try:
+            if not isinstance(rule_string, str):
+                return False, f"Rule string must be a string, got {type(rule_string).__name__}"
+            
+            if not rule_string.strip():
+                return False, "Rule string cannot be empty"
+            
+            if not rule_string.startswith('/'):
+                return False, "Rules must start with '/'"
+            
+            # Try to parse the rule string
+            self.parse_rule_string(rule_string)
+            return True, None
+            
+        except Exception as e:
+            return False, str(e)
+    
+    def get_rule_help(self, rule_name: str | None = None) -> str:
+        """Get help information for rules.
+        
+        Args:
+            rule_name: Specific rule name or None for all rules
+            
+        Returns:
+            Help text for the rule(s)
+        """
+        if rule_name is None:
+            # Return help for all rules
+            help_text = "Available transformation rules:\n"
+            rules = self.get_available_rules()
+            for name, rule in rules.items():
+                help_text += f"  /{name} - {rule.name}\n"
+                if rule.example:
+                    help_text += f"    Example: {rule.example}\n"
+            return help_text
+        else:
+            # Return help for specific rule
+            rules = self.get_available_rules()
+            if rule_name in rules:
+                rule = rules[rule_name]
+                return f"/{rule_name} - {rule.name}\n{rule.description}\nExample: {rule.example}"
+            else:
+                return f"Unknown rule: {rule_name}"

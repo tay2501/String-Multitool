@@ -22,20 +22,27 @@ Version: 2.1.0 (Refactored)
 License: MIT
 """
 
+from __future__ import annotations
+
 import sys
 from pathlib import Path
+from typing import TextIO
 
 # Ensure UTF-8 encoding for stdout/stderr on Windows
 if sys.platform.startswith('win'):
-    try:
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
-    except AttributeError:
-        # Python < 3.7 doesn't have reconfigure
-        pass
+    # Type-safe reconfigure with proper type checking
+    stdout: TextIO = sys.stdout
+    stderr: TextIO = sys.stderr
+    if hasattr(stdout, 'reconfigure') and hasattr(stderr, 'reconfigure'):
+        try:
+            stdout.reconfigure(encoding='utf-8')  # type: ignore[attr-defined]
+            stderr.reconfigure(encoding='utf-8')  # type: ignore[attr-defined]
+        except (AttributeError, OSError):
+            # Fallback for older Python versions or encoding issues
+            pass
 
 # Add the current directory to Python path for imports
-current_dir = Path(__file__).parent
+current_dir: Path = Path(__file__).parent
 if str(current_dir) not in sys.path:
     sys.path.insert(0, str(current_dir))
 

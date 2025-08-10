@@ -5,6 +5,8 @@ This module defines the exception hierarchy for the application,
 providing specific error types for different failure scenarios.
 """
 
+from __future__ import annotations
+
 from typing import Any
 
 
@@ -16,7 +18,7 @@ class StringMultitoolError(Exception):
     
     def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         super().__init__(message)
-        self.details = details or {}
+        self.details: dict[str, Any] = details or {}
 
 
 class ConfigurationError(StringMultitoolError):

@@ -1,241 +1,217 @@
 # Project Structure
 
-This document describes the organization and purpose of files in the Clipboard Transformer project.
+This document describes the organization and purpose of files in the String_Multitool project with modular enterprise architecture.
 
 ## 📁 Root Directory
 
 ```
-clipboard-transformer/
-├── 📄 manual_transform.py              # ⭐ Main application (recommended)
-├── 📄 clipboard-transformer-portable.py # Optional hotkey mode
-├── 📄 README.md                        # Comprehensive documentation
-├── 📄 requirements.txt                 # Python dependencies
-├── 📄 LICENSE                          # MIT License
-├── 📄 .gitignore                       # Git ignore rules
-├── 📄 PROJECT_STRUCTURE.md             # This file
-└── 📄 CONTRIBUTING.md                  # Contribution guidelines
+String_Multitool/
+├── 📄 String_Multitool.py              # 🔄 Legacy entry point (backward compatible)
+├── 📄 README.md                        # 📚 Comprehensive documentation
+├── 📄 pyproject.toml                   # 🔧 Modern Python project configuration
+├── 📄 pyrightconfig.json               # 🔍 Pylance/Pyright type checker configuration
+├── 📄 requirements.txt                 # 📦 Python dependencies
+├── 📄 test_transform.py                # 🧪 Main test suite
+├── 📄 build.ps1                        # 🔨 PowerShell build script
+├── 📄 setup.py                         # 📦 Python package setup (legacy support)
+├── 📄 LICENSE                          # 📜 MIT License
+├── 📄 .gitignore                       # 🚫 Git ignore rules (comprehensive)
+├── 📄 PROJECT_STRUCTURE.md             # 📋 This file
+├── 📄 ARCHITECTURE.md                  # 🏗️ System architecture documentation
+├── 📄 CONTRIBUTING.md                  # 🤝 Contribution guidelines
+├── 📄 DELIVERABLES_SUMMARY.md          # 📊 Project deliverables summary
+└── 📄 CLAUDE.md                        # 🤖 Claude Code integration instructions
 ```
 
-## 📁 Core Directories
+## 📁 Core Package Structure
+
+### `/string_multitool/` - Main Package
+```
+string_multitool/
+├── 📄 __init__.py                      # Package initialization
+├── 📄 main.py                          # 🎯 Main application interface
+├── 📄 cli.py                           # 🖥️ Modern Typer CLI interface
+├── 📄 exceptions.py                    # 🚨 Custom exception definitions
+├── 📁 core/                           # Core business logic
+│   ├── 📄 __init__.py
+│   ├── 📄 config.py                   # 🔧 Configuration management
+│   ├── 📄 crypto.py                   # 🔒 RSA encryption/decryption
+│   ├── 📄 transformations.py          # 🔄 Text transformation engine
+│   └── 📄 types.py                    # 📋 Type definitions and protocols
+├── 📁 io/                             # Input/Output operations
+│   ├── 📄 __init__.py
+│   ├── 📄 clipboard.py                # 📋 Clipboard operations
+│   └── 📄 manager.py                  # 📊 I/O management
+├── 📁 modes/                          # Application execution modes
+│   ├── 📄 __init__.py
+│   ├── 📄 daemon.py                   # 🔄 Daemon mode (continuous monitoring)
+│   └── 📄 interactive.py              # 💬 Interactive mode
+└── 📁 utils/                          # Utility modules
+    ├── 📄 __init__.py
+    └── 📄 logger.py                   # 📝 Logging utilities
+```
+
+## 📁 Configuration Directory
 
 ### `/config/` - Configuration Files
 ```
 config/
-└── 📄 transformations.json            # Main configuration file
+├── 📄 transformation_rules.json       # 🔄 Transformation rule definitions
+├── 📄 security_config.json           # 🔒 Security and encryption settings
+└── 📄 daemon_config.json             # 🤖 Daemon mode configuration
 ```
 
-**Purpose**: Contains all configuration files for the application.
-- `transformations.json`: Defines all 26 transformations (a-z) with metadata
+**Purpose**: Externalized configuration for rules, security, and daemon settings.
+- `transformation_rules.json`: Defines all transformation rules with metadata, categories, and examples
+- `security_config.json`: RSA encryption parameters, key sizes, and security settings
+- `daemon_config.json`: Daemon mode presets and monitoring configuration
 
-### `/src/` - Source Code
+## 📁 Development Configuration
+
+### `/.vscode/` - VSCode Settings
 ```
-src/
-├── 📄 __init__.py                      # Package initialization
-├── 📄 __version__.py                   # Version information
-├── 📄 main.py                          # Main application entry point
-├── 📄 clipboard_manager.py             # Clipboard operations
-├── 📄 config_manager.py                # Configuration handling
-├── 📄 hotkey_manager.py                # Global hotkey management
-├── 📄 transformer.py                   # Text transformation engine
-└── 📄 logger.py                        # Logging system
+.vscode/
+└── 📄 settings.json                   # 🔧 Python interpreter and Pylance configuration
 ```
 
-**Purpose**: Core application source code organized by functionality.
+**Purpose**: IDE configuration for optimal development experience with Python type checking.
 
-### `/tests/` - Test Suite
+### `/rsa/` - Encryption Keys (Auto-generated)
 ```
-tests/
-├── 📄 __init__.py                      # Test package initialization
-├── 📄 test_main.py                     # Main application tests
-├── 📄 test_clipboard_manager.py        # Clipboard operation tests
-├── 📄 test_config_manager.py           # Configuration tests
-├── 📄 test_hotkey_manager.py           # Hotkey management tests
-├── 📄 test_transformer.py              # Transformation engine tests
-├── 📄 test_logger.py                   # Logging system tests
-└── 📄 test_error_handling_integration.py # Integration tests
+rsa/
+├── 📄 rsa                             # 🔐 Private key (PEM format, git-ignored)
+└── 📄 rsa.pub                         # 🔓 Public key (PEM format, git-ignored)
 ```
 
-**Purpose**: Comprehensive test suite covering all functionality.
+**Purpose**: RSA-4096 key storage for encryption/decryption operations. Auto-generated on first use.
 
 ### `/logs/` - Application Logs
 ```
 logs/
-├── 📄 .gitkeep                         # Keep directory in git
-└── 📄 *.log                           # Application log files (auto-generated)
+└── 📄 string_multitool.log           # 📝 Application runtime logs
 ```
 
-**Purpose**: Runtime logs for debugging and monitoring.
-- Automatically cleaned up (keeps 3 most recent files)
-- JSON format for structured logging
-
-### `/.github/` - GitHub Integration
-```
-.github/
-├── workflows/
-│   └── 📄 build.yml                    # CI/CD pipeline
-└── ISSUE_TEMPLATE/
-    ├── 📄 bug_report.md                # Bug report template
-    └── 📄 feature_request.md           # Feature request template
-```
-
-**Purpose**: GitHub-specific files for automation and issue management.
+**Purpose**: Runtime logging for debugging and monitoring.
 
 ## 📁 Build and Distribution
 
-### Build Scripts
+### Build Artifacts (Generated)
 ```
-├── 📄 build.bat                        # Windows batch build script
-├── 📄 build.ps1                        # PowerShell build script
-├── 📄 install.ps1                      # Installation script
-├── 📄 clipboard_transformer.spec       # PyInstaller specification
-└── 📄 version_info.txt                 # Windows executable version info
+build/                                 # 🔨 Build intermediate files
+dist/                                  # 📦 Distribution packages
+*.exe                                  # 💻 Executable files
 ```
 
-**Purpose**: Scripts for building and distributing the application.
+**Purpose**: Generated during build process, excluded from version control.
 
-## 📄 Key Files Explained
+## 🏗️ Architecture Overview
 
-### `manual_transform.py` ⭐
-**Primary application file** - Recommended for all users.
-- **Purpose**: User-friendly manual transformation interface
-- **Features**: 26 transformations, sequential processing, smart UI
-- **Compatibility**: Works on all Windows systems, Japanese IME, HHKB
-- **Usage**: `python manual_transform.py`
+### Core Components
 
-### `clipboard-transformer-portable.py`
-**Alternative hotkey-based application**.
-- **Purpose**: Global hotkey support for compatible systems
-- **Features**: Background operation, system tray integration
-- **Compatibility**: Best on English Windows with standard keyboards
-- **Usage**: `python clipboard-transformer-portable.py`
+1. **ApplicationInterface** (`main.py`)
+   - Main application coordinator
+   - Handles mode switching and user interaction
+   - Manages component initialization and lifecycle
 
-### `config/transformations.json`
-**Main configuration file** defining all transformations.
-- **Structure**: JSON with transformations, categories, settings
-- **Features**: 26 transformations (a-z), metadata, examples
-- **Auto-reload**: Changes take effect immediately
-- **Validation**: Automatic syntax and structure checking
+2. **TextTransformationEngine** (`core/transformations.py`)
+   - Core text transformation logic
+   - Rule parsing and sequential processing
+   - Configuration-driven rule registration
 
-### `src/transformer.py`
-**Core transformation engine**.
-- **Purpose**: Implements all text transformation logic
-- **Features**: Regex processing, Unicode handling, error management
-- **Extensibility**: Easy to add new transformation types
+3. **CryptographyManager** (`core/crypto.py`)
+   - RSA-4096 key management
+   - Hybrid AES+RSA encryption
+   - Secure key storage and permissions
 
-### `src/config_manager.py`
-**Configuration management system**.
-- **Purpose**: Load, validate, and monitor configuration files
-- **Features**: JSON validation, file watching, error recovery
-- **Auto-reload**: Detects changes and reloads automatically
+4. **ConfigurationManager** (`core/config.py`)
+   - JSON configuration loading and caching
+   - Validation and error handling
+   - Runtime configuration updates
 
-### `src/hotkey_manager.py`
-**Global hotkey management** (for hotkey mode).
-- **Purpose**: Register and handle global keyboard shortcuts
-- **Features**: Conflict detection, error recovery, cross-platform support
-- **Compatibility**: Works with various keyboard layouts
+5. **InputOutputManager** (`io/manager.py`)
+   - Clipboard operations
+   - Stdin/stdout handling
+   - Cross-platform compatibility
 
-### `src/clipboard_manager.py`
-**Clipboard operations handler**.
-- **Purpose**: Safe clipboard read/write operations
-- **Features**: Error handling, retry logic, format detection
-- **Reliability**: Handles clipboard conflicts gracefully
+6. **Modern CLI Interface** (`cli.py`)
+   - Typer-based command-line interface
+   - Rich terminal output
+   - Subcommand organization
 
-### `src/logger.py`
-**Structured logging system**.
-- **Purpose**: Comprehensive application logging
-- **Features**: JSON format, automatic rotation, performance metrics
-- **Storage**: Logs stored in `/logs/` directory
+### Application Modes
 
-## 🔄 Application Flow
+1. **Interactive Mode** (`modes/interactive.py`)
+   - Real-time clipboard monitoring
+   - Dynamic text refresh
+   - Command-driven interface
 
-### Manual Mode Flow
-```
-User runs manual_transform.py
-    ↓
-Display clipboard content and all transformations
-    ↓
-User selects transformation(s) (e.g., "ad")
-    ↓
-Preview what will be applied
-    ↓
-Apply transformations sequentially
-    ↓
-Copy result to clipboard
-    ↓
-Option to continue with result
-```
+2. **Daemon Mode** (`modes/daemon.py`)
+   - Background clipboard monitoring
+   - Automatic transformations
+   - Preset-based configuration
 
-### Hotkey Mode Flow
-```
-User runs clipboard-transformer-portable.py
-    ↓
-Load configuration and register hotkeys
-    ↓
-Run in background (system tray)
-    ↓
-User presses registered hotkey
-    ↓
-Apply corresponding transformation
-    ↓
-Copy result to clipboard
-```
+### Type Safety System
 
-## 🏗️ Architecture
+- **Protocol Definitions** (`types.py`): Structural typing for dependency injection
+- **Dataclass Models**: Type-safe configuration and rule definitions
+- **Generic Containers**: Reusable patterns for state and result management
+- **TypeGuard Functions**: Runtime type validation
 
-### Modular Design
-- **Separation of Concerns**: Each module has a specific responsibility
-- **Loose Coupling**: Modules interact through well-defined interfaces
-- **High Cohesion**: Related functionality is grouped together
+## 📊 Development Workflow
 
-### Error Handling Strategy
-- **Graceful Degradation**: Application continues working even if some features fail
-- **User-Friendly Messages**: Clear error messages for users
-- **Comprehensive Logging**: Detailed logs for debugging
+### Entry Points
+- **Legacy CLI**: `String_Multitool.py` - Backward compatible entry point
+- **Modern CLI**: `string-multitool` command via pyproject.toml script
+- **Package Import**: `from string_multitool.main import ApplicationInterface`
 
 ### Configuration Management
-- **Centralized**: All configuration in one JSON file
-- **Validated**: Automatic syntax and structure validation
-- **Extensible**: Easy to add new transformations and settings
+- JSON-based configuration files in `/config/`
+- Runtime configuration loading with caching
+- Type-safe configuration validation
 
-## 🧪 Testing Strategy
+### Testing Strategy
+- Unit tests for transformation rules
+- Integration tests for end-to-end workflows
+- Security tests for cryptographic operations
 
-### Test Coverage
-- **Unit Tests**: Individual component testing
-- **Integration Tests**: Component interaction testing
-- **Error Handling Tests**: Edge case and error condition testing
+### Build System
+- PowerShell build script (`build.ps1`)
+- PyInstaller for executable generation
+- Modern pyproject.toml configuration
 
-### Test Organization
-- **Mirror Source Structure**: Test files mirror source file organization
-- **Descriptive Names**: Test names clearly describe what is being tested
-- **Comprehensive Coverage**: All critical paths are tested
+## 🔧 Development Environment
 
-## 📦 Distribution Strategy
+### Required Tools
+- Python 3.10+
+- VSCode with Pylance extension
+- PowerShell (for Windows build)
 
-### Multiple Distribution Methods
-1. **Python Script**: Direct execution with Python interpreter
-2. **Portable Executable**: Self-contained Windows executable
-3. **Installer**: System-wide installation with shortcuts
+### Configuration Files
+- `pyproject.toml`: Project metadata, dependencies, build configuration
+- `pyrightconfig.json`: Type checker configuration
+- `.vscode/settings.json`: IDE Python interpreter settings
+- `.gitignore`: Comprehensive ignore patterns
 
-### Build Process
-1. **Dependency Installation**: Install all required packages
-2. **Testing**: Run full test suite
-3. **Building**: Create executable with PyInstaller
-4. **Packaging**: Create distribution packages
-5. **Validation**: Test built packages
+### Type Checking
+- Full type hints throughout codebase
+- Pylance integration with VSCode
+- MyPy compatibility for CI/CD
 
-## 🔧 Development Workflow
+## 📈 Scalability Features
 
-### Adding New Features
-1. **Design**: Plan the feature and its integration
-2. **Implementation**: Write code following project patterns
-3. **Testing**: Add comprehensive tests
-4. **Documentation**: Update relevant documentation
-5. **Integration**: Ensure compatibility with existing features
+### Modular Design
+- Clean separation of concerns
+- Dependency injection via protocols
+- Extensible rule system
 
-### Code Quality Standards
-- **Type Hints**: Use type annotations for better code clarity
-- **Documentation**: Comprehensive docstrings and comments
-- **Error Handling**: Proper exception handling throughout
-- **Consistency**: Follow established patterns and conventions
+### Configuration-Driven
+- Rules defined in JSON configuration
+- Security parameters externalized
+- Runtime behavior customization
 
-This structure ensures maintainability, extensibility, and ease of use for both developers and end users.
+### Professional Error Handling
+- Custom exception hierarchy
+- Contextual error messages
+- Graceful degradation
+
+This structure supports both current functionality and future enhancements while maintaining enterprise-grade code quality and type safety.

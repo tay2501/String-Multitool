@@ -14,6 +14,10 @@ watchdog>=3.0.0
 # RSA encryption/decryption support
 cryptography>=41.0.0
 
+# Modern CLI interface
+typer>=0.9.0
+rich>=13.0.0
+
 # Development and testing dependencies
 pytest>=7.0.0
 pytest-cov>=4.0.0
