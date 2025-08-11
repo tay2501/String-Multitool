@@ -14,17 +14,21 @@ from typing import Any, Generator
 # Add current directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from String_Multitool import (
-    ConfigurationManager, 
-    TextTransformationEngine, 
+from string_multitool import (
+    ConfigurationManager,
+    TextTransformationEngine,
     InputOutputManager,
-    InteractiveSession,
-    CommandProcessor,
     ClipboardMonitor,
     CryptographyManager,
-    ApplicationInterface,
-    CRYPTO_AVAILABLE
+    TransformationRule,
+    SessionState,
+    CommandResult,
+    TextSource
 )
+from string_multitool.modes import InteractiveSession, CommandProcessor
+from string_multitool.main import ApplicationInterface
+from string_multitool.core.crypto import CRYPTOGRAPHY_AVAILABLE as CRYPTO_AVAILABLE
+from string_multitool.utils.logger import get_logger
 
 
 class TestConfigurationManager:
@@ -170,37 +174,37 @@ class TestInteractiveSession:
     def test_initialization(self, session: InteractiveSession) -> None:
         """Test session initialization."""
         assert session.current_text == ""
-        assert session.text_source == "clipboard"
+        assert session.text_source == TextSource.CLIPBOARD
         assert session.auto_detection_enabled  # Now defaults to True
     
     def test_update_working_text(self, session: InteractiveSession) -> None:
         """Test updating working text."""
-        session.update_working_text("test text", "manual")
+        session.update_working_text("test text", TextSource.MANUAL)
         
         assert session.current_text == "test text"
-        assert session.text_source == "manual"
+        assert session.text_source == TextSource.MANUAL
     
     def test_get_status_info(self, session: InteractiveSession) -> None:
         """Test getting status information."""
-        session.update_working_text("test", "clipboard")
+        session.update_working_text("test", TextSource.CLIPBOARD)
         status: Any = session.get_status_info()
         
         assert status.current_text == "test"
-        assert status.text_source == "clipboard"
+        assert status.text_source == TextSource.CLIPBOARD
         assert status.character_count == 4
         assert status.auto_detection_enabled  # Now defaults to True
     
-    @patch('String_Multitool.pyperclip')
+    @patch('string_multitool.io.manager.pyperclip')
     def test_refresh_from_clipboard(self, mock_pyperclip: Mock, session: InteractiveSession) -> None:
         """Test refreshing from clipboard."""
         mock_pyperclip.paste.return_value = "new content"
-        session.io_manager.get_clipboard_text.return_value = "new content"
+        session.io_manager.get_clipboard_text = Mock(return_value="new content")
         
         result: bool = session.refresh_from_clipboard()
         
         assert result is True
         assert session.current_text == "new content"
-        assert session.text_source == "clipboard"
+        assert session.text_source == TextSource.CLIPBOARD
 
 
 class TestCommandProcessor:
@@ -229,9 +233,9 @@ class TestCommandProcessor:
         mock_status.auto_detection_enabled = True
         mock_status.clipboard_monitor_active = False
         
-        processor.session.get_status_info.return_value = mock_status
-        processor.session.get_display_text.return_value = "test text"
-        processor.session.get_time_since_update.return_value = "1 minute ago"
+        processor.session.get_status_info = Mock(return_value=mock_status)
+        processor.session.get_display_text = Mock(return_value="test text")
+        processor.session.get_time_since_update = Mock(return_value="1 minute ago")
         
         result: Any = processor.process_command("status")
         
@@ -339,52 +343,57 @@ class TestClipboardMonitor:
 class TestInputOutputManager:
     """Test input/output operations."""
     
-    @patch('String_Multitool.sys.stdin')
-    @patch('String_Multitool.pyperclip')
+    @patch('string_multitool.io.manager.sys.stdin')
+    @patch('string_multitool.io.manager.pyperclip')
     def test_get_input_text_from_pipe(self, mock_pyperclip: Mock, mock_stdin: Mock) -> None:
         """Test getting input from pipe."""
         mock_stdin.isatty.return_value = False
         mock_stdin.read.return_value = "piped text\n"
         
-        result: str = InputOutputManager.get_input_text()
+        io_manager = InputOutputManager()
+        result: str = io_manager.get_input_text()
         assert result == "piped text"
     
-    @patch('String_Multitool.sys.stdin')
-    @patch('String_Multitool.pyperclip')
+    @patch('string_multitool.io.manager.sys.stdin')
+    @patch('string_multitool.io.manager.pyperclip')
     def test_get_input_text_from_clipboard(self, mock_pyperclip: Mock, mock_stdin: Mock) -> None:
         """Test getting input from clipboard."""
         mock_stdin.isatty.return_value = True
         mock_pyperclip.paste.return_value = "clipboard text"
         
-        result: str = InputOutputManager.get_input_text()
+        io_manager = InputOutputManager()
+        result: str = io_manager.get_input_text()
         assert result == "clipboard text"
     
-    @patch('String_Multitool.pyperclip')
+    @patch('string_multitool.io.manager.pyperclip')
     def test_get_clipboard_text(self, mock_pyperclip: Mock) -> None:
         """Test getting text from clipboard only."""
         mock_pyperclip.paste.return_value = "test text"
         
-        result: str = InputOutputManager.get_clipboard_text()
+        io_manager = InputOutputManager()
+        result: str = io_manager.get_clipboard_text()
         assert result == "test text"
     
-    @patch('String_Multitool.pyperclip')
+    @patch('string_multitool.io.manager.pyperclip')
     def test_set_output_text(self, mock_pyperclip: Mock) -> None:
         """Test setting output text to clipboard."""
-        InputOutputManager.set_output_text("test output")
+        io_manager = InputOutputManager()
+        io_manager.set_output_text("test output")
         mock_pyperclip.copy.assert_called_once_with("test output")
     
-    @patch('String_Multitool.CLIPBOARD_AVAILABLE', False)
+    @patch('string_multitool.io.manager.CLIPBOARD_AVAILABLE', False)
     def test_clipboard_unavailable(self) -> None:
         """Test behavior when clipboard is unavailable."""
         with pytest.raises(RuntimeError, match="Clipboard functionality not available"):
-            InputOutputManager.get_clipboard_text()
+            io_manager = InputOutputManager()
+            io_manager.get_clipboard_text()
 
 
 @pytest.fixture(autouse=True)
 def mock_clipboard() -> Generator[Mock, None, None]:
     """Mock clipboard functionality for all tests."""
-    with patch('String_Multitool.CLIPBOARD_AVAILABLE', True):
-        with patch('String_Multitool.pyperclip') as mock_pyperclip:
+    with patch('string_multitool.io.manager.CLIPBOARD_AVAILABLE', True):
+        with patch('string_multitool.io.manager.pyperclip') as mock_pyperclip:
             mock_pyperclip.paste.return_value = ""
             mock_pyperclip.copy.return_value = None
             yield mock_pyperclip
@@ -394,40 +403,40 @@ class TestApplicationInterface:
     """Test main application interface."""
     
     @pytest.fixture
-    def app_interface(self):
+    def app_interface(self) -> ApplicationInterface:
         """Create an ApplicationInterface instance for testing."""
         return ApplicationInterface()
     
-    def test_initialization(self, app_interface):
+    def test_initialization(self, app_interface: ApplicationInterface) -> None:
         """Test application interface initialization."""
         assert app_interface.config_manager is not None
         assert app_interface.transformation_engine is not None
         assert app_interface.io_manager is not None
     
-    @patch('String_Multitool.sys.argv', ['String_Multitool.py', 'help'])
+    @patch('string_multitool.main.sys.argv', ['String_Multitool.py', 'help'])
     @patch('builtins.print')
-    def test_help_command(self, mock_print, app_interface):
+    def test_help_command(self, mock_print: Mock, app_interface: ApplicationInterface) -> None:
         """Test help command execution."""
         app_interface.run()
         # Verify that help was displayed (print was called)
         assert mock_print.called
     
-    @patch('String_Multitool.sys.argv', ['String_Multitool.py', '/u'])
+    @patch('string_multitool.main.sys.argv', ['String_Multitool.py', '/u'])
     @patch.object(InputOutputManager, 'get_input_text', return_value='hello')
     @patch.object(InputOutputManager, 'set_output_text')
     @patch('builtins.print')
-    def test_command_mode(self, mock_print, mock_set_output, mock_get_input, app_interface):
+    def test_command_mode(self, mock_print: Mock, mock_set_output: Mock, mock_get_input: Mock, app_interface: ApplicationInterface) -> None:
         """Test command mode execution."""
         app_interface.run()
         mock_set_output.assert_called_once_with('HELLO')
     
-    def test_display_help(self, app_interface):
+    def test_display_help(self, app_interface: ApplicationInterface) -> None:
         """Test help display functionality."""
         # This should not raise an exception
         app_interface.display_help()
 
 
-def test_main_functionality():
+def test_main_functionality() -> None:
     """Integration test for main functionality."""
     # Test that the main components can be instantiated without errors
     config_manager = ConfigurationManager()
@@ -438,18 +447,18 @@ def test_main_functionality():
     assert result == "HELLO WORLD"
 
 
-def test_main_function():
+def test_main_function() -> None:
     """Test main function execution."""
-    from String_Multitool import main
+    from string_multitool.main import main
     
     # Test that main function can be imported and called
     # (This will test the basic structure)
     assert callable(main)
 
 
-def test_dataclass_structures():
+def test_dataclass_structures() -> None:
     """Test dataclass structures."""
-    from String_Multitool import TransformationRule, SessionState, CommandResult
+    # TransformationRule, SessionState, CommandResult already imported at top
     
     # Test TransformationRule
     rule = TransformationRule(
@@ -465,7 +474,7 @@ def test_dataclass_structures():
     from datetime import datetime
     state = SessionState(
         current_text="test",
-        text_source="clipboard",
+        text_source=TextSource.CLIPBOARD,
         last_update_time=datetime.now(),
         character_count=4,
         auto_detection_enabled=True,
@@ -483,7 +492,7 @@ def test_dataclass_structures():
     assert result.message == "Test message"
 
 
-def test_logging_functionality():
+def test_logging_functionality() -> None:
     """Test logging functionality."""
     import logging
     from unittest.mock import patch, MagicMock
@@ -514,7 +523,7 @@ def test_logging_functionality():
     assert root_logger.level == logging.DEBUG
 
 
-def test_logging_integration():
+def test_logging_integration() -> None:
     """Test integration of logging with application components."""
     import tempfile
     from pathlib import Path
@@ -534,7 +543,7 @@ def test_logging_integration():
         assert "Integration test message" in content
 
 
-def test_pathlib_usage():
+def test_pathlib_usage() -> None:
     """Test proper pathlib usage throughout the project."""
     from pathlib import Path
     from string_multitool.core.config import ConfigurationManager
@@ -556,7 +565,7 @@ def test_pathlib_usage():
     assert test_path.parent.name == "path"
 
 
-def test_pathlib_type_safety():
+def test_pathlib_type_safety() -> None:
     """Test pathlib type safety and operations."""
     from pathlib import Path
     import tempfile
