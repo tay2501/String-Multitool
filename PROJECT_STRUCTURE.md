@@ -45,6 +45,7 @@ string_multitool/
 ├── 📁 modes/                          # Application execution modes
 │   ├── 📄 __init__.py
 │   ├── 📄 daemon.py                   # 🔄 Daemon mode (continuous monitoring)
+│   ├── 📄 hotkey.py                   # ⌨️ Hotkey mode (global keyboard shortcuts)
 │   └── 📄 interactive.py              # 💬 Interactive mode
 └── 📁 utils/                          # Utility modules
     ├── 📄 __init__.py

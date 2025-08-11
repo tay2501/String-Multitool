@@ -35,6 +35,7 @@ class ConfigurationManager(ConfigurableComponent[dict[str, Any]]):
         self.config_dir: Path = Path(config_dir) if not isinstance(config_dir, Path) else config_dir
         self._transformation_rules: dict[str, Any] | None = None
         self._security_config: dict[str, Any] | None = None
+        self._hotkey_config: dict[str, Any] | None = None
         
         if not self.config_dir.exists():
             raise ConfigurationError(
@@ -77,6 +78,23 @@ class ConfigurationManager(ConfigurableComponent[dict[str, Any]]):
             )
         
         return self._security_config
+    
+    def load_hotkey_config(self) -> dict[str, Any]:
+        """Load hotkey configuration from configuration file.
+        
+        Returns:
+            Dictionary containing hotkey configuration
+            
+        Raises:
+            ConfigurationError: If hotkey config file cannot be loaded or parsed
+        """
+        if self._hotkey_config is None:
+            config_file = self.config_dir / "hotkey_config.json"
+            self._hotkey_config = self._load_json_file(
+                config_file, "hotkey configuration"
+            )
+        
+        return self._hotkey_config
     
     def _load_json_file(self, file_path: Path, description: str) -> dict[str, Any]:
         """Load and parse a JSON configuration file.
@@ -131,6 +149,7 @@ class ConfigurationManager(ConfigurableComponent[dict[str, Any]]):
         try:
             self.load_transformation_rules()
             self.load_security_config()
+            self.load_hotkey_config()
             return True
         except ConfigurationError:
             raise

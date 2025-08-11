@@ -87,6 +87,32 @@
       "example": "Base64 encrypted text -> Secret message"
     }
   },
+  "hash_operations": {
+    "hash": {
+      "name": "SHA-256 Hash",
+      "description": "Generate SHA-256 hash of input text",
+      "example": "password -> 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"
+    }
+  },
+  "encoding_operations": {
+    "base64enc": {
+      "name": "Base64 Encode",
+      "description": "Encode text to Base64",
+      "example": "hello -> aGVsbG8="
+    },
+    "base64dec": {
+      "name": "Base64 Decode", 
+      "description": "Decode Base64 to text",
+      "example": "aGVsbG8= -> hello"
+    }
+  },
+  "formatting_operations": {
+    "formatjson": {
+      "name": "Format JSON",
+      "description": "Format JSON with proper indentation",
+      "example": "{\"a\":1,\"b\":2} -> {\n  \"a\": 1,\n  \"b\": 2\n}"
+    }
+  },
   "advanced_rules": {
     "S": {
       "name": "Slugify",

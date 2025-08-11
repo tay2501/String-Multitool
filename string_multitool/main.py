@@ -26,6 +26,7 @@ from .core.types import TextSource, CommandResult, TransformationRuleType
 from .io.manager import InputOutputManager
 from .modes.interactive import InteractiveSession, CommandProcessor
 from .modes.daemon import DaemonMode
+from .modes.hotkey import HotkeyMode
 
 
 class ApplicationInterface:
@@ -59,6 +60,9 @@ class ApplicationInterface:
             
             # Initialize daemon mode with explicit type annotation
             self.daemon_mode: DaemonMode = DaemonMode(self.transformation_engine, self.config_manager)
+            
+            # Initialize hotkey mode with explicit type annotation
+            self.hotkey_mode: HotkeyMode | None = None
             
         except Exception as e:
             raise ConfigurationError(
@@ -238,6 +242,42 @@ class ApplicationInterface:
             log_error(logger, f"❌ Unexpected error: {e}")
             sys.exit(1)
     
+    def run_hotkey_mode(self) -> None:
+        """Run application in hotkey mode.
+        
+        Raises:
+            StringMultitoolError: If hotkey mode fails
+        """
+        try:
+            logger = get_logger(__name__)
+            log_info(logger, "Starting hotkey mode...")
+            
+            # Initialize hotkey mode if not already done
+            if self.hotkey_mode is None:
+                self.hotkey_mode = HotkeyMode(
+                    self.io_manager, 
+                    self.transformation_engine, 
+                    self.config_manager
+                )
+            
+            # Run hotkey mode (blocking)
+            self.hotkey_mode.run()
+            
+        except KeyboardInterrupt:
+            logger = get_logger(__name__)
+            log_info(logger, "Hotkey mode stopped by user")
+        except ConfigurationError as e:
+            logger = get_logger(__name__)
+            log_error(logger, f"Hotkey configuration error: {e}")
+            raise
+        except Exception as e:
+            logger = get_logger(__name__)
+            log_error(logger, f"Hotkey mode error: {e}")
+            raise StringMultitoolError(
+                f"Hotkey mode failed: {e}",
+                {"error_type": type(e).__name__}
+            ) from e
+
     def run_daemon_mode(self) -> None:
         """Run application in daemon mode.
         
@@ -446,6 +486,7 @@ class ApplicationInterface:
             log_info(logger, "  String_Multitool.py                    # Interactive mode (clipboard input)")
             log_info(logger, "  String_Multitool.py /t/l               # Apply trim + lowercase to clipboard")
             log_info(logger, "  String_Multitool.py --daemon           # Daemon mode (continuous monitoring)")
+            log_info(logger, "  String_Multitool.py --hotkey           # Hotkey mode (global keyboard shortcuts)")
             log_info(logger, "  echo 'text' | String_Multitool.py      # Interactive mode (pipe input)")
             log_info(logger, "  echo 'text' | String_Multitool.py /t/l # Apply trim + lowercase to piped text")
             log_info(logger, "")
@@ -569,6 +610,10 @@ class ApplicationInterface:
                     self.run_daemon_mode()
                     return
                 
+                if sys.argv[1] in ['-k', '--hotkey', 'hotkey']:
+                    self.run_hotkey_mode()
+                    return
+                
                 # Command mode - join all arguments to handle quoted strings
                 rule_string: str = ' '.join(sys.argv[1:])
                 self.run_command_mode(rule_string)
@@ -596,7 +641,7 @@ def main() -> None:
     """Application entry point with Typer integration."""
     try:
         # Check for modern CLI usage (subcommands)
-        if len(sys.argv) > 1 and sys.argv[1] in ['interactive', 'transform', 'encrypt', 'decrypt', 'daemon', 'rules', 'version']:
+        if len(sys.argv) > 1 and sys.argv[1] in ['interactive', 'transform', 'encrypt', 'decrypt', 'daemon', 'hotkey', 'rules', 'version']:
             # Use new Typer CLI
             from .cli import run_cli
             run_cli()

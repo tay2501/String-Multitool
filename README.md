@@ -1,4 +1,5 @@
 <a href='https://ko-fi.com/Z8Z31J3LMW' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi6.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+<a href="https://www.buymeacoffee.com/tay2501" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
 # String_Multitool
 
@@ -13,6 +14,7 @@ An advanced, enterprise-grade text transformation tool with modular architecture
 - [Interactive Mode](#interactive-mode)
   - [Auto-Detection Feature](#auto-detection-feature-detailed-guide)
 - [Daemon Mode](#daemon-mode-continuous-monitoring)
+- [Hotkey Mode](#hotkey-mode-global-keyboard-shortcuts)
 - [Use Cases](#use-cases)
 - [Installation & Setup](#installation--setup)
 - [Development](#development)
@@ -28,6 +30,7 @@ An advanced, enterprise-grade text transformation tool with modular architecture
 - **Clipboard Integration**: Automatically copies results to clipboard
 - **Auto-Detection**: Smart clipboard monitoring with notifications in interactive mode
 - **Daemon Mode**: Continuous background processing for automated workflows
+- **Hotkey Mode**: Global keyboard shortcuts for instant transformations (Ctrl+Shift+S + key)
 - **Cross-Platform**: Works on Windows, macOS, and Linux
 - **Modern Python**: Requires Python 3.10+ with latest language features
 - **Unicode Support**: Full-width ↔ half-width character conversion for East Asian text
@@ -72,6 +75,9 @@ python String_Multitool.py
 # Apply rules to clipboard
 python String_Multitool.py /t/l
 
+# Hotkey mode (global keyboard shortcuts)
+python String_Multitool.py --hotkey
+
 # Pipe input with rules
 echo "  HELLO WORLD  " | python String_Multitool.py /t/l
 # Result: "hello world" (trimmed and lowercased)
@@ -93,6 +99,10 @@ string-multitool decrypt  # Uses clipboard content
 # Daemon mode with presets
 string-multitool daemon --preset uppercase
 string-multitool daemon --rules "/t/l"
+
+# Hotkey mode (global keyboard shortcuts)
+python String_Multitool.py --hotkey
+string-multitool hotkey
 
 # Show available rules
 string-multitool rules
@@ -597,6 +607,161 @@ Rules: /s                    # Continue with transformations
 - **Flexible Workflow**: Choose the right mode for each task
 - **Efficient**: No need to exit and restart the application
 
+### Hotkey Mode (Global Keyboard Shortcuts)
+
+For instant text transformation using global keyboard shortcuts:
+
+#### Starting Hotkey Mode
+
+```bash
+# Legacy CLI
+python String_Multitool.py --hotkey
+
+# Modern Typer CLI
+string-multitool hotkey
+```
+
+#### How It Works
+
+Hotkey mode provides direct keyboard shortcuts that work globally across all applications:
+
+1. **Direct Shortcuts**: Press key combination directly (e.g., `Ctrl+Shift+L` for lowercase)
+2. **Sequence Shortcuts**: Press first combination, then second key (e.g., `Ctrl+Shift+H` → `U` for hyphen-to-underscore)  
+3. **Instant Transformation**: Current clipboard content is transformed and replaced immediately
+
+#### Direct Key Mappings
+
+| Shortcut | Transformation | Example |
+|----------|---------------|---------|
+| `Ctrl+Shift+L` | Lowercase | `HELLO WORLD` → `hello world` |
+| `Ctrl+Shift+U` | Uppercase | `hello world` → `HELLO WORLD` |
+| `Ctrl+Shift+T` | Trim | `  hello  ` → `hello` |
+| `Ctrl+Shift+C` | Capitalize | `hello world` → `Hello World` |
+| `Ctrl+Shift+R` | Reverse | `hello` → `olleh` |
+| `Ctrl+Shift+S` | snake_case | `hello world` → `hello_world` |
+| `Ctrl+Shift+P` | PascalCase | `hello world` → `HelloWorld` |
+| `Ctrl+Shift+A` | Capitalize Words | `hello world` → `Hello World` |
+| `Ctrl+Shift+E` | Encrypt | `secret` → `encrypted text` |
+| `Ctrl+Shift+D` | Decrypt | `encrypted text` → `secret` |
+
+#### Sequence Key Mappings
+
+| First Key | Second Key | Transformation | Example |
+|-----------|------------|---------------|---------|
+| `Ctrl+Shift+Alt+H` | `Ctrl+Shift+Alt+U` | Hyphen to Underscore | `hello-world` → `hello_world` |
+| `Ctrl+Shift+Alt+U` | `Ctrl+Shift+Alt+H` | Underscore to Hyphen | `hello_world` → `hello-world` |
+| `Ctrl+Shift+Alt+H` | `Ctrl+Shift+Alt+H` | Hash (SHA-256) | `password` → `5e884...` |
+| `Ctrl+Shift+Alt+H` | `Ctrl+Shift+Alt+F` | Half-width to Full-width | `HELLO` → `ＨＥＬＬＯ` |
+| `Ctrl+Shift+Alt+B` | `Ctrl+Shift+Alt+E` | Base64 Encode | `hello` → `aGVsbG8=` |
+| `Ctrl+Shift+Alt+B` | `Ctrl+Shift+Alt+D` | Base64 Decode | `aGVsbG8=` → `hello` |
+| `Ctrl+Shift+Alt+F` | `Ctrl+Shift+Alt+H` | Full-width to Half-width | `ＨＥＬＬＯ` → `HELLO` |
+| `Ctrl+Shift+Alt+F` | `Ctrl+Shift+Alt+J` | Format JSON | `{"a":1}` → formatted JSON |
+
+#### Example Workflow
+
+```bash
+# 1. Start hotkey mode
+python String_Multitool.py --hotkey
+# Console shows: Direct hotkey mode started successfully
+
+# 2. Copy text in any application (e.g., "  HELLO WORLD  ")
+
+# 3. Press Ctrl+Shift+L for lowercase
+# Result: "  hello world  " is now in clipboard
+
+# 4. Or press Ctrl+Shift+T for trim
+# Result: "HELLO WORLD" is now in clipboard
+
+# 5. For sequence shortcuts, press Ctrl+Shift+H, then U
+# Result: Transforms "hello-world" to "hello_world"
+```
+
+#### Configuration
+
+Customize hotkey mappings in `config/hotkey_config.json`:
+
+```json
+{
+    "hotkey_settings": {
+        "enabled": true,
+        "sequence_timeout_seconds": 2.0,
+        "modifier_key": "ctrl+shift"
+    },
+    "direct_hotkeys": {
+        "ctrl+shift+l": {"command": "/l", "description": "Convert to lowercase"},
+        "ctrl+shift+u": {"command": "/u", "description": "Convert to uppercase"},
+        "ctrl+shift+t": {"command": "/t", "description": "Trim whitespace"}
+    },
+    "sequence_hotkeys": {
+        "h": {
+            "sequences": {
+                "u": {"command": "/hu", "description": "Hyphen to underscore"},
+                "h": {"command": "/h", "description": "Hash (SHA-256)"}
+            }
+        }
+    }
+}
+```
+
+#### Features
+
+- **Global Hotkeys**: Works across all applications and windows
+- **Direct Access**: Single key combination for most common operations
+- **Sequence Support**: Two-key sequences for advanced operations
+- **Configurable**: Customize all key combinations and commands
+- **Real-time Processing**: Instant clipboard transformation
+- **Background Operation**: Runs continuously until stopped
+- **No GUI**: Pure keyboard-driven workflow
+- **Memory Efficient**: Minimal resource usage
+
+#### Use Cases
+
+**1. Development Workflow**
+```bash
+# Copy variable name from IDE → Ctrl+Shift+S → snake_case conversion
+# Copy API endpoint → Ctrl+Shift+L → lowercase normalization
+# Copy SQL table name → Ctrl+Shift+U → uppercase formatting
+```
+
+**2. Documentation Editing**
+```bash
+# Copy messy text → Ctrl+Shift+T → trim whitespace
+# Copy code snippet → Ctrl+Shift+F then J → format JSON properly
+# Copy sensitive data → Ctrl+Shift+E → encrypt immediately
+```
+
+**3. Data Processing**
+```bash
+# Copy database values → Ctrl+Shift+H then H → hash for anonymization
+# Copy encoded data → Ctrl+Shift+B then D → base64 decode
+# Copy hyphenated text → Ctrl+Shift+H then U → convert hyphens to underscores
+```
+
+#### System Requirements
+
+- Windows: Tested on Windows 10/11
+- Administrator privileges may be required for global hotkeys
+- `keyboard` library for global hotkey monitoring (included in requirements.txt)
+
+#### Troubleshooting
+
+**Hotkeys not working:**
+- **Key Conflicts**: Some key combinations may conflict with applications:
+  - `Ctrl+Shift+T` (Terminal), `Ctrl+Shift+C` (Copy), `Ctrl+Shift+S` (Save As)
+  - **Solution**: Customize mappings in `config/hotkey_config.json`
+  - **Alternative modifiers**: `Ctrl+Alt`, `Win`, `Alt+Shift`
+- **Administrator Rights**: Try running as administrator on Windows
+- **Antivirus Blocking**: Check if antivirus is blocking global keyboard library access
+- **Application Priority**: Some applications may capture certain key combinations first
+
+**Sequence timeout issues:**
+- Increase `sequence_timeout_seconds` in `config/hotkey_config.json`
+- Practice the two-key sequence timing (default: 2 seconds)
+
+**Configuration errors:**
+- Verify JSON syntax in config file
+- Check that all command strings are valid transformation rules
+
 ### File Processing
 
 Process text files using PowerShell or bash:
@@ -685,7 +850,7 @@ The application requires the following dependencies:
 
 ```
 pyperclip>=1.8.0      # Clipboard operations
-pynput>=1.7.0         # Input handling for daemon mode
+keyboard>=0.13.5      # Global hotkey monitoring for hotkey mode
 watchdog>=3.0.0       # File system monitoring
 cryptography>=41.0.0  # RSA encryption/decryption
 typer>=0.9.0          # Modern CLI framework
@@ -781,17 +946,20 @@ String_Multitool/
 │   │   └── manager.py              # IO manager
 │   ├── modes/                      # Application modes
 │   │   ├── daemon.py               # Daemon mode
-│   │   └── interactive.py          # Interactive mode
+│   │   ├── interactive.py          # Interactive mode
+│   │   └── hotkey.py               # Hotkey mode
 │   └── utils/                      # Utilities
 │       └── logger.py               # Logging utilities
 ├── config/                         # Configuration files
 │   ├── transformation_rules.json   # Rule definitions
 │   ├── security_config.json       # Security settings
-│   └── daemon_config.json         # Daemon configuration
+│   ├── daemon_config.json         # Daemon configuration
+│   └── hotkey_config.json         # Hotkey configuration
 ├── rsa/                           # RSA key storage (auto-generated)
 ├── .vscode/                       # VSCode configuration
 │   └── settings.json              # Python interpreter settings
-├── test_transform.py              # Test suite
+├── test_transform.py              # Core transformation tests
+├── test_hotkey.py                 # Hotkey mode tests
 ├── pyproject.toml                 # Project configuration
 ├── pyrightconfig.json             # Pylance configuration
 ├── requirements.txt               # Dependencies
@@ -856,6 +1024,18 @@ def _my_new_rule(self, text: str) -> str:
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Changelog
+
+### Version 2.4.0 (Global Hotkey Support)
+- **Hotkey Mode**: Global keyboard shortcuts for instant text transformations
+- **Sequential Key Input**: Emacs-style prefix + command key combinations (Ctrl+Shift+S + key)
+- **Background Operation**: Continuous global hotkey monitoring across all applications
+- **Configurable Mappings**: Customizable key bindings via JSON configuration
+- **Timeout Management**: Configurable timeout for key sequence completion
+- **Real-time Processing**: Instant clipboard transformation without application switching
+- **System Integration**: Works with any application that uses clipboard
+- **Memory Efficient**: Minimal resource usage for background monitoring
+- **Cross-platform Support**: Windows 10/11 with global hotkey capabilities
+- **Enhanced Documentation**: Comprehensive hotkey usage examples and troubleshooting
 
 ### Version 2.3.0 (Modern CLI & Type Safety)
 - **Modern Typer CLI**: Professional command-line interface with subcommands

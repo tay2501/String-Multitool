@@ -49,10 +49,10 @@ build = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-username/String-Multitool"
-"Bug Reports" = "https://github.com/your-username/String-Multitool/issues"
-"Source" = "https://github.com/your-username/String-Multitool"
-"Documentation" = "https://github.com/your-username/String-Multitool#readme"
+Homepage = "https://github.com/tay2501/String-Multitool"
+"Bug Reports" = "https://github.com/tay2501/String-Multitool/issues"
+"Source" = "https://github.com/tay2501/String-Multitool"
+"Documentation" = "https://github.com/tay2501/String-Multitool#readme"
 
 [project.scripts]
 string-multitool = "String_Multitool:main"

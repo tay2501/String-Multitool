@@ -8,6 +8,9 @@ configurable rules and comprehensive error handling.
 from __future__ import annotations
 
 import re
+import json
+import base64
+import hashlib
 from typing import Any
 
 from ..exceptions import TransformationError, ValidationError
@@ -479,6 +482,46 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]]):
             ),
         })
         
+        # Hash operations
+        rules.update({
+            'hash': TransformationRule(
+                name='SHA-256 Hash',
+                description='Generate SHA-256 hash of input text',
+                example='password → 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
+                function=self._sha256_hash,
+                rule_type=TransformationRuleType.ADVANCED
+            ),
+        })
+        
+        # Encoding operations
+        rules.update({
+            'base64enc': TransformationRule(
+                name='Base64 Encode',
+                description='Encode text to Base64',
+                example='hello → aGVsbG8=',
+                function=self._base64_encode,
+                rule_type=TransformationRuleType.ADVANCED
+            ),
+            'base64dec': TransformationRule(
+                name='Base64 Decode',
+                description='Decode Base64 to text',
+                example='aGVsbG8= → hello',
+                function=self._base64_decode,
+                rule_type=TransformationRuleType.ADVANCED
+            ),
+        })
+        
+        # Formatting operations
+        rules.update({
+            'formatjson': TransformationRule(
+                name='Format JSON',
+                description='Format JSON with proper indentation',
+                example='{"a":1,"b":2} → formatted JSON',
+                function=self._format_json,
+                rule_type=TransformationRuleType.ADVANCED
+            ),
+        })
+        
         # Advanced rules with arguments
         rules.update({
             'r': TransformationRule(
@@ -551,6 +594,40 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]]):
         lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
         quoted_lines = [f"'{line.strip()}'" for line in lines if line.strip()]
         return ',\r\n'.join(quoted_lines)
+    
+    def _sha256_hash(self, text: str) -> str:
+        """Generate SHA-256 hash of input text."""
+        return hashlib.sha256(text.encode('utf-8')).hexdigest()
+    
+    def _base64_encode(self, text: str) -> str:
+        """Encode text to Base64."""
+        try:
+            encoded_bytes = base64.b64encode(text.encode('utf-8'))
+            return encoded_bytes.decode('ascii')
+        except Exception as e:
+            raise TransformationError(f"Base64 encoding failed: {e}")
+    
+    def _base64_decode(self, text: str) -> str:
+        """Decode Base64 to text."""
+        try:
+            # Remove whitespace and padding if needed
+            clean_text = text.strip()
+            decoded_bytes = base64.b64decode(clean_text)
+            return decoded_bytes.decode('utf-8')
+        except Exception as e:
+            raise TransformationError(f"Base64 decoding failed: {e}")
+    
+    def _format_json(self, text: str) -> str:
+        """Format JSON with proper indentation."""
+        try:
+            # Parse JSON
+            parsed = json.loads(text)
+            # Format with 2-space indentation
+            return json.dumps(parsed, indent=2, ensure_ascii=False)
+        except json.JSONDecodeError as e:
+            raise TransformationError(f"Invalid JSON format: {e}")
+        except Exception as e:
+            raise TransformationError(f"JSON formatting failed: {e}")
     
     def validate_rule_string(self, rule_string: str) -> tuple[bool, str | None]:
         """Validate rule string format.

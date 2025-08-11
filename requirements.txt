@@ -6,7 +6,7 @@
 pyperclip>=1.8.0
 
 # Global hotkey support (required for hotkey mode only)
-pynput>=1.7.0
+keyboard>=0.13.5
 
 # File system monitoring (for config auto-reload)
 watchdog>=3.0.0

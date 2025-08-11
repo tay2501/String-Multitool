@@ -1,0 +1,110 @@
+{
+    "hotkey_settings": {
+        "enabled": true,
+        "description": "Direct global hotkey configuration for String_Multitool",
+        "sequence_timeout_seconds": 2.0,
+        "modifier_key": "ctrl+shift+alt",
+        "alternative_modifiers": [
+            "ctrl+alt",
+            "win",
+            "ctrl+win",
+            "alt+shift"
+        ]
+    },
+    "direct_hotkeys": {
+        "ctrl+shift+l": {
+            "command": "/l",
+            "description": "Convert to lowercase"
+        },
+        "ctrl+shift+u": {
+            "command": "/u", 
+            "description": "Convert to uppercase"
+        },
+        "ctrl+shift+t": {
+            "command": "/t",
+            "description": "Trim whitespace"
+        },
+        "ctrl+shift+c": {
+            "command": "/c",
+            "description": "Capitalize first letter"
+        },
+        "ctrl+shift+r": {
+            "command": "/R",
+            "description": "Reverse text"
+        },
+        "ctrl+shift+s": {
+            "command": "/s",
+            "description": "Convert to snake_case"
+        },
+        "ctrl+shift+p": {
+            "command": "/p",
+            "description": "Convert to PascalCase"
+        },
+        "ctrl+shift+a": {
+            "command": "/a",
+            "description": "Capitalize words"
+        },
+        "ctrl+shift+e": {
+            "command": "/enc",
+            "description": "Encrypt with RSA+AES"
+        },
+        "ctrl+shift+d": {
+            "command": "/dec",
+            "description": "Decrypt RSA+AES"
+        }
+    },
+    "sequence_hotkeys": {
+        "h": {
+            "sequences": {
+                "u": {
+                    "command": "/hu",
+                    "description": "Hyphen to underscore"
+                },
+                "h": {
+                    "command": "/hash",
+                    "description": "Convert to hash (SHA-256)"
+                },
+                "f": {
+                    "command": "/hf",
+                    "description": "Half-width to full-width"
+                }
+            },
+            "description": "Hash, hyphen and character width transformations"
+        },
+        "u": {
+            "sequences": {
+                "h": {
+                    "command": "/uh",
+                    "description": "Underscore to hyphen"
+                }
+            },
+            "description": "Underscore transformations"
+        },
+        "b": {
+            "sequences": {
+                "e": {
+                    "command": "/base64enc",
+                    "description": "Base64 encode"
+                },
+                "d": {
+                    "command": "/base64dec",
+                    "description": "Base64 decode"
+                }
+            },
+            "description": "Base64 encoding/decoding"
+        },
+        "f": {
+            "sequences": {
+                "h": {
+                    "command": "/fh",
+                    "description": "Full-width to half-width"
+                },
+                "j": {
+                    "command": "/formatjson",
+                    "description": "Format as JSON"
+                }
+            },
+            "description": "Formatting operations"
+        }
+    }
+}

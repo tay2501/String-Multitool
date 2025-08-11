@@ -10,9 +10,22 @@ from __future__ import annotations
 import json
 import time
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
+
+try:
+    import keyboard
+    KEYBOARD_AVAILABLE = True
+except ImportError:
+    try:
+        from pynput import keyboard as pynput_keyboard
+        PYNPUT_AVAILABLE = True
+        KEYBOARD_AVAILABLE = False
+    except ImportError:
+        PYNPUT_AVAILABLE = False
+        KEYBOARD_AVAILABLE = False
+        print("Warning: Neither keyboard nor pynput available, sequence hotkeys disabled")
 
 from ..exceptions import ConfigurationError, ValidationError, TransformationError
 from ..core.types import TransformationEngineProtocol, ConfigManagerProtocol
@@ -61,6 +74,13 @@ class DaemonMode:
             'last_transformation': None
         }
         
+        # Sequence hotkeys support
+        self.hotkey_listener: Any | None = None
+        self.key_sequence: list[str] = []
+        self.last_key_time: datetime | None = None
+        self.sequence_timeout: float = 2.0
+        self.registered_hotkeys: list[str] = []
+        
         # Load daemon configuration
         try:
             self.daemon_config = self._load_daemon_config()
@@ -95,6 +115,9 @@ class DaemonMode:
             )
             self.clipboard_monitor.start()
             
+            # Start sequence hotkey monitoring if enabled
+            self._start_sequence_hotkeys()
+            
         except Exception as e:
             self.is_running = False
             raise TransformationError(
@@ -113,6 +136,9 @@ class DaemonMode:
         
         try:
             self.is_running = False
+            
+            # Stop sequence hotkeys
+            self._stop_sequence_hotkeys()
             
             if self.clipboard_monitor and self.clipboard_monitor.is_alive():
                 self.clipboard_monitor.join(timeout=2.0)
@@ -376,3 +402,245 @@ class DaemonMode:
             
         except Exception as e:
             print(f"\r[DAEMON] Error processing content: {e}", flush=True)
+    
+    def _start_sequence_hotkeys(self) -> None:
+        """Start sequence hotkey monitoring if enabled and available."""
+        if not (KEYBOARD_AVAILABLE or PYNPUT_AVAILABLE):
+            return
+        
+        config = self.daemon_config.get("sequence_hotkeys", {})
+        if not config.get("enabled", False):
+            return
+        
+        self.sequence_timeout = config.get("timeout", 2.0)
+        
+        try:
+            if KEYBOARD_AVAILABLE:
+                self._start_keyboard_hotkeys(config)
+            elif PYNPUT_AVAILABLE:
+                self._start_pynput_hotkeys(config)
+                
+            print("[DAEMON] Sequence hotkeys monitoring started")
+        except Exception as e:
+            print(f"[DAEMON] Warning: Failed to start sequence hotkeys: {e}")
+    
+    def _start_keyboard_hotkeys(self, config: dict[str, Any]) -> None:
+        """Start sequence hotkeys using keyboard library."""
+        sequences = config.get("sequences", {})
+        
+        for rule, seq_info in sequences.items():
+            sequence = seq_info.get("sequence", [])
+            if len(sequence) == 2:
+                # Register sequence as: first_hotkey -> second_hotkey -> action
+                first_key = sequence[0].replace('+', '+')
+                second_key = sequence[1].replace('+', '+')
+                
+                try:
+                    # Create a callback for this specific sequence
+                    def create_sequence_callback(rule_name: str, seq: list[str]) -> Any:
+                        sequence_state = {"last_key_time": None, "expecting_second": False}
+                        
+                        def first_key_callback():
+                            sequence_state["last_key_time"] = datetime.now()
+                            sequence_state["expecting_second"] = True
+                            # Set a timer to reset the sequence
+                            threading.Timer(self.sequence_timeout, 
+                                          lambda: sequence_state.update({"expecting_second": False})).start()
+                        
+                        def second_key_callback():
+                            if (sequence_state["expecting_second"] and 
+                                sequence_state["last_key_time"] and
+                                (datetime.now() - sequence_state["last_key_time"]).total_seconds() <= self.sequence_timeout):
+                                self._apply_sequence_rule(rule_name)
+                                sequence_state["expecting_second"] = False
+                        
+                        return first_key_callback, second_key_callback
+                    
+                    first_callback, second_callback = create_sequence_callback(rule, sequence)
+                    
+                    # Register both hotkeys
+                    keyboard.add_hotkey(first_key, first_callback)
+                    keyboard.add_hotkey(second_key, second_callback)
+                    
+                    self.registered_hotkeys.extend([first_key, second_key])
+                    
+                except Exception as e:
+                    print(f"[DAEMON] Warning: Failed to register hotkey sequence {rule}: {e}")
+    
+    def _start_pynput_hotkeys(self, config: dict[str, Any]) -> None:
+        """Start sequence hotkeys using pynput library (fallback)."""
+        self.hotkey_listener = pynput_keyboard.Listener(
+            on_press=self._on_key_press_pynput,
+            on_release=None
+        )
+        self.hotkey_listener.start()
+    
+    def _stop_sequence_hotkeys(self) -> None:
+        """Stop sequence hotkey monitoring."""
+        try:
+            if KEYBOARD_AVAILABLE:
+                # Remove registered hotkeys
+                for hotkey in self.registered_hotkeys:
+                    try:
+                        keyboard.remove_hotkey(hotkey)
+                    except:
+                        pass
+                self.registered_hotkeys.clear()
+            
+            if self.hotkey_listener:
+                self.hotkey_listener.stop()
+                self.hotkey_listener = None
+            
+            print("[DAEMON] Sequence hotkeys monitoring stopped")
+        except Exception as e:
+            print(f"[DAEMON] Warning: Error stopping sequence hotkeys: {e}")
+    
+    def _on_key_press_pynput(self, key) -> None:
+        """Handle keyboard key press events for sequence detection."""
+        try:
+            # Convert key to string format
+            key_str = self._key_to_string(key)
+            if not key_str:
+                return
+            
+            # Check for sequence timeout
+            current_time = datetime.now()
+            if (self.last_key_time and 
+                (current_time - self.last_key_time).total_seconds() > self.sequence_timeout):
+                self.key_sequence.clear()
+            
+            # Add key to sequence
+            self.key_sequence.append(key_str)
+            self.last_key_time = current_time
+            
+            # Keep only last 2 keys (maximum sequence length)
+            if len(self.key_sequence) > 2:
+                self.key_sequence = self.key_sequence[-2:]
+            
+            # Check if current sequence matches any configured sequences
+            self._check_sequence_match()
+            
+        except Exception as e:
+            print(f"[DAEMON] Error processing key press: {e}")
+    
+    def _key_to_string(self, key) -> str | None:
+        """Convert pynput key to string format."""
+        try:
+            # Handle special keys
+            if hasattr(key, 'char') and key.char is not None:
+                # Regular character key with modifiers
+                return key.char.lower()
+            
+            # Handle modifier + key combinations
+            modifiers = []
+            if hasattr(key, 'ctrl') and key.ctrl:
+                modifiers.append('ctrl')
+            if hasattr(key, 'shift') and key.shift:
+                modifiers.append('shift')
+            if hasattr(key, 'alt') and key.alt:
+                modifiers.append('alt')
+            
+            # For this implementation, we need to track modifier combinations
+            # This is a simplified approach - in practice, you might need more sophisticated tracking
+            current_modifiers = self._get_current_modifiers()
+            
+            if key == keyboard.Key.ctrl_l or key == keyboard.Key.ctrl_r:
+                return None  # Don't track modifier keys alone
+            elif key == keyboard.Key.shift or key == keyboard.Key.shift_r:
+                return None
+            elif hasattr(key, 'char') and key.char:
+                if current_modifiers:
+                    return f"{'+'.join(current_modifiers)}+{key.char.lower()}"
+                return key.char.lower()
+            elif hasattr(key, 'name'):
+                if current_modifiers:
+                    return f"{'+'.join(current_modifiers)}+{key.name.lower()}"
+                return key.name.lower()
+                
+        except Exception:
+            pass
+        return None
+    
+    def _get_current_modifiers(self) -> list[str]:
+        """Get currently pressed modifier keys."""
+        # This is a simplified implementation
+        # In practice, you would track modifier state
+        modifiers = []
+        try:
+            # Check if ctrl+shift combination is pressed
+            # This is a placeholder - actual implementation would need proper modifier tracking
+            import keyboard as kb
+            if kb.is_pressed('ctrl') and kb.is_pressed('shift'):
+                modifiers = ['ctrl', 'shift']
+        except:
+            pass
+        return modifiers
+    
+    def _check_sequence_match(self) -> None:
+        """Check if current key sequence matches any configured sequences."""
+        if len(self.key_sequence) < 2:
+            return
+        
+        config = self.daemon_config.get("sequence_hotkeys", {})
+        sequences = config.get("sequences", {})
+        
+        # Create current sequence string for comparison
+        current_seq = self.key_sequence[-2:]  # Last 2 keys
+        
+        for rule, seq_config in sequences.items():
+            expected_sequence = seq_config.get("sequence", [])
+            if len(expected_sequence) != 2:
+                continue
+                
+            # Simple string matching for ctrl+shift combinations
+            if self._sequences_match(current_seq, expected_sequence):
+                print(f"[DAEMON] Sequence hotkey detected: {rule}")
+                self._apply_sequence_rule(rule)
+                self.key_sequence.clear()
+                break
+    
+    def _sequences_match(self, current: list[str], expected: list[str]) -> bool:
+        """Check if current sequence matches expected sequence."""
+        if len(current) != len(expected):
+            return False
+        
+        # For ctrl+shift+h -> ctrl+shift+u pattern
+        # This is a simplified matching - you might need more sophisticated logic
+        try:
+            for i, (curr_key, exp_key) in enumerate(zip(current, expected)):
+                if "ctrl+shift+" in exp_key:
+                    target_key = exp_key.split('+')[-1]
+                    if target_key not in curr_key:
+                        return False
+                elif curr_key != exp_key:
+                    return False
+            return True
+        except Exception:
+            return False
+    
+    def _apply_sequence_rule(self, rule: str) -> None:
+        """Apply transformation rule triggered by sequence hotkey."""
+        try:
+            # Get clipboard content
+            io_manager = InputOutputManager()
+            content = io_manager.get_clipboard_text()
+            
+            if not content.strip():
+                return
+            
+            # Apply the transformation
+            result = self.transformation_engine.apply_transformations(content, rule)
+            
+            if result != content:
+                # Update clipboard with result
+                io_manager.set_clipboard_text(result)
+                
+                # Update statistics
+                self.stats['transformations_applied'] += 1
+                self.stats['last_transformation'] = datetime.now()
+                
+                print(f"[DAEMON] Sequence hotkey transformation applied: {rule}")
+                print(f"[DAEMON] '{content[:30]}...' -> '{result[:30]}...'")
+            
+        except Exception as e:
+            print(f"[DAEMON] Error applying sequence rule {rule}: {e}")

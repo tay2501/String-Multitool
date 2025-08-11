@@ -155,6 +155,13 @@ config/*_personal.json
 config/*_local.json
 config/*_user.json
 config/*.json.bak
+config/hotkey_config.json.bak
+config/*_custom.json
+
+# Hotkey mode specific files
+hotkey.pid
+hotkey_session.log
+hotkey_*.tmp
 
 # RSA encryption keys (NEVER commit these!)
 rsa/
@@ -196,6 +203,11 @@ test_output/
 test_results/
 test_*.txt
 test_*.json
+test_hotkey_*.json
+pytest_cache/
+.coverage.*
+coverage.xml.*
+htmlcov.*
 
 # Personal notes and documentation
 NOTES.md
@@ -262,10 +274,19 @@ Scripts/
 
 # Modern Python development tools
 .ruff_cache/
+.ruff/
 .black/
 .isort.cfg.bak
 setup.cfg.bak
 pyproject.toml.bak
+
+# Modern formatting and linting tools (2024+)
+.autoflake/
+.autopep8/
+.yapf/
+.pylint.d/
+.flake8.cache
+.bandit.cache
 
 # Jupyter Lab and modern notebook files
 .jupyter/
@@ -304,6 +325,23 @@ session_*.log
 user_ai_communication.md
 development_notes_*.md
 
+# Claude Code and AI development tools (2025+)
+.claude_code/
+claude_artifacts/
+claude_workspace/
+ai_generated_code/
+llm_context/
+cursor_*.md
+cursor_*.json
+copilot_*.log
+
+# GitHub Copilot and AI assistants
+.github/copilot/
+.copilot/
+.cursor/
+.zed/
+.windsurf/
+
 # Modern CI/CD files
 .github/workflows/*.yml.bak
 .gitlab-ci.yml.bak
@@ -320,8 +358,34 @@ docker-compose*.yml.bak
 .bandit
 .safety
 .semgrep/
+.checkov/
+.snyk/
+.trivy/
+.osv/
+vulnerability_reports/
+security_scan_*.json
+secrets_scan_*.log
+
+# Application runtime and sensitive data
+hotkey_runtime.json
+user_preferences.json
+session_state.json
+clipboard_history.tmp
 
 # Performance profiling
 .prof
 *.pstats
 .benchmark/
+
+# 2025 Updates - Modern Python development
+# Updated keyboard library instead of pynput
+pynput_legacy/
+keyboard_config_legacy/
+
+# Updated pyperclip usage
+clipboard_legacy/
+
+# Sequence hotkeys specific (2025)
+hotkey_sequence_*.tmp
+sequence_state.json
+modifier_key_test.log

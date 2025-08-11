@@ -46,5 +46,40 @@
     "toggle_daemon": "ctrl+shift+t",
     "apply_preset": "ctrl+shift+a",
     "show_status": "ctrl+shift+s"
+  },
+  "sequence_hotkeys": {
+    "enabled": true,
+    "sequences": {
+      "/hu": {
+        "sequence": ["ctrl+shift+h", "ctrl+shift+u"],
+        "description": "Hyphen to Underscore conversion"
+      },
+      "/uh": {
+        "sequence": ["ctrl+shift+u", "ctrl+shift+h"],
+        "description": "Underscore to Hyphen conversion"
+      },
+      "/hash": {
+        "sequence": ["ctrl+shift+h", "ctrl+shift+h"],
+        "description": "Hash (SHA-256)"
+      },
+      "/base64enc": {
+        "sequence": ["ctrl+shift+b", "ctrl+shift+e"],
+        "description": "Base64 Encode"
+      },
+      "/base64dec": {
+        "sequence": ["ctrl+shift+b", "ctrl+shift+d"],
+        "description": "Base64 Decode"
+      },
+      "/fh": {
+        "sequence": ["ctrl+shift+f", "ctrl+shift+h"],
+        "description": "Full-width to Half-width"
+      },
+      "/formatjson": {
+        "sequence": ["ctrl+shift+f", "ctrl+shift+j"],
+        "description": "Format JSON"
+      }
+    },
+    "timeout": 2.0,
+    "case_sensitive": false
   }
 }
