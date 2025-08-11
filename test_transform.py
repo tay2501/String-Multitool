@@ -179,14 +179,14 @@ class TestInteractiveSession:
     
     def test_update_working_text(self, session: InteractiveSession) -> None:
         """Test updating working text."""
-        session.update_working_text("test text", TextSource.MANUAL)
+        session.update_working_text("test text", TextSource.MANUAL.value)
         
         assert session.current_text == "test text"
         assert session.text_source == TextSource.MANUAL
     
     def test_get_status_info(self, session: InteractiveSession) -> None:
         """Test getting status information."""
-        session.update_working_text("test", TextSource.CLIPBOARD)
+        session.update_working_text("test", TextSource.CLIPBOARD.value)
         status: Any = session.get_status_info()
         
         assert status.current_text == "test"
@@ -198,13 +198,13 @@ class TestInteractiveSession:
     def test_refresh_from_clipboard(self, mock_pyperclip: Mock, session: InteractiveSession) -> None:
         """Test refreshing from clipboard."""
         mock_pyperclip.paste.return_value = "new content"
-        session.io_manager.get_clipboard_text = Mock(return_value="new content")
+        with patch.object(session.io_manager, 'get_clipboard_text', return_value="new content"):
         
-        result: bool = session.refresh_from_clipboard()
-        
-        assert result is True
-        assert session.current_text == "new content"
-        assert session.text_source == TextSource.CLIPBOARD
+            result: str = session.refresh_from_clipboard()
+            
+            assert result == "new content"
+            assert session.current_text == "new content"
+            assert session.text_source == TextSource.CLIPBOARD
 
 
 class TestCommandProcessor:
@@ -233,15 +233,15 @@ class TestCommandProcessor:
         mock_status.auto_detection_enabled = True
         mock_status.clipboard_monitor_active = False
         
-        processor.session.get_status_info = Mock(return_value=mock_status)
-        processor.session.get_display_text = Mock(return_value="test text")
-        processor.session.get_time_since_update = Mock(return_value="1 minute ago")
-        
-        result: Any = processor.process_command("status")
-        
-        assert result.success is True
-        assert "Session Status" in result.message
-        assert "10 characters" in result.message
+        with patch.object(processor.session, 'get_status_info', return_value=mock_status), \
+             patch.object(processor.session, 'get_display_text', return_value="test text"), \
+             patch.object(processor.session, 'get_time_since_update', return_value="1 minute ago"):
+            
+            result: Any = processor.process_command("status")
+            
+            assert result.success is True
+            assert "Session Status" in result.message
+            assert "10 characters" in result.message
 
 
 class TestCryptographyManager:
