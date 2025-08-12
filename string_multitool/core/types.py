@@ -134,6 +134,17 @@ class ConfigManagerProtocol(Protocol):
         """
         ...
     
+    def load_hotkey_config(self) -> ConfigDict:
+        """Load hotkey configuration.
+        
+        Returns:
+            Dictionary containing hotkey configuration
+            
+        Raises:
+            ConfigurationError: If hotkey config file cannot be loaded or parsed
+        """
+        ...
+    
     def validate_config(self) -> bool:
         """Validate all configuration files.
         
@@ -655,9 +666,11 @@ def is_config_manager(obj: Any) -> TypeGuard[ConfigManagerProtocol]:
     return (
         hasattr(obj, 'load_transformation_rules') and
         hasattr(obj, 'load_security_config') and
+        hasattr(obj, 'load_hotkey_config') and
         hasattr(obj, 'validate_config') and
         callable(obj.load_transformation_rules) and
         callable(obj.load_security_config) and
+        callable(obj.load_hotkey_config) and
         callable(obj.validate_config)
     )
 
@@ -812,6 +825,23 @@ def is_transformation_rules_config(obj: Any) -> TypeGuard[dict[str, Any]]:
         return False
     
     # Validate that all keys are strings and values are appropriate
+    return all(isinstance(k, str) for k in obj.keys())
+
+
+def is_hotkey_config(obj: Any) -> TypeGuard[dict[str, Any]]:
+    """Type guard for hotkey configuration validation.
+    
+    Args:
+        obj: Object to validate
+        
+    Returns:
+        True if obj is a valid hotkey configuration
+    """
+    if not isinstance(obj, dict):
+        return False
+    
+    # Check for expected hotkey configuration structure
+    # This is flexible to allow for different hotkey configurations
     return all(isinstance(k, str) for k in obj.keys())
 
 

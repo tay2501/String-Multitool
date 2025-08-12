@@ -19,51 +19,67 @@ from .exceptions import (
     StringMultitoolError, ConfigurationError, TransformationError,
     CryptographyError, ClipboardError, ValidationError
 )
-from .core.config import ConfigurationManager
-from .core.crypto import CryptographyManager
-from .core.transformations import TextTransformationEngine
-from .core.types import TextSource, CommandResult, TransformationRuleType
+from .core.dependency_injection import ServiceRegistry, inject, injectable
+from .core.types import (
+    TextSource, CommandResult, TransformationRuleType,
+    ConfigManagerProtocol, TransformationEngineProtocol, CryptoManagerProtocol
+)
 from .io.manager import InputOutputManager
 from .modes.interactive import InteractiveSession, CommandProcessor
-from .modes.daemon import DaemonMode
+from .modes.daemon_refactored import DaemonModeRefactored
 from .modes.hotkey import HotkeyMode
 
 
+@injectable
 class ApplicationInterface:
     """Main application interface and user interaction handler.
     
     This class coordinates all components and provides the main entry
-    points for different application modes.
+    points for different application modes. Uses dependency injection
+    for loose coupling and testability.
     """
     
-    def __init__(self) -> None:
-        """Initialize application interface.
+    def __init__(
+        self,
+        config_manager: ConfigManagerProtocol | None = None,
+        transformation_engine: TransformationEngineProtocol | None = None,
+        io_manager: InputOutputManager | None = None
+    ) -> None:
+        """Initialize application interface with dependency injection.
+        
+        Args:
+            config_manager: Configuration manager (injected if None)
+            transformation_engine: Transformation engine (injected if None)
+            io_manager: I/O manager (injected if None)
         
         Raises:
             ConfigurationError: If initialization fails
         """
         try:
-            # Initialize core components with explicit type annotations
-            self.config_manager: ConfigurationManager = ConfigurationManager()
-            self.io_manager: InputOutputManager = InputOutputManager()
-            self.transformation_engine: TextTransformationEngine = TextTransformationEngine(self.config_manager)
+            # Use dependency injection to get services
+            self.config_manager = config_manager or inject(ConfigManagerProtocol)
+            self.transformation_engine = transformation_engine or inject(TransformationEngineProtocol)
+            self.io_manager = io_manager or inject(InputOutputManager)
             
-            # Initialize cryptography manager (optional)
-            self.crypto_manager: CryptographyManager | None
+            # Get optional crypto manager
             try:
-                self.crypto_manager = CryptographyManager(self.config_manager)
-                self.transformation_engine.set_crypto_manager(self.crypto_manager)
-            except CryptographyError as e:
+                self.crypto_manager = inject(CryptoManagerProtocol)
+                if self.crypto_manager:
+                    self.transformation_engine.set_crypto_manager(self.crypto_manager)
+            except Exception as e:
                 logger = get_logger(__name__)
                 log_warning(logger, f"Cryptography not available: {e}")
                 self.crypto_manager = None
             
-            # Initialize daemon mode with explicit type annotation
-            self.daemon_mode: DaemonMode = DaemonMode(self.transformation_engine, self.config_manager)
+            # Initialize daemon mode (injected)
+            self.daemon_mode = inject(DaemonModeRefactored)
             
-            # Initialize hotkey mode with explicit type annotation
-            self.hotkey_mode: HotkeyMode | None = None
-            
+            # Initialize hotkey mode (optional, injected)
+            try:
+                self.hotkey_mode = inject(HotkeyMode)
+            except Exception:
+                self.hotkey_mode = None
+                
         except Exception as e:
             raise ConfigurationError(
                 f"Failed to initialize application: {e}",
@@ -80,9 +96,9 @@ class ApplicationInterface:
             StringMultitoolError: If interactive mode fails
         """
         try:
-            # Create interactive session
-            session: InteractiveSession = InteractiveSession(self.io_manager, self.transformation_engine)
-            command_processor: CommandProcessor = CommandProcessor(session)
+            # Create interactive session (injected)
+            session: InteractiveSession = inject(InteractiveSession)
+            command_processor: CommandProcessor = inject(CommandProcessor)
             
             # Initialize session with input text
             text_source: str = "pipe" if not sys.stdin.isatty() else "clipboard"
@@ -602,17 +618,28 @@ class ApplicationInterface:
         try:
             # Parse command line arguments
             if len(sys.argv) > 1:
-                if sys.argv[1] in ['-h', '--help', 'help']:
+                arg = sys.argv[1].lower()
+                
+                if arg in ['-h', '--help', 'help']:
                     self.display_help()
                     return
                 
-                if sys.argv[1] in ['-d', '--daemon', 'daemon']:
+                # Support partial matching for --daemon option
+                if arg in ['-d', '--daemon', 'daemon'] or arg.startswith('--daemon'):
                     self.run_daemon_mode()
                     return
                 
-                if sys.argv[1] in ['-k', '--hotkey', 'hotkey']:
+                if arg in ['-k', '--hotkey', 'hotkey'] or arg.startswith('--hotkey'):
                     self.run_hotkey_mode()
                     return
+                
+                # Check for invalid options starting with --
+                if arg.startswith('--') and not arg.startswith('--daemon') and not arg.startswith('--hotkey') and arg != '--help':
+                    logger = get_logger(__name__)
+                    log_error(logger, f"❌ Unknown option: {sys.argv[1]}")
+                    log_info(logger, "Available options: --daemon, --hotkey, --help")
+                    log_info(logger, "Or use transformation rules starting with '/' (e.g., /t/l)")
+                    sys.exit(1)
                 
                 # Command mode - join all arguments to handle quoted strings
                 rule_string: str = ' '.join(sys.argv[1:])

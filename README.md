@@ -32,7 +32,7 @@ An advanced, enterprise-grade text transformation tool with modular architecture
 - **Daemon Mode**: Continuous background processing for automated workflows
 - **Hotkey Mode**: Global keyboard shortcuts for instant transformations (Ctrl+Shift+S + key)
 - **Cross-Platform**: Works on Windows, macOS, and Linux
-- **Modern Python**: Requires Python 3.10+ with latest language features
+- **Modern Python**: Requires Python 3.10+ with full type annotations and latest language features
 - **Unicode Support**: Full-width ↔ half-width character conversion for East Asian text
 
 ### Enterprise Features
@@ -49,10 +49,10 @@ An advanced, enterprise-grade text transformation tool with modular architecture
 
 ```bash
 # Clone the repository
-git clone <repository-url>
-cd String_Multitool
+git clone https://github.com/yourusername/String-Multitool.git
+cd String-Multitool
 
-# Create virtual environment
+# Create virtual environment (Python 3.10+ required)
 python -m venv .venv
 
 # Activate virtual environment
@@ -63,6 +63,9 @@ source .venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Verify installation
+python String_Multitool.py help
 ```
 
 ### Basic Usage
@@ -828,10 +831,10 @@ echo -e "A0001\nA0002\nA0003" | python String_Multitool.py /dlb
 
 ```bash
 # Clone repository
-git clone <repository-url>
-cd String_Multitool
+git clone https://github.com/yourusername/String-Multitool.git
+cd String-Multitool
 
-# Create and activate virtual environment
+# Create and activate virtual environment (Python 3.10+ required)
 python -m venv .venv
 .venv\Scripts\activate  # Windows
 source .venv/bin/activate  # macOS/Linux
@@ -840,8 +843,8 @@ source .venv/bin/activate  # macOS/Linux
 pip install -r requirements.txt
 
 # Test installation
-python String_Multitool.py help  # Legacy CLI
-string-multitool version          # Modern CLI
+python String_Multitool.py help
+python -m pytest test_transform.py -v
 ```
 
 ### Dependencies
@@ -849,14 +852,12 @@ string-multitool version          # Modern CLI
 The application requires the following dependencies:
 
 ```
-pyperclip>=1.8.0      # Clipboard operations
-keyboard>=0.13.5      # Global hotkey monitoring for hotkey mode
-watchdog>=3.0.0       # File system monitoring
-cryptography>=41.0.0  # RSA encryption/decryption
-typer>=0.9.0          # Modern CLI framework
-rich>=13.0.0          # Rich terminal output
-pytest>=7.0.0         # Testing framework
-pyinstaller>=5.0.0    # Executable building
+pyperclip>=1.8.0      # Cross-platform clipboard operations
+pynput>=1.7.0         # Keyboard/mouse input handling for daemon mode  
+watchdog>=3.0.0       # File system monitoring for advanced features
+cryptography>=41.0.0  # RSA-4096 + AES-256 encryption/decryption
+pytest>=7.0.0         # Testing framework for development
+pyinstaller>=5.0.0    # Executable building for distribution
 ```
 
 ## Command Reference

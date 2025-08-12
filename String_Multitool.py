@@ -46,8 +46,13 @@ current_dir: Path = Path(__file__).parent
 if str(current_dir) not in sys.path:
     sys.path.insert(0, str(current_dir))
 
-# Import and run the main application
-from string_multitool.main import main
+# Import and run the main application with dependency injection
+from string_multitool.application_factory import ApplicationFactory
+
+def main() -> None:
+    """Main entry point with dependency injection."""
+    app = ApplicationFactory.create_application()
+    app.run()
 
 if __name__ == "__main__":
     main()

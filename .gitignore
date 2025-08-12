@@ -389,3 +389,59 @@ clipboard_legacy/
 hotkey_sequence_*.tmp
 sequence_state.json
 modifier_key_test.log
+
+# Python 3.13+ and modern development (2025)
+__pypackages__/
+.pdm-build/
+.pdm-python
+.pdm-cache/
+.venv*/
+.conda/
+.mamba/
+
+# Modern Python build systems (2025)
+hatch_build/
+flit_build/
+setuptools_scm/
+build_meta/
+
+# Modern linting and formatting tools (2025)
+.ruff_cache/
+.uv/
+.astral/
+.mypyc_build/
+.pylyzer/
+
+# Modern testing frameworks (2025)
+.ward/
+.pytest_cache/
+.hypothesis/
+.coverage/
+test-results/
+test-reports/
+.tox/
+.nox/
+
+# AI and language models (common in 2025)
+.ollama/
+.huggingface/
+llm_cache/
+model_cache/
+ai_logs/
+
+# Modern editor/IDE files (2025)
+.cursor/
+.windsurf/
+.zed/
+.replit/
+.fleet/
+.nova/
+.neovim/
+
+# Container development (2025)
+.devcontainer/
+.devpod/
+.gitpod/
+devenv.nix
+devenv.lock
+.devenv/

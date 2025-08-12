@@ -10,26 +10,34 @@ from __future__ import annotations
 import json
 import time
 import threading
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Final, TypeAlias, ClassVar
+from typing_extensions import override, Self
 
 try:
     import keyboard
-    KEYBOARD_AVAILABLE = True
+    KEYBOARD_AVAILABLE: Final[bool] = True
 except ImportError:
     try:
         from pynput import keyboard as pynput_keyboard
-        PYNPUT_AVAILABLE = True
-        KEYBOARD_AVAILABLE = False
+        PYNPUT_AVAILABLE: Final[bool] = True
+        KEYBOARD_AVAILABLE: Final[bool] = False
     except ImportError:
-        PYNPUT_AVAILABLE = False
-        KEYBOARD_AVAILABLE = False
+        PYNPUT_AVAILABLE: Final[bool] = False
+        KEYBOARD_AVAILABLE: Final[bool] = False
         print("Warning: Neither keyboard nor pynput available, sequence hotkeys disabled")
 
 from ..exceptions import ConfigurationError, ValidationError, TransformationError
 from ..core.types import TransformationEngineProtocol, ConfigManagerProtocol
 from ..io.manager import InputOutputManager
+
+# Type aliases for better readability and maintainability
+DaemonConfig: TypeAlias = dict[str, Any]
+StatsDict: TypeAlias = dict[str, Any]
+RulesList: TypeAlias = list[str]
+HotkeyCallback: TypeAlias = Callable[[], None]
 
 
 class DaemonMode:
@@ -38,6 +46,12 @@ class DaemonMode:
     This class provides background clipboard processing with configurable
     transformation rules and comprehensive status tracking.
     """
+    
+    # Class constants
+    DEFAULT_SEQUENCE_TIMEOUT: ClassVar[float] = 2.0
+    DEFAULT_CHECK_INTERVAL: ClassVar[float] = 1.0
+    MONITOR_THREAD_NAME: ClassVar[str] = "DaemonClipboardMonitor"
+    SEQUENCE_MAX_LENGTH: ClassVar[int] = 2
     
     def __init__(
         self, 
@@ -64,11 +78,11 @@ class DaemonMode:
         self.config_manager: ConfigManagerProtocol = config_manager
         self.is_running: bool = False
         self.last_clipboard_content: str = ""
-        self.active_rules: list[str] = []
+        self.active_rules: RulesList = []
         self.clipboard_monitor: threading.Thread | None = None
         self.active_preset: str | None = None
-        self.daemon_config: dict[str, Any] = {}
-        self.stats: dict[str, Any] = {
+        self.daemon_config: DaemonConfig = {}
+        self.stats: StatsDict = {
             'transformations_applied': 0,
             'start_time': None,
             'last_transformation': None
@@ -78,7 +92,7 @@ class DaemonMode:
         self.hotkey_listener: Any | None = None
         self.key_sequence: list[str] = []
         self.last_key_time: datetime | None = None
-        self.sequence_timeout: float = 2.0
+        self.sequence_timeout: float = self.DEFAULT_SEQUENCE_TIMEOUT
         self.registered_hotkeys: list[str] = []
         
         # Load daemon configuration
@@ -157,7 +171,7 @@ class DaemonMode:
                 {"error_type": type(e).__name__}
             ) from e
     
-    def set_transformation_rules(self, rules: list[str]) -> None:
+    def set_transformation_rules(self, rules: RulesList) -> None:
         """Set active transformation rules.
         
         Args:
@@ -210,16 +224,16 @@ class DaemonMode:
             raise ValidationError("Preset name cannot be empty")
         
         try:
-            presets: dict[str, Any] = self.daemon_config.get("auto_transformation", {}).get("rule_presets", {})
+            presets: Mapping[str, Any] = self.daemon_config.get("auto_transformation", {}).get("rule_presets", {})
             
             if preset_name not in presets:
-                available_presets: list[str] = list(presets.keys())
+                available_presets: Sequence[str] = list(presets.keys())
                 raise ConfigurationError(
                     f"Unknown preset: {preset_name}",
                     {"preset_name": preset_name, "available_presets": available_presets}
                 )
             
-            preset_rules: str | list[str] = presets[preset_name]
+            preset_rules: str | RulesList = presets[preset_name]
             if isinstance(preset_rules, str):
                 self.active_rules = [preset_rules]
             else:
@@ -237,13 +251,13 @@ class DaemonMode:
                 {"preset_name": preset_name, "error_type": type(e).__name__}
             ) from e
     
-    def get_status(self) -> dict[str, Any]:
+    def get_status(self) -> StatsDict:
         """Get daemon status information.
         
         Returns:
             Dictionary containing status information
         """
-        status: dict[str, Any] = {
+        status: StatsDict = {
             'running': self.is_running,
             'active_rules': self.active_rules.copy(),
             'active_preset': self.active_preset,
@@ -256,24 +270,25 @@ class DaemonMode:
         
         return status
     
-    def _load_daemon_config(self) -> dict[str, Any]:
+    def _load_daemon_config(self) -> DaemonConfig:
         """Load daemon configuration from file or use defaults.
         
         Returns:
             Daemon configuration dictionary
         """
-        daemon_config_path: Path = Path("config/daemon_config.json")
+        daemon_config_path: Final[Path] = Path("config/daemon_config.json")
         
         if daemon_config_path.exists():
             try:
-                with open(daemon_config_path, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-            except Exception as e:
+                with daemon_config_path.open('r', encoding='utf-8') as f:
+                    config_data: Any = json.load(f)
+                    return config_data
+            except (OSError, json.JSONDecodeError) as e:
                 print(f"Warning: Failed to load daemon config, using defaults: {e}")
         
         return self._get_default_daemon_config()
     
-    def _get_default_daemon_config(self) -> dict[str, Any]:
+    def _get_default_daemon_config(self) -> DaemonConfig:
         """Get default daemon configuration."""
         return {
             "daemon_mode": {
@@ -304,7 +319,7 @@ class DaemonMode:
     
     def _monitor_clipboard(self) -> None:
         """Main clipboard monitoring loop."""
-        check_interval: float = self.daemon_config["daemon_mode"]["check_interval"]
+        check_interval: Final[float] = self.daemon_config["daemon_mode"]["check_interval"]
         
         while self.is_running:
             try:
@@ -315,7 +330,7 @@ class DaemonMode:
                     self._process_clipboard_content(current_content)
                 
                 # Use shorter sleep intervals for better responsiveness
-                sleep_iterations: int = int(check_interval * 10)
+                sleep_iterations: Final[int] = int(check_interval * 10)
                 for _ in range(sleep_iterations):
                     if not self.is_running:
                         break
@@ -336,7 +351,7 @@ class DaemonMode:
         Returns:
             True if content should be processed, False otherwise
         """
-        config: dict[str, Any] = self.daemon_config["clipboard_monitoring"]
+        config: Mapping[str, Any] = self.daemon_config["clipboard_monitoring"]
         
         # Check if monitoring is enabled
         if not config.get("enabled", True):
@@ -356,8 +371,8 @@ class DaemonMode:
             return False
         
         # Check content length
-        min_length: int = config.get("min_length", 1)
-        max_length: int = config.get("max_length", 10000)
+        min_length: Final[int] = config.get("min_length", 1)
+        max_length: Final[int] = config.get("max_length", 10000)
         
         if len(content) < min_length or len(content) > max_length:
             return False
@@ -393,8 +408,9 @@ class DaemonMode:
             self.last_clipboard_content = result
             
             # Show transformation result (only when content actually changed)
-            display_input: str = content[:50] + "..." if len(content) > 50 else content
-            display_output: str = result[:50] + "..." if len(result) > 50 else result
+            MAX_DISPLAY_LENGTH: Final[int] = 50
+            display_input: str = content[:MAX_DISPLAY_LENGTH] + "..." if len(content) > MAX_DISPLAY_LENGTH else content
+            display_output: str = result[:MAX_DISPLAY_LENGTH] + "..." if len(result) > MAX_DISPLAY_LENGTH else result
             
             # Use \r to overwrite current line and avoid interfering with command input
             print(f"\r[DAEMON] Transformed: '{display_input}' -> '{display_output}'", end='', flush=True)
@@ -424,7 +440,7 @@ class DaemonMode:
         except Exception as e:
             print(f"[DAEMON] Warning: Failed to start sequence hotkeys: {e}")
     
-    def _start_keyboard_hotkeys(self, config: dict[str, Any]) -> None:
+    def _start_keyboard_hotkeys(self, config: Mapping[str, Any]) -> None:
         """Start sequence hotkeys using keyboard library."""
         sequences = config.get("sequences", {})
         
@@ -437,17 +453,19 @@ class DaemonMode:
                 
                 try:
                     # Create a callback for this specific sequence
-                    def create_sequence_callback(rule_name: str, seq: list[str]) -> Any:
-                        sequence_state = {"last_key_time": None, "expecting_second": False}
+                    def create_sequence_callback(rule_name: str, seq: Sequence[str]) -> tuple[HotkeyCallback, HotkeyCallback]:
+                        sequence_state: dict[str, Any] = {"last_key_time": None, "expecting_second": False}
                         
-                        def first_key_callback():
+                        def first_key_callback() -> None:
                             sequence_state["last_key_time"] = datetime.now()
                             sequence_state["expecting_second"] = True
                             # Set a timer to reset the sequence
-                            threading.Timer(self.sequence_timeout, 
-                                          lambda: sequence_state.update({"expecting_second": False})).start()
+                            threading.Timer(
+                                self.sequence_timeout, 
+                                lambda: sequence_state.update({"expecting_second": False})
+                            ).start()
                         
-                        def second_key_callback():
+                        def second_key_callback() -> None:
                             if (sequence_state["expecting_second"] and 
                                 sequence_state["last_key_time"] and
                                 (datetime.now() - sequence_state["last_key_time"]).total_seconds() <= self.sequence_timeout):
@@ -456,6 +474,8 @@ class DaemonMode:
                         
                         return first_key_callback, second_key_callback
                     
+                    first_callback: HotkeyCallback
+                    second_callback: HotkeyCallback
                     first_callback, second_callback = create_sequence_callback(rule, sequence)
                     
                     # Register both hotkeys
@@ -467,7 +487,7 @@ class DaemonMode:
                 except Exception as e:
                     print(f"[DAEMON] Warning: Failed to register hotkey sequence {rule}: {e}")
     
-    def _start_pynput_hotkeys(self, config: dict[str, Any]) -> None:
+    def _start_pynput_hotkeys(self, config: Mapping[str, Any]) -> None:
         """Start sequence hotkeys using pynput library (fallback)."""
         self.hotkey_listener = pynput_keyboard.Listener(
             on_press=self._on_key_press_pynput,
@@ -514,8 +534,8 @@ class DaemonMode:
             self.last_key_time = current_time
             
             # Keep only last 2 keys (maximum sequence length)
-            if len(self.key_sequence) > 2:
-                self.key_sequence = self.key_sequence[-2:]
+            if len(self.key_sequence) > self.SEQUENCE_MAX_LENGTH:
+                self.key_sequence = self.key_sequence[-self.SEQUENCE_MAX_LENGTH:]
             
             # Check if current sequence matches any configured sequences
             self._check_sequence_match()
@@ -565,7 +585,7 @@ class DaemonMode:
         """Get currently pressed modifier keys."""
         # This is a simplified implementation
         # In practice, you would track modifier state
-        modifiers = []
+        modifiers: list[str] = []
         try:
             # Check if ctrl+shift combination is pressed
             # This is a placeholder - actual implementation would need proper modifier tracking
@@ -578,18 +598,18 @@ class DaemonMode:
     
     def _check_sequence_match(self) -> None:
         """Check if current key sequence matches any configured sequences."""
-        if len(self.key_sequence) < 2:
+        if len(self.key_sequence) < self.SEQUENCE_MAX_LENGTH:
             return
         
-        config = self.daemon_config.get("sequence_hotkeys", {})
-        sequences = config.get("sequences", {})
+        config: Mapping[str, Any] = self.daemon_config.get("sequence_hotkeys", {})
+        sequences: Mapping[str, Any] = config.get("sequences", {})
         
         # Create current sequence string for comparison
-        current_seq = self.key_sequence[-2:]  # Last 2 keys
+        current_seq: list[str] = self.key_sequence[-self.SEQUENCE_MAX_LENGTH:]  # Last 2 keys
         
         for rule, seq_config in sequences.items():
-            expected_sequence = seq_config.get("sequence", [])
-            if len(expected_sequence) != 2:
+            expected_sequence: Sequence[str] = seq_config.get("sequence", [])
+            if len(expected_sequence) != self.SEQUENCE_MAX_LENGTH:
                 continue
                 
             # Simple string matching for ctrl+shift combinations
@@ -599,7 +619,7 @@ class DaemonMode:
                 self.key_sequence.clear()
                 break
     
-    def _sequences_match(self, current: list[str], expected: list[str]) -> bool:
+    def _sequences_match(self, current: Sequence[str], expected: Sequence[str]) -> bool:
         """Check if current sequence matches expected sequence."""
         if len(current) != len(expected):
             return False
@@ -622,18 +642,18 @@ class DaemonMode:
         """Apply transformation rule triggered by sequence hotkey."""
         try:
             # Get clipboard content
-            io_manager = InputOutputManager()
-            content = io_manager.get_clipboard_text()
+            io_manager: InputOutputManager = InputOutputManager()
+            content: str = io_manager.get_clipboard_text()
             
             if not content.strip():
                 return
             
             # Apply the transformation
-            result = self.transformation_engine.apply_transformations(content, rule)
+            result: str = self.transformation_engine.apply_transformations(content, rule)
             
             if result != content:
                 # Update clipboard with result
-                io_manager.set_clipboard_text(result)
+                io_manager.set_output_text(result)
                 
                 # Update statistics
                 self.stats['transformations_applied'] += 1

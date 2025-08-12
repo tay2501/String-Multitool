@@ -139,6 +139,7 @@ class HotkeyMode:
             ConfigurationError: If configuration cannot be loaded
         """
         try:
+            self.logger.info("Loading hotkey configuration")
             return self.config_manager.load_hotkey_config()
         except AttributeError:
             raise ConfigurationError(
