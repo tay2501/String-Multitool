@@ -1,0 +1,214 @@
+# Dependency Review Workflow
+# This Action will scan dependency manifest files that change as part of a Pull Request,
+# surfacing known-vulnerable versions of the packages declared or updated in the PR.
+
+name: Dependency Review
+
+on:
+  pull_request:
+    paths:
+      - 'requirements*.txt'
+      - 'pyproject.toml'
+      - 'setup.py'
+      - 'setup.cfg'
+      - 'Pipfile'
+      - 'Pipfile.lock'
+      - 'poetry.lock'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          # Optional: Fail the job if vulnerabilities are detected
+          fail-on-severity: moderate
+          
+          # Optional: Allow specific licenses
+          allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, GPL-3.0
+          
+          # Optional: Deny specific licenses  
+          deny-licenses: AGPL-3.0, GPL-2.0
+          
+          # Optional: Comment on PR with results
+          comment-summary-in-pr: on-failure
+          
+          # Optional: Create review with results
+          review-type: pull-request-review
+          
+          # Optional: Additional configuration
+          base-ref: ${{ github.event.pull_request.base.sha }}
+          head-ref: ${{ github.event.pull_request.head.sha }}
+
+  # Additional dependency analysis
+  dependency-analysis:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install analysis tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-audit safety pipenv-setup
+
+      - name: Check requirements.txt sync
+        run: |
+          # Verify that requirements files are properly formatted
+          python -c "
+          import pkg_resources
+          
+          def check_requirements_file(filename):
+              try:
+                  with open(filename, 'r') as f:
+                      requirements = f.read()
+                  
+                  # Parse requirements
+                  parsed = list(pkg_resources.parse_requirements(requirements))
+                  print(f'✅ {filename}: {len(parsed)} valid requirements found')
+                  
+                  # Check for duplicates
+                  names = [req.project_name.lower() for req in parsed]
+                  duplicates = set([name for name in names if names.count(name) > 1])
+                  
+                  if duplicates:
+                      print(f'⚠️ {filename}: Duplicate requirements found: {duplicates}')
+                  else:
+                      print(f'✅ {filename}: No duplicates found')
+                  
+                  return parsed
+                  
+              except FileNotFoundError:
+                  print(f'ℹ️ {filename}: File not found, skipping')
+                  return []
+              except Exception as e:
+                  print(f'❌ {filename}: Error parsing - {e}')
+                  return None
+          
+          # Check main requirements files
+          main_reqs = check_requirements_file('requirements.txt')
+          dev_reqs = check_requirements_file('requirements-dev.txt')
+          
+          if main_reqs is not None and dev_reqs is not None:
+              print('✅ All requirements files are valid')
+          else:
+              print('❌ Some requirements files have issues')
+              exit(1)
+          "
+
+      - name: Analyze dependency tree
+        run: |
+          pip install -r requirements.txt
+          pip install pipdeptree
+          
+          echo "## Dependency Tree Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          pipdeptree --warn silence >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check for outdated packages
+        run: |
+          pip list --outdated --format=json > outdated.json
+          
+          echo "## Outdated Packages" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          python -c "
+          import json
+          
+          try:
+              with open('outdated.json', 'r') as f:
+                  outdated = json.load(f)
+              
+              if outdated:
+                  print('| Package | Current | Latest | Type |')
+                  print('|---------|---------|--------|------|')
+                  
+                  for pkg in outdated:
+                      name = pkg['name']
+                      current = pkg['version']
+                      latest = pkg['latest_version']
+                      pkg_type = pkg['latest_filetype']
+                      
+                      print(f'| {name} | {current} | {latest} | {pkg_type} |')
+              else:
+                  print('✅ All packages are up to date!')
+          
+          except Exception as e:
+              print(f'Error checking outdated packages: {e}')
+          " >> $GITHUB_STEP_SUMMARY
+
+      - name: Generate dependency report
+        run: |
+          echo "## Dependency Security Report" > dependency-report.md
+          echo "" >> dependency-report.md
+          
+          # Run pip-audit
+          pip-audit --format=json --output=pip-audit.json || true
+          
+          # Run safety check
+          pip install -r requirements.txt
+          safety check --json --output=safety.json || true
+          
+          # Process results
+          python -c "
+          import json
+          import os
+          
+          # Process pip-audit results
+          if os.path.exists('pip-audit.json'):
+              with open('pip-audit.json', 'r') as f:
+                  try:
+                      audit_data = json.load(f)
+                      print('### Pip-Audit Results')
+                      if audit_data:
+                          print('Found vulnerabilities:')
+                          for vuln in audit_data:
+                              print(f'- **{vuln.get(\"package\", \"unknown\")}**: {vuln.get(\"description\", \"No description\")}')
+                      else:
+                          print('✅ No vulnerabilities found by pip-audit')
+                  except json.JSONDecodeError:
+                      print('⚠️ Could not parse pip-audit results')
+          
+          # Process safety results  
+          if os.path.exists('safety.json'):
+              with open('safety.json', 'r') as f:
+                  try:
+                      safety_data = json.load(f)
+                      print('### Safety Check Results')
+                      if safety_data:
+                          print('Found vulnerabilities:')
+                          for vuln in safety_data:
+                              print(f'- **{vuln.get(\"package\", \"unknown\")}**: {vuln.get(\"advisory\", \"No advisory\")}')
+                      else:
+                          print('✅ No vulnerabilities found by safety')
+                  except json.JSONDecodeError:
+                      print('⚠️ Could not parse safety results')
+          " >> dependency-report.md
+
+      - name: Upload dependency report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-analysis-report
+          path: |
+            dependency-report.md
+            pip-audit.json
+            safety.json
+            outdated.json
+          retention-days: 30

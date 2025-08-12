@@ -1,0 +1,164 @@
+# Labeler configuration for auto-labeling PRs based on files changed
+# This file is used by the GitHub Actions labeler action
+
+# Core functionality changes
+'area:core':
+  - string_multitool/core/**
+  - string_multitool/main.py
+  - String_Multitool.py
+
+# Transformation engine changes  
+'area:transformations':
+  - string_multitool/core/transformations.py
+  - string_multitool/core/types.py
+
+# Configuration management
+'area:config':
+  - string_multitool/core/config.py
+  - config/**
+  - pyproject.toml
+  - requirements*.txt
+
+# Dependency injection and architecture
+'area:architecture':
+  - string_multitool/core/dependency_injection.py
+  - string_multitool/application_factory.py
+  - string_multitool/core/error_handling.py
+
+# Cryptography and security
+'area:security':
+  - string_multitool/core/crypto.py
+  - config/security_config.json
+
+# I/O operations
+'area:io':
+  - string_multitool/io/**
+
+# Mode implementations
+'area:modes':
+  - string_multitool/modes/**
+
+# Daemon mode specifically
+'area:daemon':
+  - string_multitool/modes/daemon*.py
+  - string_multitool/modes/clipboard_monitor.py
+  - string_multitool/modes/hotkey_sequence_manager.py
+  - string_multitool/modes/daemon_config_manager.py
+
+# Interactive mode
+'area:interactive':
+  - string_multitool/modes/interactive.py
+
+# Hotkey functionality
+'area:hotkeys':
+  - string_multitool/modes/hotkey*.py
+  - config/hotkey_config.json
+
+# Testing
+'area:testing':
+  - test_*.py
+  - tests/**
+  - .github/workflows/ci.yml
+  - .github/workflows/coverage.yml
+
+# Documentation
+'area:documentation':
+  - '*.md'
+  - docs/**
+  - ARCHITECTURE.md
+  - CONTRIBUTING.md
+  - PROJECT_STRUCTURE.md
+
+# Build and deployment
+'area:build':
+  - build.ps1
+  - setup.py
+  - pyproject.toml
+  - .github/workflows/release.yml
+
+# CI/CD and workflows
+'area:cicd':
+  - .github/workflows/**
+  - .pre-commit-config.yaml
+  - .gitleaks.toml
+
+# Dependencies
+'dependencies':
+  - requirements*.txt
+  - pyproject.toml
+  - setup.py
+
+# Configuration files
+'area:config-files':
+  - config/**
+  - pyrightconfig.json
+  - .gitignore
+  - .pre-commit-config.yaml
+
+# Type annotations and typing
+'area:typing':
+  - '**/*.py'
+
+# Error handling and exceptions
+'area:error-handling':
+  - string_multitool/exceptions.py
+  - string_multitool/core/error_handling.py
+
+# Logging and utilities
+'area:utils':
+  - string_multitool/utils/**
+
+# CLI interface
+'area:cli':
+  - string_multitool/cli.py
+  - String_Multitool.py
+
+# Size labels based on lines changed
+'size:XS':
+  - any: ['**/*']
+    all:
+      - '!**/*.md'
+      - '!docs/**'
+      - '!.github/**'
+
+'size:S':
+  - any: ['**/*']
+
+'size:M':
+  - any: ['**/*']
+
+'size:L':
+  - any: ['**/*']
+
+'size:XL':
+  - any: ['**/*']
+
+# Language-specific labels
+'lang:python':
+  - '**/*.py'
+
+'lang:powershell':
+  - '**/*.ps1'
+
+'lang:yaml':
+  - '**/*.yml'
+  - '**/*.yaml'
+
+'lang:json':
+  - '**/*.json'
+
+'lang:toml':
+  - '**/*.toml'
+
+'lang:markdown':
+  - '**/*.md'
+
+# Platform-specific changes
+'platform:windows':
+  - build.ps1
+  - '**/*.ps1'
+  - string_multitool/modes/hotkey.py  # Windows-specific hotkey implementation
+
+'platform:cross-platform':
+  - string_multitool/core/**
+  - string_multitool/io/**

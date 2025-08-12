@@ -1,0 +1,360 @@
+# Issue and PR Management Automation
+# Automates labeling, triage, and maintenance of issues and pull requests
+
+name: Issue Management
+
+on:
+  issues:
+    types: [opened, edited, closed, reopened]
+  pull_request:
+    types: [opened, edited, closed, reopened, synchronize]
+  pull_request_review:
+    types: [submitted]
+  issue_comment:
+    types: [created]
+  schedule:
+    # Clean up stale issues weekly on Mondays at 9 AM UTC
+    - cron: '0 9 * * 1'
+
+jobs:
+  # Auto-label new issues and PRs
+  auto-label:
+    name: Auto Label Issues and PRs
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened'
+    
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Label bug reports
+        if: github.event_name == 'issues' && contains(github.event.issue.body, '[x] Bug report')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['bug', 'needs-triage']
+            })
+
+      - name: Label feature requests
+        if: github.event_name == 'issues' && contains(github.event.issue.body, '[x] Feature request')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['enhancement', 'needs-triage']
+            })
+
+      - name: Label documentation issues
+        if: github.event_name == 'issues' && (contains(github.event.issue.title, 'docs') || contains(github.event.issue.title, 'documentation'))
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['documentation', 'good first issue']
+            })
+
+      - name: Label pull requests by files changed
+        if: github.event_name == 'pull_request'
+        uses: actions/labeler@v5
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+
+  # Auto-assign reviewers for PRs
+  auto-assign:
+    name: Auto Assign Reviewers
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Auto assign reviewers
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Skip if PR is from a fork (security)
+            if (context.payload.pull_request.head.repo.full_name !== context.payload.pull_request.base.repo.full_name) {
+              console.log('Skipping reviewer assignment for fork PR');
+              return;
+            }
+            
+            // Skip if author is a maintainer
+            const maintainers = ['maintainer1', 'maintainer2'];  // Replace with actual maintainers
+            if (maintainers.includes(context.payload.pull_request.user.login)) {
+              console.log('Skipping reviewer assignment for maintainer PR');
+              return;
+            }
+            
+            // Assign reviewers based on files changed
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            
+            let reviewers = new Set();
+            
+            for (const file of files) {
+              if (file.filename.startsWith('string_multitool/core/')) {
+                reviewers.add('core-maintainer');
+              }
+              if (file.filename.startsWith('test_')) {
+                reviewers.add('test-maintainer');
+              }
+              if (file.filename.includes('security') || file.filename.includes('crypto')) {
+                reviewers.add('security-reviewer');
+              }
+              if (file.filename.includes('.md') || file.filename.includes('docs/')) {
+                reviewers.add('docs-maintainer');
+              }
+            }
+            
+            // Remove PR author from reviewers
+            reviewers.delete(context.payload.pull_request.user.login);
+            
+            if (reviewers.size > 0) {
+              try {
+                await github.rest.pulls.requestReviewers({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: context.issue.number,
+                  reviewers: Array.from(reviewers).slice(0, 2), // Limit to 2 reviewers
+                });
+                console.log('Assigned reviewers:', Array.from(reviewers));
+              } catch (error) {
+                console.log('Error assigning reviewers:', error.message);
+              }
+            }
+
+  # Stale issue management
+  stale-management:
+    name: Stale Issues Management
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Mark stale issues and PRs
+        uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          
+          # Stale issue configuration
+          stale-issue-message: |
+            This issue has been automatically marked as stale because it has not had recent activity. 
+            It will be closed if no further activity occurs within 7 days. 
+            
+            If this issue is still relevant, please:
+            - Add a comment to keep it open
+            - Add the `keep-open` label
+            - Provide additional context or updates
+            
+            Thank you for your contributions! 🚀
+          
+          close-issue-message: |
+            This issue has been automatically closed due to inactivity. 
+            
+            If you believe this issue is still relevant, please reopen it and provide:
+            - Current status or updates
+            - Steps to reproduce (for bugs)
+            - Use cases or justification (for features)
+            
+            Thank you for your understanding! 🙏
+          
+          # Stale PR configuration  
+          stale-pr-message: |
+            This pull request has been automatically marked as stale because it has not had recent activity.
+            It will be closed if no further activity occurs within 7 days.
+            
+            If this PR is still relevant, please:
+            - Rebase on the latest main branch
+            - Address any review comments
+            - Add the `keep-open` label
+            
+            Thank you for your contribution! 🚀
+          
+          close-pr-message: |
+            This pull request has been automatically closed due to inactivity.
+            
+            If you would like to continue this work:
+            - Reopen the PR and rebase on main
+            - Address any outstanding review comments
+            - Ensure all tests pass
+            
+            Thank you for your contribution! 🙏
+          
+          # Timing configuration
+          days-before-stale: 30
+          days-before-close: 7
+          days-before-pr-stale: 21
+          days-before-pr-close: 7
+          
+          # Label configuration
+          stale-issue-label: 'stale'
+          stale-pr-label: 'stale'
+          exempt-issue-labels: 'keep-open,priority:high,priority:critical,pinned'
+          exempt-pr-labels: 'keep-open,priority:high,work-in-progress,dependencies'
+          
+          # Activity configuration
+          operations-per-run: 30
+          remove-stale-when-updated: true
+          ascending: true
+
+  # Welcome new contributors
+  welcome-contributors:
+    name: Welcome New Contributors
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened'
+    
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Welcome first-time contributors
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Check if this is the user's first contribution
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              creator: context.payload.sender.login,
+              state: 'all'
+            });
+            
+            // Filter out the current issue/PR
+            const previousContributions = issues.filter(issue => 
+              issue.number !== context.issue.number
+            );
+            
+            if (previousContributions.length === 0) {
+              let welcomeMessage = '';
+              
+              if (context.eventName === 'issues') {
+                welcomeMessage = `
+            👋 Welcome to String_Multitool, @${context.payload.sender.login}!
+            
+            Thank you for opening your first issue. Here are a few things to help you get started:
+            
+            ## 📋 Issue Guidelines
+            - Please provide as much detail as possible
+            - For bugs, include steps to reproduce and your environment
+            - For features, describe the use case and expected behavior
+            
+            ## 🚀 Getting Started
+            - Check out our [Contributing Guide](CONTRIBUTING.md) 
+            - Review the [README](README.md) for setup instructions
+            - Join our discussions in the [Discussions](../../discussions) tab
+            
+            ## 🏷️ Labels
+            Your issue has been automatically labeled for triage. A maintainer will review it soon.
+            
+            Thank you for making String_Multitool better! 🎉
+            `;
+              } else if (context.eventName === 'pull_request') {
+                welcomeMessage = `
+            🎉 Thank you for your first contribution to String_Multitool, @${context.payload.sender.login}!
+            
+            ## 📝 Pull Request Guidelines
+            - Make sure all tests pass
+            - Follow our coding standards (Black formatting, type hints)
+            - Update documentation if needed
+            - Add tests for new features
+            
+            ## 🔍 Review Process  
+            - A maintainer will review your PR soon
+            - Please be patient and address any feedback
+            - Don't forget to link any related issues
+            
+            ## 🚀 Next Steps
+            - Check out our [Contributing Guide](CONTRIBUTING.md)
+            - Consider joining our discussions for future contributions
+            
+            Welcome to the community! 🚀
+            `;
+              }
+              
+              if (welcomeMessage) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: welcomeMessage
+                });
+              }
+            }
+
+  # Auto-close issues with specific keywords
+  auto-close:
+    name: Auto Close Issues
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened' && github.event_name == 'issues'
+    
+    permissions:
+      issues: write
+
+    steps:
+      - name: Close duplicate issues
+        if: contains(github.event.issue.title, '[DUPLICATE]') || contains(github.event.issue.body, 'duplicate of #')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `
+            This issue has been automatically closed as it appears to be a duplicate.
+            
+            If this is not a duplicate, please:
+            1. Reopen the issue
+            2. Remove the duplicate reference
+            3. Provide additional context to differentiate it
+            
+            Thank you! 🙏
+            `
+            });
+            
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed',
+              labels: ['duplicate']
+            });
+
+      - name: Close spam issues
+        if: contains(github.event.issue.body, 'http') && contains(github.event.issue.body, '.ru')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed',
+              labels: ['spam']
+            });
+            
+            await github.rest.issues.lock({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              lock_reason: 'spam'
+            });
