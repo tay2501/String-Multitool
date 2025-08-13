@@ -28,4 +28,107 @@ from .utils.logger import get_logger, log_warning
 
 
 def configure_services(container: DIContainer) -> None:
-    \"\"\"Configure all application services in the DI container.\"\"\"\n    # Configuration manager (singleton)\n    config_manager = ConfigurationManager()\n    container.register_singleton(ConfigManagerProtocol, config_manager)\n    container.register_singleton(ConfigurationManager, config_manager)\n    \n    # Text transformation engine (singleton)\n    def create_transformation_engine(config_mgr: ConfigManagerProtocol) -> TextTransformationEngine:\n        return TextTransformationEngine(config_mgr)\n    \n    container.register_factory(TransformationEngineProtocol, create_transformation_engine)\n    container.register_factory(TextTransformationEngine, create_transformation_engine)\n    \n    # Cryptography manager (singleton with error handling)\n    def create_crypto_manager(config_mgr: ConfigManagerProtocol) -> CryptographyManager | None:\n        try:\n            return CryptographyManager(config_mgr)\n        except CryptographyError as e:\n            logger = get_logger(__name__)\n            log_warning(logger, f\"Cryptography not available: {e}\")\n            return None\n    \n    container.register_factory(CryptoManagerProtocol, create_crypto_manager)\n    container.register_factory(CryptographyManager, create_crypto_manager)\n    \n    # I/O manager (transient)\n    container.register_transient(InputOutputManager, InputOutputManager)\n    \n    # Daemon mode (transient with dependencies)\n    def create_daemon_mode(\n        transformation_engine: TransformationEngineProtocol,\n        config_manager: ConfigManagerProtocol\n    ) -> DaemonModeRefactored:\n        return DaemonModeRefactored(transformation_engine, config_manager)\n    \n    container.register_factory(DaemonModeRefactored, create_daemon_mode)\n    \n    # Interactive session (transient with dependencies)\n    def create_interactive_session(\n        io_manager: InputOutputManager,\n        transformation_engine: TransformationEngineProtocol\n    ) -> InteractiveSession:\n        return InteractiveSession(io_manager, transformation_engine)\n    \n    container.register_factory(InteractiveSession, create_interactive_session)\n    \n    # Command processor (transient with dependencies)\n    def create_command_processor(\n        session: InteractiveSession\n    ) -> CommandProcessor:\n        return CommandProcessor(session)\n    \n    container.register_factory(CommandProcessor, create_command_processor)\n    \n    # Hotkey mode (transient with dependencies)\n    def create_hotkey_mode(\n        transformation_engine: TransformationEngineProtocol,\n        config_manager: ConfigManagerProtocol\n    ) -> HotkeyMode | None:\n        try:\n            return HotkeyMode(transformation_engine, config_manager)\n        except Exception as e:\n            logger = get_logger(__name__)\n            log_warning(logger, f\"Hotkey mode not available: {e}\")\n            return None\n    \n    container.register_factory(HotkeyMode, create_hotkey_mode)\n\n\nclass ApplicationFactory:\n    \"\"\"Factory for creating application instances with dependency injection.\"\"\"\n    \n    @staticmethod\n    def create_application() -> 'ApplicationInterface':\n        \"\"\"Create application instance with all dependencies configured.\"\"\"\n        # Configure services\n        ServiceRegistry.configure(configure_services)\n        \n        # Create application interface\n        return ApplicationInterface()\n    \n    @staticmethod\n    def create_for_testing(\n        config_override: dict[str, Any] | None = None\n    ) -> 'ApplicationInterface':\n        \"\"\"Create application instance for testing with optional config override.\"\"\"\n        # Reset service registry for clean test state\n        ServiceRegistry.reset()\n        \n        # Configure services with test overrides\n        def configure_test_services(container: DIContainer) -> None:\n            configure_services(container)\n            \n            # Apply test-specific overrides\n            if config_override:\n                # This would require test-specific configuration manager\n                pass\n        \n        ServiceRegistry.configure(configure_test_services)\n        \n        return ApplicationInterface()\n\n\nfrom .main import ApplicationInterface  # Import here to avoid circular imports"
+    """Configure all application services in the DI container."""
+    # Configuration manager (singleton)
+    config_manager = ConfigurationManager()
+    container.register_singleton(ConfigManagerProtocol, config_manager)
+    container.register_singleton(ConfigurationManager, config_manager)
+    
+    # Text transformation engine (singleton)
+    def create_transformation_engine(config_mgr: ConfigManagerProtocol) -> TextTransformationEngine:
+        return TextTransformationEngine(config_mgr)
+    
+    container.register_factory(TransformationEngineProtocol, create_transformation_engine)
+    container.register_factory(TextTransformationEngine, create_transformation_engine)
+    
+    # Cryptography manager (singleton with error handling)
+    def create_crypto_manager(config_mgr: ConfigManagerProtocol) -> CryptographyManager | None:
+        try:
+            return CryptographyManager(config_mgr)
+        except CryptographyError as e:
+            logger = get_logger(__name__)
+            log_warning(logger, f"Cryptography not available: {e}")
+            return None
+    
+    container.register_factory(CryptoManagerProtocol, create_crypto_manager)
+    container.register_factory(CryptographyManager, create_crypto_manager)
+    
+    # I/O manager (transient)
+    container.register_transient(InputOutputManager, InputOutputManager)
+    
+    # Daemon mode (transient with dependencies)
+    def create_daemon_mode(
+        transformation_engine: TransformationEngineProtocol,
+        config_manager: ConfigManagerProtocol
+    ) -> DaemonModeRefactored:
+        return DaemonModeRefactored(transformation_engine, config_manager)
+    
+    container.register_factory(DaemonModeRefactored, create_daemon_mode)
+    
+    # Interactive session (transient with dependencies)
+    def create_interactive_session(
+        io_manager: InputOutputManager,
+        transformation_engine: TransformationEngineProtocol
+    ) -> InteractiveSession:
+        return InteractiveSession(io_manager, transformation_engine)
+    
+    container.register_factory(InteractiveSession, create_interactive_session)
+    
+    # Command processor (transient with dependencies)
+    def create_command_processor(
+        session: InteractiveSession
+    ) -> CommandProcessor:
+        return CommandProcessor(session)
+    
+    container.register_factory(CommandProcessor, create_command_processor)
+    
+    # Hotkey mode (transient with dependencies)
+    def create_hotkey_mode(
+        transformation_engine: TransformationEngineProtocol,
+        config_manager: ConfigManagerProtocol
+    ) -> HotkeyMode | None:
+        try:
+            return HotkeyMode(transformation_engine, config_manager)
+        except Exception as e:
+            logger = get_logger(__name__)
+            log_warning(logger, f"Hotkey mode not available: {e}")
+            return None
+    
+    container.register_factory(HotkeyMode, create_hotkey_mode)
+
+
+class ApplicationFactory:
+    """Factory for creating application instances with dependency injection."""
+    
+    @staticmethod
+    def create_application() -> 'ApplicationInterface':
+        """Create application instance with all dependencies configured."""
+        # Configure services
+        ServiceRegistry.configure(configure_services)
+        
+        # Create application interface
+        return ApplicationInterface()
+    
+    @staticmethod
+    def create_for_testing(
+        config_override: dict[str, Any] | None = None
+    ) -> 'ApplicationInterface':
+        """Create application instance for testing with optional config override."""
+        # Reset service registry for clean test state
+        ServiceRegistry.reset()
+        
+        # Configure services with test overrides
+        def configure_test_services(container: DIContainer) -> None:
+            configure_services(container)
+            
+            # Apply test-specific overrides
+            if config_override:
+                # This would require test-specific configuration manager
+                pass
+        
+        ServiceRegistry.configure(configure_test_services)
+        
+        return ApplicationInterface()
+
+
+from .main import ApplicationInterface  # Import here to avoid circular imports"

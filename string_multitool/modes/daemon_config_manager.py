@@ -180,4 +180,99 @@ class DaemonConfigManager:
     
     def _get_default_config(self) -> dict[str, Any]:
         """Get default daemon configuration."""
-        return {\n            \"daemon_mode\": {\n                \"check_interval\": 1.0,\n                \"max_retries\": 3,\n                \"retry_delay\": 0.5\n            },\n            \"clipboard_monitoring\": {\n                \"enabled\": True,\n                \"ignore_duplicates\": True,\n                \"ignore_empty\": True,\n                \"min_length\": 1,\n                \"max_length\": 10000,\n                \"ignore_patterns\": []\n            },\n            \"auto_transformation\": {\n                \"rule_presets\": {\n                    \"uppercase\": \"/u\",\n                    \"lowercase\": \"/l\",\n                    \"snake_case\": \"/s\",\n                    \"pascal_case\": \"/p\",\n                    \"camel_case\": \"/c\",\n                    \"trim_lowercase\": \"/t/l\",\n                    \"hyphen_to_underscore\": \"/hu\"\n                }\n            },\n            \"sequence_hotkeys\": {\n                \"enabled\": False,\n                \"timeout\": 2.0,\n                \"sequences\": {}\n            }\n        }\n    \n    def _validate_config(self, config: dict[str, Any]) -> None:\n        \"\"\"Validate daemon configuration structure.\"\"\"\n        if not isinstance(config, dict):\n            raise ValidationError(\"Configuration must be a dictionary\")\n        \n        # Validate daemon_mode section\n        daemon_mode = config.get(\"daemon_mode\", {})\n        if not isinstance(daemon_mode, dict):\n            raise ValidationError(\"daemon_mode must be a dictionary\")\n        \n        check_interval = daemon_mode.get(\"check_interval\", 1.0)\n        if not isinstance(check_interval, (int, float)) or check_interval <= 0:\n            raise ValidationError(\"check_interval must be a positive number\")\n        \n        # Validate clipboard_monitoring section\n        clipboard_monitoring = config.get(\"clipboard_monitoring\", {})\n        if not isinstance(clipboard_monitoring, dict):\n            raise ValidationError(\"clipboard_monitoring must be a dictionary\")\n        \n        min_length = clipboard_monitoring.get(\"min_length\", 1)\n        max_length = clipboard_monitoring.get(\"max_length\", 10000)\n        \n        if not isinstance(min_length, int) or min_length < 0:\n            raise ValidationError(\"min_length must be a non-negative integer\")\n        \n        if not isinstance(max_length, int) or max_length <= 0:\n            raise ValidationError(\"max_length must be a positive integer\")\n        \n        if min_length > max_length:\n            raise ValidationError(\"min_length cannot be greater than max_length\")\n        \n        # Validate auto_transformation section\n        auto_transformation = config.get(\"auto_transformation\", {})\n        if not isinstance(auto_transformation, dict):\n            raise ValidationError(\"auto_transformation must be a dictionary\")\n        \n        rule_presets = auto_transformation.get(\"rule_presets\", {})\n        if not isinstance(rule_presets, dict):\n            raise ValidationError(\"rule_presets must be a dictionary\")\n        \n        for preset_name, preset_rules in rule_presets.items():\n            if not isinstance(preset_name, str):\n                raise ValidationError(f\"Preset name must be string: {preset_name}\")\n            \n            if isinstance(preset_rules, str):\n                continue\n            elif isinstance(preset_rules, list):\n                if not all(isinstance(rule, str) for rule in preset_rules):\n                    raise ValidationError(\n                        f\"All preset rules must be strings in '{preset_name}'\"\n                    )\n            else:\n                raise ValidationError(\n                    f\"Preset rules must be string or list in '{preset_name}'\"\n                )\n        \n        # Validate sequence_hotkeys section\n        sequence_hotkeys = config.get(\"sequence_hotkeys\", {})\n        if not isinstance(sequence_hotkeys, dict):\n            raise ValidationError(\"sequence_hotkeys must be a dictionary\")\n        \n        timeout = sequence_hotkeys.get(\"timeout\", 2.0)\n        if not isinstance(timeout, (int, float)) or timeout <= 0:\n            raise ValidationError(\"sequence timeout must be a positive number\")"}, {"old_string": "        return {\n            \"daemon_mode\": {\n                \"check_interval\": 1.0,\n                \"max_retries\": 3,\n                \"retry_delay\": 0.5\n            },\n            \"clipboard_monitoring\": {\n                \"enabled\": True,\n                \"ignore_duplicates\": True,\n                \"ignore_empty\": True,\n                \"min_length\": 1,\n                \"max_length\": 10000,\n                \"ignore_patterns\": []\n            },\n            \"auto_transformation\": {\n                \"rule_presets\": {\n                    \"uppercase\": \"/u\",\n                    \"lowercase\": \"/l\",\n                    \"snake_case\": \"/s\",\n                    \"pascal_case\": \"/p\",\n                    \"camel_case\": \"/c\",\n                    \"trim_lowercase\": \"/t/l\",\n                    \"hyphen_to_underscore\": \"/hu\"\n                }\n            },\n            \"sequence_hotkeys\": {\n                \"enabled\": False,\n                \"timeout\": 2.0,\n                \"sequences\": {}\n            }\n        }", "new_string": "        return {\n            \"daemon_mode\": {\n                \"check_interval\": 1.0,\n                \"max_retries\": 3,\n                \"retry_delay\": 0.5\n            },\n            \"clipboard_monitoring\": {\n                \"enabled\": True,\n                \"ignore_duplicates\": True,\n                \"ignore_empty\": True,\n                \"min_length\": 1,\n                \"max_length\": 10000,\n                \"ignore_patterns\": []\n            },\n            \"auto_transformation\": {\n                \"rule_presets\": {\n                    \"uppercase\": \"/u\",\n                    \"lowercase\": \"/l\",\n                    \"snake_case\": \"/s\",\n                    \"pascal_case\": \"/p\",\n                    \"camel_case\": \"/c\",\n                    \"trim_lowercase\": \"/t/l\",\n                    \"hyphen_to_underscore\": \"/hu\"\n                }\n            },\n            \"sequence_hotkeys\": {\n                \"enabled\": False,\n                \"timeout\": 2.0,\n                \"sequences\": {}\n            }\n        }"}]
+        return {
+            "daemon_mode": {
+                "check_interval": 1.0,
+                "max_retries": 3,
+                "retry_delay": 0.5
+            },
+            "clipboard_monitoring": {
+                "enabled": True,
+                "ignore_duplicates": True,
+                "ignore_empty": True,
+                "min_length": 1,
+                "max_length": 10000,
+                "ignore_patterns": []
+            },
+            "auto_transformation": {
+                "rule_presets": {
+                    "uppercase": "/u",
+                    "lowercase": "/l",
+                    "snake_case": "/s",
+                    "pascal_case": "/p",
+                    "camel_case": "/c",
+                    "trim_lowercase": "/t/l",
+                    "hyphen_to_underscore": "/hu"
+                }
+            },
+            "sequence_hotkeys": {
+                "enabled": False,
+                "timeout": 2.0,
+                "sequences": {}
+            }
+        }
+    
+    def _validate_config(self, config: dict[str, Any]) -> None:
+        """Validate daemon configuration structure."""
+        if not isinstance(config, dict):
+            raise ValidationError("Configuration must be a dictionary")
+        
+        # Validate daemon_mode section
+        daemon_mode = config.get("daemon_mode", {})
+        if not isinstance(daemon_mode, dict):
+            raise ValidationError("daemon_mode must be a dictionary")
+        
+        check_interval = daemon_mode.get("check_interval", 1.0)
+        if not isinstance(check_interval, (int, float)) or check_interval <= 0:
+            raise ValidationError("check_interval must be a positive number")
+        
+        # Validate clipboard_monitoring section
+        clipboard_monitoring = config.get("clipboard_monitoring", {})
+        if not isinstance(clipboard_monitoring, dict):
+            raise ValidationError("clipboard_monitoring must be a dictionary")
+        
+        min_length = clipboard_monitoring.get("min_length", 1)
+        max_length = clipboard_monitoring.get("max_length", 10000)
+        
+        if not isinstance(min_length, int) or min_length < 0:
+            raise ValidationError("min_length must be a non-negative integer")
+        
+        if not isinstance(max_length, int) or max_length <= 0:
+            raise ValidationError("max_length must be a positive integer")
+        
+        if min_length > max_length:
+            raise ValidationError("min_length cannot be greater than max_length")
+        
+        # Validate auto_transformation section
+        auto_transformation = config.get("auto_transformation", {})
+        if not isinstance(auto_transformation, dict):
+            raise ValidationError("auto_transformation must be a dictionary")
+        
+        rule_presets = auto_transformation.get("rule_presets", {})
+        if not isinstance(rule_presets, dict):
+            raise ValidationError("rule_presets must be a dictionary")
+        
+        for preset_name, preset_rules in rule_presets.items():
+            if not isinstance(preset_name, str):
+                raise ValidationError(f"Preset name must be string: {preset_name}")
+            
+            if isinstance(preset_rules, str):
+                continue
+            elif isinstance(preset_rules, list):
+                if not all(isinstance(rule, str) for rule in preset_rules):
+                    raise ValidationError(
+                        f"All preset rules must be strings in '{preset_name}'"
+                    )
+            else:
+                raise ValidationError(
+                    f"Preset rules must be string or list in '{preset_name}'"
+                )
+        
+        # Validate sequence_hotkeys section
+        sequence_hotkeys = config.get("sequence_hotkeys", {})
+        if not isinstance(sequence_hotkeys, dict):
+            raise ValidationError("sequence_hotkeys must be a dictionary")
+        
+        timeout = sequence_hotkeys.get("timeout", 2.0)
+        if not isinstance(timeout, (int, float)) or timeout <= 0:
+            raise ValidationError("sequence timeout must be a positive number")

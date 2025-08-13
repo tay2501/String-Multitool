@@ -1,0 +1,184 @@
+# GitLeaks configuration for String_Multitool
+# This file configures GitLeaks to scan for secrets and sensitive information
+
+title = "String_Multitool GitLeaks Configuration"
+
+# Global settings
+[extend]
+useDefault = true
+
+# Custom rules for this project
+[[rules]]
+id = "rsa-private-key"
+description = "RSA Private Key"
+regex = '''-----BEGIN (RSA )?PRIVATE KEY-----'''
+tags = ["key", "RSA", "private"]
+keywords = ["-----BEGIN"]
+
+[[rules]]
+id = "ssh-private-key"
+description = "SSH Private Key"
+regex = '''-----BEGIN OPENSSH PRIVATE KEY-----'''
+tags = ["key", "SSH", "private"]
+keywords = ["-----BEGIN"]
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API Key"
+regex = '''(?i)api[_-]?key[_-]?[:=]\s*['""]?[a-z0-9]{16,}['""]?'''
+tags = ["api", "key"]
+keywords = ["api_key", "apikey", "api-key"]
+
+[[rules]]
+id = "generic-secret"
+description = "Generic Secret"
+regex = '''(?i)secret[_-]?[:=]\s*['""]?[a-z0-9]{8,}['""]?'''
+tags = ["secret"]
+keywords = ["secret"]
+
+[[rules]]
+id = "password-in-config"
+description = "Password in Configuration"
+regex = '''(?i)password[_-]?[:=]\s*['""]?[a-z0-9]{6,}['""]?'''
+tags = ["password", "config"]
+keywords = ["password"]
+
+[[rules]]
+id = "jwt-token"
+description = "JWT Token"
+regex = '''eyJ[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.[A-Za-z0-9-_.+/=]*'''
+tags = ["jwt", "token"]
+
+[[rules]]
+id = "github-token"
+description = "GitHub Token"
+regex = '''gh[pousr]_[A-Za-z0-9_]{36}'''
+tags = ["github", "token"]
+
+# Allowlisted files and paths
+[allowlist]
+description = "Allowlisted files and paths"
+files = [
+    # Test files with example secrets
+    '''test_.*\.py$''',
+    '''.*_test\.py$''',
+    
+    # Documentation files
+    '''README\.md$''',
+    '''.*\.md$''',
+    
+    # Configuration templates
+    '''.*\.sample$''',
+    '''.*\.example$''',
+    '''.*\.template$''',
+    
+    # Build and CI files
+    '''build\.ps1$''',
+    '''pyproject\.toml$''',
+    '''requirements.*\.txt$''',
+]
+
+# Paths to ignore completely
+paths = [
+    # RSA key directory (intentionally for local encryption keys)
+    '''rsa/''',
+    
+    # Build artifacts
+    '''dist/''',
+    '''build/''',
+    '''*.egg-info/''',
+    
+    # Cache directories
+    '''__pycache__/''',
+    '''.pytest_cache/''',
+    '''.mypy_cache/''',
+    '''.ruff_cache/''',
+    
+    # Environment files
+    '''.venv/''',
+    '''env/''',
+    '''venv/''',
+    
+    # Git directory
+    '''.git/''',
+    
+    # Log files
+    '''logs/''',
+    '''*.log''',
+]
+
+# Regexes to allowlist
+regexes = [
+    # Example/dummy secrets in documentation
+    '''example[_-]?(key|secret|password|token)''',
+    '''dummy[_-]?(key|secret|password|token)''',
+    '''test[_-]?(key|secret|password|token)''',
+    '''fake[_-]?(key|secret|password|token)''',
+    
+    # Common false positives
+    '''AKIA[0-9A-Z]{16}''',  # AWS Access Key (often in examples)
+]
+
+# Entropy settings
+[allowlist.entropy]
+# Files where we allow high entropy strings
+paths = [
+    '''test_.*\.py''',
+    '''.*_test\.py''',
+    '''README\.md''',
+]
+
+# Commits to allowlist (if needed)
+commits = [
+    # "abc123def456...",  # Add specific commit SHAs if needed
+]
+
+# Stop words - common words that might trigger false positives
+stopwords = [
+    "password",
+    "secret",
+    "key",
+    "token",
+    "example",
+    "test",
+    "dummy",
+    "fake",
+    "sample",
+]
+
+# Rules to ignore globally
+[allowlist.regexTarget]
+entropy = [
+    # Ignore high entropy in specific contexts
+    "test",
+    "example",
+    "sample",
+    "dummy",
+]
+
+# Custom entropy settings
+[[rules]]
+id = "high-entropy-base64"
+description = "High entropy base64"
+regex = '''[A-Za-z0-9+/]{40,}={0,2}'''
+entropy = 4.5
+tags = ["entropy", "base64"]
+
+[[rules]]
+id = "high-entropy-hex"
+description = "High entropy hex"
+regex = '''[a-f0-9]{32,}'''
+entropy = 3.5
+tags = ["entropy", "hex"]
+
+# File extensions to scan
+[allowlist.ext]
+include = [".py", ".json", ".yaml", ".yml", ".toml", ".txt", ".md", ".rst"]
+exclude = [".pyc", ".pyo", ".exe", ".dll", ".so", ".dylib"]
+
+# Report format
+[[rules]]
+id = "custom-report-format"
+description = "Custom reporting rule"
+regex = '''(?i)(COMMIT|SECRET|LEAK)[_-]?(FOUND|DETECTED)'''
+tags = ["report", "custom"]

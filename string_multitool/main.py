@@ -357,10 +357,8 @@ class ApplicationInterface:
                             # Validate rules by parsing them
                             # parsed_rules: list[tuple[str, list[str]]] = self.transformation_engine.parse_rule_string(user_input)
                             rule_list: list[str] = [user_input]  # Store as single rule string for sequential application
-                            # Set rules directly without duplicate logging
-                            self.daemon_mode.active_rules = rule_list
-                            logger = get_logger(__name__)
-                            log_info(logger, f"[DAEMON] Active rules set: {user_input}")
+                            # Use the proper method to set rules
+                            self.daemon_mode.set_transformation_rules(rule_list)
                         except Exception as e:
                             logger = get_logger(__name__)
                             log_error(logger, f"Error: Invalid rule string: {e}")

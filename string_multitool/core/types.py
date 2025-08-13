@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Callable, Any, Protocol, TypeVar, Generic, TypeGuard
+from typing import Callable, Any, Protocol, TypeVar, Generic, TypeGuard, runtime_checkable
 from enum import Enum, auto
 from pathlib import Path
 
@@ -107,6 +107,7 @@ class CommandResult:
 
 
 # Protocol definitions for dependency injection
+@runtime_checkable
 class ConfigManagerProtocol(Protocol):
     """Protocol for configuration management."""
     
@@ -203,6 +204,7 @@ class IOManagerProtocol(Protocol):
         ...
 
 
+@runtime_checkable
 class TransformationEngineProtocol(Protocol):
     """Protocol for text transformation operations."""
     
@@ -278,6 +280,7 @@ class TransformationEngineProtocol(Protocol):
         ...
 
 
+@runtime_checkable
 class CryptoManagerProtocol(Protocol):
     """Protocol for cryptography operations."""
     

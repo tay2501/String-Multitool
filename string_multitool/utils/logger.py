@@ -11,8 +11,11 @@ Reference:
 
 from __future__ import annotations
 
+import json
 import logging
+import logging.config
 import logging.handlers
+import os
 import sys
 from pathlib import Path
 from typing import Any, TextIO
@@ -39,11 +42,35 @@ class LoggerManager:
             LoggerManager._initialized = True
     
     def _configure_logging(self) -> None:
-        """Configure logging system with default settings."""
+        """Configure logging system with environment-specific settings."""
         # Create logs directory if it doesn't exist
         logs_dir = Path("logs")
         logs_dir.mkdir(exist_ok=True)
         
+        # Determine which config file to use
+        config_dir = Path("config")
+        local_config = config_dir / "logging_config.local.json"
+        default_config = config_dir / "logging_config.json"
+        
+        config_file = local_config if local_config.exists() else default_config
+        
+        if config_file.exists():
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                
+                # Apply the configuration
+                logging.config.dictConfig(config)
+                return
+            except Exception as e:
+                print(f"Warning: Failed to load logging config from {config_file}: {e}")
+                print("Falling back to default configuration...")
+        
+        # Fallback to hardcoded configuration
+        self._configure_default_logging()
+    
+    def _configure_default_logging(self) -> None:
+        """Configure default logging when config files are not available."""
         # Configure root logger
         root_logger = logging.getLogger()
         root_logger.setLevel(logging.INFO)
@@ -55,13 +82,12 @@ class LoggerManager:
         # Console handler for user-facing messages
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(logging.INFO)
-        console_formatter = logging.Formatter(
-            '%(message)s'  # Simple format for console output
-        )
+        console_formatter = logging.Formatter('%(message)s')
         console_handler.setFormatter(console_formatter)
         root_logger.addHandler(console_handler)
         
         # File handler for detailed logging
+        logs_dir = Path("logs")
         file_handler = logging.handlers.RotatingFileHandler(
             logs_dir / "string_multitool.log",
             maxBytes=10 * 1024 * 1024,  # 10MB

@@ -1,0 +1,147 @@
+# Pre-commit hooks configuration for String_Multitool
+# Run: pre-commit install to set up the git hook scripts
+
+repos:
+  # Black code formatting
+  - repo: https://github.com/psf/black
+    rev: 23.7.0
+    hooks:
+      - id: black
+        language_version: python3
+        args: [--line-length=88]
+        files: ^(string_multitool/.*\.py|test_.*\.py|String_Multitool\.py)$
+
+  # Import sorting with isort
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        name: isort (python)
+        args: [--profile, black, --line-length=88]
+        files: ^(string_multitool/.*\.py|test_.*\.py|String_Multitool\.py)$
+
+  # Ruff linting (fast Python linter)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.280
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^(string_multitool/.*\.py|test_.*\.py|String_Multitool\.py)$
+
+  # MyPy static type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.5.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-setuptools, typing-extensions]
+        args: [--config-file=pyproject.toml]
+        files: ^string_multitool/.*\.py$
+
+  # Security linting with Bandit
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: [-r, string_multitool/, -f, json]
+        files: ^string_multitool/.*\.py$
+
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      # Basic file checks
+      - id: trailing-whitespace
+        exclude: ^.*\.(md|rst)$
+      - id: end-of-file-fixer
+        exclude: ^.*\.(md|rst)$
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json
+      - id: check-toml
+      - id: check-xml
+
+      # Python-specific checks
+      - id: check-ast
+        files: \.py$
+      - id: check-merge-conflict
+      - id: debug-statements
+        files: \.py$
+      - id: name-tests-test
+        args: [--pytest-test-first]
+
+      # File size and encoding
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: fix-encoding-pragma
+        args: [--remove]
+
+  # YAML formatting
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.0.0
+    hooks:
+      - id: prettier
+        types: [yaml]
+        exclude: \.github/workflows/.*\.yml$  # Exclude GitHub workflows
+
+  # Check for common security issues
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: \.git/.*|\.pytest_cache/.*|__pycache__/.*
+
+  # Dockerfile linting (if Docker is used)
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.1-beta
+    hooks:
+      - id: hadolint-docker
+        files: Dockerfile.*
+
+  # Documentation checks
+  - repo: https://github.com/pycqa/doc8
+    rev: v1.1.1
+    hooks:
+      - id: doc8
+        files: \.rst$
+        args: [--max-line-length=88]
+
+# Configuration for individual tools
+default_language_version:
+  python: python3.12
+
+# Exclude patterns
+exclude: |
+  (?x)^(
+      \.git/.*|
+      \.github/.*|
+      __pycache__/.*|
+      \.pytest_cache/.*|
+      dist/.*|
+      build/.*|
+      \.venv/.*|
+      rsa/.*|
+      logs/.*\.log$
+  )$
+
+# Fail fast - stop on first failure
+fail_fast: false
+
+# Minimum pre-commit version
+minimum_pre_commit_version: 3.0.0
+
+# Global file filters
+files: ^(string_multitool/|test_|String_Multitool\.py|.*\.(yaml|yml|json|toml|md|rst)$)
+
+# CI configuration
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: [mypy]  # Skip expensive checks in CI
+  submodules: false

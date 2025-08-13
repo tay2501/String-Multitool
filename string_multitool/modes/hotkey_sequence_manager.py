@@ -207,4 +207,196 @@ class HotkeySequenceManager:
                 
                 # Register both hotkeys
                 first_key = sequence[0].replace('+', '+')
-                second_key = sequence[1].replace('+', '+')\n                \n                keyboard.add_hotkey(first_key, first_callback)\n                keyboard.add_hotkey(second_key, second_callback)\n                \n                self._registered_hotkeys.extend([first_key, second_key])\n                \n            except Exception as e:\n                print(f\"[HOTKEY_SEQUENCE] Warning: Failed to register {rule}: {e}\")\n    \n    def _start_pynput_monitoring(self) -> None:\n        \"\"\"Start sequence monitoring using pynput library (fallback).\"\"\"\n        self._hotkey_listener = pynput_keyboard.Listener(\n            on_press=self._on_key_press_pynput,\n            on_release=None\n        )\n        self._hotkey_listener.start()\n    \n    def _stop_keyboard_monitoring(self) -> None:\n        \"\"\"Stop keyboard library monitoring.\"\"\"\n        for hotkey in self._registered_hotkeys:\n            try:\n                keyboard.remove_hotkey(hotkey)\n            except Exception:\n                pass  # Ignore removal errors\n        self._registered_hotkeys.clear()\n    \n    def _create_sequence_callbacks(\n        self, \n        rule_name: str, \n        sequence: Sequence[str]\n    ) -> tuple[HotkeyCallback, HotkeyCallback]:\n        \"\"\"Create callback functions for a hotkey sequence.\"\"\"\n        sequence_state: dict[str, Any] = {\n            \"last_key_time\": None, \n            \"expecting_second\": False\n        }\n        \n        def first_key_callback() -> None:\n            sequence_state[\"last_key_time\"] = datetime.now()\n            sequence_state[\"expecting_second\"] = True\n            # Set a timer to reset the sequence\n            threading.Timer(\n                self._timeout,\n                lambda: sequence_state.update({\"expecting_second\": False})\n            ).start()\n        \n        def second_key_callback() -> None:\n            if (\n                sequence_state[\"expecting_second\"]\n                and sequence_state[\"last_key_time\"]\n                and (datetime.now() - sequence_state[\"last_key_time\"]).total_seconds() <= self._timeout\n            ):\n                self._apply_sequence_rule(rule_name)\n                sequence_state[\"expecting_second\"] = False\n        \n        return first_key_callback, second_key_callback\n    \n    def _on_key_press_pynput(self, key: Any) -> None:\n        \"\"\"Handle keyboard key press events for sequence detection.\"\"\"\n        try:\n            # Convert key to string format\n            key_str = self._key_to_string(key)\n            if not key_str:\n                return\n            \n            # Check for sequence timeout\n            current_time = datetime.now()\n            if (\n                self._last_key_time\n                and (current_time - self._last_key_time).total_seconds() > self._timeout\n            ):\n                self._key_sequence.clear()\n            \n            # Add key to sequence\n            self._key_sequence.append(key_str)\n            self._last_key_time = current_time\n            \n            # Keep only last keys (maximum sequence length)\n            if len(self._key_sequence) > self.SEQUENCE_MAX_LENGTH:\n                self._key_sequence = self._key_sequence[-self.SEQUENCE_MAX_LENGTH:]\n            \n            # Check if current sequence matches any configured sequences\n            self._check_sequence_match()\n            \n        except Exception as e:\n            print(f\"[HOTKEY_SEQUENCE] Error processing key press: {e}\")\n    \n    def _key_to_string(self, key: Any) -> str | None:\n        \"\"\"Convert pynput key to string format.\"\"\"\n        try:\n            # Handle special keys\n            if hasattr(key, 'char') and key.char is not None:\n                return key.char.lower()\n            \n            # For modifier combinations, use simplified approach\n            current_modifiers = self._get_current_modifiers()\n            \n            if hasattr(key, 'char') and key.char:\n                if current_modifiers:\n                    return f\"{'+'.join(current_modifiers)}+{key.char.lower()}\"\n                return key.char.lower()\n            elif hasattr(key, 'name'):\n                if current_modifiers:\n                    return f\"{'+'.join(current_modifiers)}+{key.name.lower()}\"\n                return key.name.lower()\n        except Exception:\n            pass\n        return None\n    \n    def _get_current_modifiers(self) -> list[str]:\n        \"\"\"Get currently pressed modifier keys (simplified implementation).\"\"\"\n        modifiers: list[str] = []\n        try:\n            # Check if ctrl+shift combination is pressed\n            if KEYBOARD_AVAILABLE:\n                import keyboard as kb\n                if kb.is_pressed('ctrl') and kb.is_pressed('shift'):\n                    modifiers = ['ctrl', 'shift']\n        except Exception:\n            pass\n        return modifiers\n    \n    def _check_sequence_match(self) -> None:\n        \"\"\"Check if current key sequence matches any configured sequences.\"\"\"\n        if len(self._key_sequence) < self.SEQUENCE_MAX_LENGTH:\n            return\n        \n        sequences: Mapping[str, Any] = self._config.get(\"sequences\", {})\n        current_seq = self._key_sequence[-self.SEQUENCE_MAX_LENGTH:]\n        \n        for rule, seq_config in sequences.items():\n            expected_sequence: Sequence[str] = seq_config.get(\"sequence\", [])\n            if len(expected_sequence) != self.SEQUENCE_MAX_LENGTH:\n                continue\n            \n            if self._sequences_match(current_seq, expected_sequence):\n                self._stats[\"sequences_detected\"] += 1\n                self._stats[\"last_sequence\"] = rule\n                self._apply_sequence_rule(rule)\n                self._key_sequence.clear()\n                break\n    \n    def _sequences_match(\n        self, \n        current: Sequence[str], \n        expected: Sequence[str]\n    ) -> bool:\n        \"\"\"Check if current sequence matches expected sequence.\"\"\"\n        if len(current) != len(expected):\n            return False\n        \n        try:\n            for curr_key, exp_key in zip(current, expected):\n                if \"ctrl+shift+\" in exp_key:\n                    target_key = exp_key.split('+')[-1]\n                    if target_key not in curr_key:\n                        return False\n                elif curr_key != exp_key:\n                    return False\n            return True\n        except Exception:\n            return False\n    \n    def _apply_sequence_rule(self, rule: str) -> None:\n        \"\"\"Apply transformation rule triggered by sequence hotkey.\"\"\"\n        try:\n            # Get clipboard content\n            io_manager = InputOutputManager()\n            content = io_manager.get_clipboard_text()\n            \n            if not content.strip():\n                return\n            \n            # Apply the transformation\n            result = self._transformation_engine.apply_transformations(content, rule)\n            \n            if result != content:\n                # Update clipboard with result\n                io_manager.set_output_text(result)\n                \n                # Update statistics\n                self._stats[\"transformations_applied\"] += 1\n                \n                # Notify callbacks\n                for callback in self._sequence_callbacks:\n                    try:\n                        callback(rule, content, result)\n                    except Exception as e:\n                        print(f\"[HOTKEY_SEQUENCE] Callback error: {e}\")\n        \n        except Exception as e:\n            print(f\"[HOTKEY_SEQUENCE] Error applying sequence rule {rule}: {e}\")"}, {"old_string": "                keyboard.add_hotkey(first_key, first_callback)\n                keyboard.add_hotkey(second_key, second_callback)\n                \n                self._registered_hotkeys.extend([first_key, second_key])", "new_string": "                keyboard.add_hotkey(first_key, first_callback)\n                keyboard.add_hotkey(second_key, second_callback)\n                \n                self._registered_hotkeys.extend([first_key, second_key])"}]
+                second_key = sequence[1].replace('+', '+')
+                
+                keyboard.add_hotkey(first_key, first_callback)
+                keyboard.add_hotkey(second_key, second_callback)
+                
+                self._registered_hotkeys.extend([first_key, second_key])
+                
+            except Exception as e:
+                print(f"[HOTKEY_SEQUENCE] Warning: Failed to register {rule}: {e}")
+    
+    def _start_pynput_monitoring(self) -> None:
+        """Start sequence monitoring using pynput library (fallback)."""
+        self._hotkey_listener = pynput_keyboard.Listener(
+            on_press=self._on_key_press_pynput,
+            on_release=None
+        )
+        self._hotkey_listener.start()
+    
+    def _stop_keyboard_monitoring(self) -> None:
+        """Stop keyboard library monitoring."""
+        for hotkey in self._registered_hotkeys:
+            try:
+                keyboard.remove_hotkey(hotkey)
+            except Exception:
+                pass  # Ignore removal errors
+        self._registered_hotkeys.clear()
+    
+    def _create_sequence_callbacks(
+        self, 
+        rule_name: str, 
+        sequence: Sequence[str]
+    ) -> tuple[HotkeyCallback, HotkeyCallback]:
+        """Create callback functions for a hotkey sequence."""
+        sequence_state: dict[str, Any] = {
+            "last_key_time": None, 
+            "expecting_second": False
+        }
+        
+        def first_key_callback() -> None:
+            sequence_state["last_key_time"] = datetime.now()
+            sequence_state["expecting_second"] = True
+            # Set a timer to reset the sequence
+            threading.Timer(
+                self._timeout,
+                lambda: sequence_state.update({"expecting_second": False})
+            ).start()
+        
+        def second_key_callback() -> None:
+            if (
+                sequence_state["expecting_second"]
+                and sequence_state["last_key_time"]
+                and (datetime.now() - sequence_state["last_key_time"]).total_seconds() <= self._timeout
+            ):
+                self._apply_sequence_rule(rule_name)
+                sequence_state["expecting_second"] = False
+        
+        return first_key_callback, second_key_callback
+    
+    def _on_key_press_pynput(self, key: Any) -> None:
+        """Handle keyboard key press events for sequence detection."""
+        try:
+            # Convert key to string format
+            key_str = self._key_to_string(key)
+            if not key_str:
+                return
+            
+            # Check for sequence timeout
+            current_time = datetime.now()
+            if (
+                self._last_key_time
+                and (current_time - self._last_key_time).total_seconds() > self._timeout
+            ):
+                self._key_sequence.clear()
+            
+            # Add key to sequence
+            self._key_sequence.append(key_str)
+            self._last_key_time = current_time
+            
+            # Keep only last keys (maximum sequence length)
+            if len(self._key_sequence) > self.SEQUENCE_MAX_LENGTH:
+                self._key_sequence = self._key_sequence[-self.SEQUENCE_MAX_LENGTH:]
+            
+            # Check if current sequence matches any configured sequences
+            self._check_sequence_match()
+            
+        except Exception as e:
+            print(f"[HOTKEY_SEQUENCE] Error processing key press: {e}")
+    
+    def _key_to_string(self, key: Any) -> str | None:
+        """Convert pynput key to string format."""
+        try:
+            # Handle special keys
+            if hasattr(key, 'char') and key.char is not None:
+                return key.char.lower()
+            
+            # For modifier combinations, use simplified approach
+            current_modifiers = self._get_current_modifiers()
+            
+            if hasattr(key, 'char') and key.char:
+                if current_modifiers:
+                    return f"{'+'.join(current_modifiers)}+{key.char.lower()}"
+                return key.char.lower()
+            elif hasattr(key, 'name'):
+                if current_modifiers:
+                    return f"{'+'.join(current_modifiers)}+{key.name.lower()}"
+                return key.name.lower()
+        except Exception:
+            pass
+        return None
+    
+    def _get_current_modifiers(self) -> list[str]:
+        """Get currently pressed modifier keys (simplified implementation)."""
+        modifiers: list[str] = []
+        try:
+            # Check if ctrl+shift combination is pressed
+            if KEYBOARD_AVAILABLE:
+                import keyboard as kb
+                if kb.is_pressed('ctrl') and kb.is_pressed('shift'):
+                    modifiers = ['ctrl', 'shift']
+        except Exception:
+            pass
+        return modifiers
+    
+    def _check_sequence_match(self) -> None:
+        """Check if current key sequence matches any configured sequences."""
+        if len(self._key_sequence) < self.SEQUENCE_MAX_LENGTH:
+            return
+        
+        sequences: Mapping[str, Any] = self._config.get("sequences", {})
+        current_seq = self._key_sequence[-self.SEQUENCE_MAX_LENGTH:]
+        
+        for rule, seq_config in sequences.items():
+            expected_sequence: Sequence[str] = seq_config.get("sequence", [])
+            if len(expected_sequence) != self.SEQUENCE_MAX_LENGTH:
+                continue
+            
+            if self._sequences_match(current_seq, expected_sequence):
+                self._stats["sequences_detected"] += 1
+                self._stats["last_sequence"] = rule
+                self._apply_sequence_rule(rule)
+                self._key_sequence.clear()
+                break
+    
+    def _sequences_match(
+        self, 
+        current: Sequence[str], 
+        expected: Sequence[str]
+    ) -> bool:
+        """Check if current sequence matches expected sequence."""
+        if len(current) != len(expected):
+            return False
+        
+        try:
+            for curr_key, exp_key in zip(current, expected):
+                if "ctrl+shift+" in exp_key:
+                    target_key = exp_key.split('+')[-1]
+                    if target_key not in curr_key:
+                        return False
+                elif curr_key != exp_key:
+                    return False
+            return True
+        except Exception:
+            return False
+    
+    def _apply_sequence_rule(self, rule: str) -> None:
+        """Apply transformation rule triggered by sequence hotkey."""
+        try:
+            # Get clipboard content
+            io_manager = InputOutputManager()
+            content = io_manager.get_clipboard_text()
+            
+            if not content.strip():
+                return
+            
+            # Apply the transformation
+            result = self._transformation_engine.apply_transformations(content, rule)
+            
+            if result != content:
+                # Update clipboard with result
+                io_manager.set_output_text(result)
+                
+                # Update statistics
+                self._stats["transformations_applied"] += 1
+                
+                # Notify callbacks
+                for callback in self._sequence_callbacks:
+                    try:
+                        callback(rule, content, result)
+                    except Exception as e:
+                        print(f"[HOTKEY_SEQUENCE] Callback error: {e}")
+        
+        except Exception as e:
+            print(f"[HOTKEY_SEQUENCE] Error applying sequence rule {rule}: {e}")
