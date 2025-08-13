@@ -91,8 +91,8 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
             CryptographyError: If encryption fails
         """
         try:
-            if not text:
-                raise CryptographyError("Cannot encrypt empty text")
+            # Allow empty text encryption for completeness
+            # Empty string will be handled correctly by AES encryption
             
             # Generate AES key and IV
             aes_key = secrets.token_bytes(self.rsa_config["aes_key_size"])

@@ -577,7 +577,7 @@ class ApplicationInterface:
             logger = get_logger(__name__)
             log_info(logger, "String_Multitool - Interactive Mode")
             log_info(logger, "=" * 45)
-            log_info(logger, f"Input text: '{display_text}' ({status.character_count} chars, from {status.text_source.value})")
+            log_info(logger, f"Input text: '{display_text}' ({status.character_count} chars, from {status.text_source.value if hasattr(status.text_source, 'value') else status.text_source})")
             log_info(logger, f"Auto-detection: {'ON' if status.auto_detection_enabled else 'OFF'}")
             
             # Show full clipboard content if available at startup

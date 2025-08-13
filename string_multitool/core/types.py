@@ -1788,7 +1788,7 @@ class SecurityProtocol(Protocol):
 class ApplicationProtocol(Protocol):
     """Protocol for main application interface."""
     
-    def initialize(self, args: list[str]) -> bool:
+    def initialize(self, args: list[str] | None = None) -> bool:
         """Initialize application with command line arguments.
         
         Args:

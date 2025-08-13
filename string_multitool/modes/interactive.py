@@ -420,7 +420,7 @@ class CommandProcessor:
                 "📊 Session Status:",
                 f"   Text: '{display_text}'",
                 f"   Length: {status.character_count} characters",
-                f"   Source: {status.text_source.value}",
+                f"   Source: {status.text_source.value if hasattr(status.text_source, 'value') else status.text_source}",
                 f"   Last updated: {time_since}",
                 f"   Auto-detection: {'ON' if status.auto_detection_enabled else 'OFF'}",
                 f"   Monitor active: {'Yes' if status.clipboard_monitor_active else 'No'}"

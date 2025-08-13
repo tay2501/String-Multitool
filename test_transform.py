@@ -25,6 +25,10 @@ from string_multitool import (
     CommandResult,
     TextSource
 )
+from string_multitool.exceptions import (
+    ConfigurationError, TransformationError, CryptographyError, 
+    ValidationError, ClipboardError
+)
 from string_multitool.modes import InteractiveSession, CommandProcessor
 from string_multitool.main import ApplicationInterface
 from string_multitool.core.crypto import CRYPTOGRAPHY_AVAILABLE as CRYPTO_AVAILABLE
@@ -326,18 +330,18 @@ class TestClipboardMonitor:
         monitor.set_check_interval(2.0)
         assert monitor.check_interval == 2.0
         
-        # Test minimum interval
-        monitor.set_check_interval(0.05)
-        assert monitor.check_interval == 0.1
+        # Test minimum interval - should raise ValidationError
+        with pytest.raises(ValidationError):
+            monitor.set_check_interval(0.05)
     
     def test_set_max_content_size(self, monitor: ClipboardMonitor) -> None:
         """Test setting maximum content size."""
         monitor.set_max_content_size(2048)
         assert monitor.max_content_size == 2048
         
-        # Test minimum size
-        monitor.set_max_content_size(512)
-        assert monitor.max_content_size == 1024
+        # Test minimum size - should raise ValidationError
+        with pytest.raises(ValidationError):
+            monitor.set_max_content_size(512)
 
 
 class TestInputOutputManager:
@@ -384,7 +388,7 @@ class TestInputOutputManager:
     @patch('string_multitool.io.manager.CLIPBOARD_AVAILABLE', False)
     def test_clipboard_unavailable(self) -> None:
         """Test behavior when clipboard is unavailable."""
-        with pytest.raises(RuntimeError, match="Clipboard functionality not available"):
+        with pytest.raises(ClipboardError, match="Clipboard functionality not available"):
             io_manager = InputOutputManager()
             io_manager.get_clipboard_text()
 
@@ -405,7 +409,15 @@ class TestApplicationInterface:
     @pytest.fixture
     def app_interface(self) -> ApplicationInterface:
         """Create an ApplicationInterface instance for testing."""
-        return ApplicationInterface()
+        # Create dependencies manually for testing
+        config_manager = ConfigurationManager()
+        transformation_engine = TextTransformationEngine(config_manager)
+        io_manager = InputOutputManager()
+        return ApplicationInterface(
+            config_manager=config_manager,
+            transformation_engine=transformation_engine,
+            io_manager=io_manager
+        )
     
     def test_initialization(self, app_interface: ApplicationInterface) -> None:
         """Test application interface initialization."""
@@ -526,6 +538,7 @@ def test_logging_functionality() -> None:
 def test_logging_integration() -> None:
     """Test integration of logging with application components."""
     import tempfile
+    import logging
     from pathlib import Path
     from string_multitool.utils.logger import LoggerManager
     
@@ -537,10 +550,23 @@ def test_logging_integration() -> None:
         logger = get_logger("integration_test")
         logger.info("Integration test message")
         
+        # Flush and close the handlers before checking file content
+        for handler in logging.getLogger().handlers:
+            if hasattr(handler, 'flush'):
+                handler.flush()
+        
         # Check if log file was created and has content
         assert log_file.exists()
         content = log_file.read_text(encoding='utf-8')
         assert "Integration test message" in content
+        
+        # Remove the added file handler to prevent file lock issues
+        root_logger = logging.getLogger()
+        handlers_to_remove = [h for h in root_logger.handlers 
+                             if hasattr(h, 'baseFilename') and str(log_file) in str(h.baseFilename)]
+        for handler in handlers_to_remove:
+            handler.close()
+            root_logger.removeHandler(handler)
 
 
 def test_pathlib_usage() -> None:
