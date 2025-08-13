@@ -80,8 +80,7 @@ jobs:
     - name: Linting
       id: linting  
       run: |
-        python -m flake8 string_multitool/ test_transform.py String_Multitool.py \
-          --max-line-length=120 --extend-ignore=E203,W503
+        python -m flake8 string_multitool/ test_transform.py String_Multitool.py --max-line-length=120 --extend-ignore=W503
       continue-on-error: true
     
     - name: Security analysis
@@ -162,13 +161,7 @@ jobs:
     
     - name: Run tests
       run: |
-        python -m pytest test_transform.py \
-          --cov=string_multitool \
-          --cov-report=xml \
-          --cov-report=term-missing \
-          --junit-xml=test-results-${{ matrix.python-version }}.xml \
-          --timeout=300 \
-          -v
+        python -m pytest test_transform.py --cov=string_multitool --cov-report=xml --cov-report=term-missing --junit-xml=test-results-${{ matrix.python-version }}.xml --timeout=300 -v
     
     - name: Check coverage threshold  
       if: matrix.upload-coverage
