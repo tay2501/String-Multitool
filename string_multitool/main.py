@@ -75,7 +75,6 @@ class ApplicationInterface:
             if config_manager and transformation_engine and io_manager:
                 # Manual initialization for testing - create minimal daemon mode
                 try:
-                    from .modes.daemon_refactored import DaemonModeRefactored
                     self.daemon_mode = DaemonModeRefactored(
                         io_manager=io_manager,
                         transformation_engine=transformation_engine,
