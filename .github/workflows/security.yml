@@ -10,6 +10,12 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+  issues: write
+
 env:
   PYTHON_VERSION: '3.12'
 
@@ -108,8 +114,8 @@ jobs:
 
       - name: Generate SBOM (Software Bill of Materials)
         run: |
-          cyclonedx-py requirements -o sbom.json
-          cyclonedx-py requirements -o sbom.xml --format xml
+          cyclonedx-py requirements -o sbom.json --output-format json
+          cyclonedx-py requirements -o sbom.xml --output-format xml
 
       - name: Upload dependency reports
         uses: actions/upload-artifact@v4
@@ -231,6 +237,9 @@ jobs:
     needs: [sast, dependency-scan, secret-scan, compliance]
     runs-on: ubuntu-latest
     if: always()
+    permissions:
+      contents: read
+      issues: write
 
     steps:
       - name: Download all security artifacts
@@ -267,32 +276,40 @@ jobs:
         if: needs.sast.result == 'failure' || needs.dependency-scan.result == 'failure'
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const title = `Security vulnerabilities detected - ${new Date().toISOString().split('T')[0]}`;
-            const body = `
-            ## Security Scan Results
-            
-            Automated security scans have detected potential vulnerabilities:
-            
-            - SAST Analysis: ${{ needs.sast.result }}
-            - Dependency Scan: ${{ needs.dependency-scan.result }}
-            - Secret Detection: ${{ needs.secret-scan.result }}
-            
-            Please review the security reports and address any critical findings.
-            
-            **Action Items:**
-            1. Download and review security artifacts from this workflow run
-            2. Address high/critical severity findings
-            3. Update dependencies if vulnerabilities are found
-            4. Run security scans locally before committing
-            
-            **Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            `;
-            
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: title,
-              body: body,
-              labels: ['security', 'priority:high']
-            });
+            try {
+              const title = `Security vulnerabilities detected - ${new Date().toISOString().split('T')[0]}`;
+              const body = `
+              ## Security Scan Results
+              
+              Automated security scans have detected potential vulnerabilities:
+              
+              - SAST Analysis: ${{ needs.sast.result }}
+              - Dependency Scan: ${{ needs.dependency-scan.result }}
+              - Secret Detection: ${{ needs.secret-scan.result }}
+              
+              Please review the security reports and address any critical findings.
+              
+              **Action Items:**
+              1. Download and review security artifacts from this workflow run
+              2. Address high/critical severity findings
+              3. Update dependencies if vulnerabilities are found
+              4. Run security scans locally before committing
+              
+              **Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+              `;
+              
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['security', 'priority:high']
+              });
+              
+              console.log('Security issue created successfully');
+            } catch (error) {
+              console.log('Failed to create security issue:', error.message);
+              console.log('This might be due to insufficient permissions or repository settings');
+            }
