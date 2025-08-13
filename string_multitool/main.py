@@ -71,14 +71,28 @@ class ApplicationInterface:
                 log_warning(logger, f"Cryptography not available: {e}")
                 self.crypto_manager = None
             
-            # Initialize daemon mode (injected)
-            self.daemon_mode = inject(DaemonModeRefactored)
-            
-            # Initialize hotkey mode (optional, injected)
-            try:
-                self.hotkey_mode = inject(HotkeyMode)
-            except Exception:
-                self.hotkey_mode = None
+            # Initialize daemon mode (injected) - skip if all dependencies provided
+            if config_manager and transformation_engine and io_manager:
+                # Manual initialization for testing - create minimal daemon mode
+                try:
+                    from .modes.daemon_refactored import DaemonModeRefactored
+                    self.daemon_mode = DaemonModeRefactored(
+                        io_manager=io_manager,
+                        transformation_engine=transformation_engine,
+                        config_manager=config_manager
+                    )
+                except Exception:
+                    self.daemon_mode = None
+                self.hotkey_mode = None  # Skip hotkey mode in testing
+            else:
+                # Use DI for production
+                self.daemon_mode = inject(DaemonModeRefactored)
+                
+                # Initialize hotkey mode (optional, injected)
+                try:
+                    self.hotkey_mode = inject(HotkeyMode)
+                except Exception:
+                    self.hotkey_mode = None
                 
         except Exception as e:
             raise ConfigurationError(

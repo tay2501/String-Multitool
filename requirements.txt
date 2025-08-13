@@ -1,30 +1,30 @@
 # Core dependencies for String_Multitool
-# Minimum required packages for basic functionality
+# Pinned versions for reproducible builds and security
 # Requires Python 3.10 or higher
 
 # Clipboard operations (required for both manual and hotkey modes)
-pyperclip>=1.8.0
+pyperclip==1.9.0
 
 # Global hotkey support (required for hotkey mode only)
-keyboard>=0.13.5
+keyboard==0.13.5
 
 # File system monitoring (for config auto-reload)
-watchdog>=3.0.0
+watchdog==3.0.0
 
 # RSA encryption/decryption support
-cryptography>=41.0.0
+cryptography==42.0.5
 
 # Modern CLI interface
-typer>=0.9.0
-rich>=13.0.0
+typer==0.16.0
+rich==14.1.0
 
 # Type checking and annotations (Python 3.10+ compatibility)
-typing-extensions>=4.0.0
+typing-extensions==4.12.2
 
 # Development and testing dependencies
-pytest>=7.0.0
-pytest-cov>=4.0.0
-pytest-mock>=3.10.0
+pytest==8.4.1
+pytest-cov==6.2.1
+pytest-mock==3.14.1
 
 # Build dependencies
-pyinstaller>=5.0.0
+pyinstaller==6.12.0

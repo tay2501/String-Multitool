@@ -147,14 +147,21 @@ stopwords = [
 ]
 
 # Rules to ignore globally
-[allowlist.regexTarget]
-entropy = [
-    # Ignore high entropy in specific contexts
-    "test",
-    "example",
-    "sample",
-    "dummy",
-]
+[[allowlist.regexTarget]]
+regex = "test"
+target = "entropy"
+
+[[allowlist.regexTarget]]
+regex = "example"  
+target = "entropy"
+
+[[allowlist.regexTarget]]
+regex = "sample"
+target = "entropy"
+
+[[allowlist.regexTarget]]
+regex = "dummy"
+target = "entropy"
 
 # Custom entropy settings
 [[rules]]

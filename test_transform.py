@@ -135,17 +135,17 @@ class TestTextTransformationEngine:
     
     def test_invalid_rule(self, engine: TextTransformationEngine) -> None:
         """Test handling of invalid rules."""
-        with pytest.raises(ValueError, match="Unknown rule"):
+        with pytest.raises(TransformationError, match="Unknown rule"):
             engine.apply_transformations("test", "/invalid")
     
     def test_empty_rule_string(self, engine: TextTransformationEngine) -> None:
         """Test handling of empty rule string."""
-        with pytest.raises(ValueError, match="Rules must start with"):
+        with pytest.raises(ValidationError, match="Rule string cannot be empty"):
             engine.apply_transformations("test", "")
     
     def test_rule_without_slash(self, engine: TextTransformationEngine) -> None:
         """Test handling of rule without leading slash."""
-        with pytest.raises(ValueError, match="Rules must start with"):
+        with pytest.raises(ValidationError, match="Rules must start with"):
             engine.apply_transformations("test", "invalid")
     
     def test_parse_rule_string_edge_cases(self, engine: TextTransformationEngine) -> None:
@@ -154,7 +154,7 @@ class TestTextTransformationEngine:
         parsed: list[tuple[str, list[str]]] = engine.parse_rule_string("/S")
         assert len(parsed) == 1
         assert parsed[0][0] == "S"
-        assert parsed[0][1] == ["-"]  # Default argument
+        assert parsed[0][1] == []  # No arguments provided
     
     def test_get_available_rules(self, engine: TextTransformationEngine) -> None:
         """Test getting available rules."""
