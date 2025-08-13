@@ -26,6 +26,10 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: read
+  actions: read
+
 env:
   PYTHON_VERSIONS: '["3.10", "3.11", "3.12", "3.13"]'
   MAIN_PYTHON_VERSION: '3.12'
@@ -45,10 +49,10 @@ jobs:
       with:
         fetch-depth: 0  # Full history for better analysis
     
-    - name: Set up Python ${{ env.PYTHON_DEFAULT_VERSION }}
+    - name: Set up Python ${{ env.MAIN_PYTHON_VERSION }}
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ env.PYTHON_DEFAULT_VERSION }}
+        python-version: ${{ env.MAIN_PYTHON_VERSION }}
     
     - name: Cache pip dependencies
       uses: actions/cache@v4
@@ -99,7 +103,13 @@ jobs:
       continue-on-error: true
       env:
         PYTHONIOENCODING: utf-8
-    
+
+    - name: Run static type checking with mypy
+      run: mypy . --install-types --non-interactive
+      continue-on-error: true
+      env:
+        PYTHONIOENCODING: utf-8
+
     - name: Upload quality reports
       uses: actions/upload-artifact@v4
       if: always()
@@ -224,10 +234,10 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
     
-    - name: Set up Python ${{ env.PYTHON_DEFAULT_VERSION }}
+    - name: Set up Python ${{ env.MAIN_PYTHON_VERSION }}
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ env.PYTHON_DEFAULT_VERSION }}
+        python-version: ${{ env.MAIN_PYTHON_VERSION }}
     
     - name: Cache pip dependencies
       uses: actions/cache@v4
@@ -335,10 +345,10 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
     
-    - name: Set up Python ${{ env.PYTHON_DEFAULT_VERSION }}
+    - name: Set up Python ${{ env.MAIN_PYTHON_VERSION }}
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ env.PYTHON_DEFAULT_VERSION }}
+        python-version: ${{ env.MAIN_PYTHON_VERSION }}
     
     - name: Cache pip dependencies
       uses: actions/cache@v4
