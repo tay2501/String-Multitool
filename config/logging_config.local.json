@@ -17,9 +17,7 @@
         "console": {
             "class": "logging.StreamHandler",
             "level": "DEBUG",
-            "formatter": "debug",
-            "stream": "ext://sys.stdout",
-            "encoding": "utf-8"
+            "formatter": "debug"
         },
         "file": {
             "class": "logging.handlers.RotatingFileHandler",

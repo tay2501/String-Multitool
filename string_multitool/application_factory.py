@@ -84,11 +84,12 @@ def configure_services(container: DIContainer) -> None:
     
     # Hotkey mode (transient with dependencies)
     def create_hotkey_mode(
+        io_manager: InputOutputManager,
         transformation_engine: TransformationEngineProtocol,
         config_manager: ConfigManagerProtocol
     ) -> HotkeyMode | None:
         try:
-            return HotkeyMode(transformation_engine, config_manager)
+            return HotkeyMode(io_manager, transformation_engine, config_manager)
         except Exception as e:
             logger = get_logger(__name__)
             log_warning(logger, f"Hotkey mode not available: {e}")
