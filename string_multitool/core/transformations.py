@@ -223,8 +223,11 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]]):
             # Apply the transformation
             if rule_name in ['enc', 'dec']:
                 return self._apply_crypto_rule(text, rule_name)
-            elif args:
+            elif args and rule.requires_args:
                 return self._apply_rule_with_args(text, rule_name, args)
+            elif args and not rule.requires_args:
+                # Rule doesn't require arguments, ignore provided arguments
+                return rule.function(text)
             else:
                 return rule.function(text)
                 

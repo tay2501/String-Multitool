@@ -68,7 +68,7 @@ jobs:
     - name: Code formatting check
       id: formatting
       run: |
-        python -m black --check --diff string_multitool/ test_transform.py String_Multitool.py
+        python -m black --check --diff --color string_multitool/ test_transform.py String_Multitool.py
         python -m isort --check-only --diff string_multitool/ test_transform.py String_Multitool.py
       continue-on-error: true
     

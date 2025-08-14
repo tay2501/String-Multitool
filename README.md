@@ -167,13 +167,13 @@ Daemon> interactive          # Switch back to interactive mode
 
 | Rule | Name | Example |
 |------|------|---------|
-| `/s '<replacement>'` | Slugify | `/s '+'` → `http://foo.bar` → `http+foo+bar` |
+| `/S '<replacement>'` | Slugify | `/S '+'` → `http://foo.bar` → `http+foo+bar` |
 | `/r '<find>' '<replace>'` | Replace | `/r 'old' 'new'` → `old text` → `new text` |
 | `/enc` | RSA Encrypt | `Secret message` → `Base64 encrypted text` |
 | `/dec` | RSA Decrypt | `Base64 encrypted text` → `Secret message` |
 
 **Default Arguments:**
-- `/s` (no argument) uses `-` as replacement
+- `/S` (no argument) uses `-` as replacement
 - `/r '<find>'` (no replacement) removes the substring
 
 ## Usage Examples
@@ -200,7 +200,7 @@ echo "  hello world test  " | python String_Multitool.py /t/s/u
 
 ```bash
 # Slugify with custom replacement
-echo "http://foo.bar/baz" | python String_Multitool.py "/s '+'"
+echo "http://foo.bar/baz" | python String_Multitool.py "/S '+'"
 # Result: "http+foo+bar+baz"
 
 # Replace text

@@ -17,7 +17,7 @@ from .core.transformations import TextTransformationEngine
 from .core.types import (
     ConfigManagerProtocol,
     TransformationEngineProtocol,
-    CryptoManagerProtocol
+    CryptoManagerProtocol,
 )
 from .io.manager import InputOutputManager
 from .modes.daemon_refactored import DaemonModeRefactored

@@ -19,7 +19,7 @@ Usage:
 
 Author: String_Multitool Development Team
 Version: 2.1.0 (Refactored)
-License: MIT
+License: AGPL-3.0 license
 """
 
 from __future__ import annotations

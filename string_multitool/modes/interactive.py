@@ -400,13 +400,13 @@ class CommandProcessor:
             
             return CommandResult(
                 success=True,
-                message=f"✅ Refreshed from clipboard ({char_count} chars)\nNew text: '{display_text}'"
+                message=f"[SUCCESS] Refreshed from clipboard ({char_count} chars)\nNew text: '{display_text}'"
             )
             
         except Exception as e:
             return CommandResult(
                 success=False,
-                message=f"❌ Failed to refresh from clipboard: {e}"
+                message=f"[ERROR] Failed to refresh from clipboard: {e}"
             )
     
     def _handle_status_command(self) -> CommandResult:
@@ -417,7 +417,7 @@ class CommandProcessor:
             time_since: str = self.session.get_time_since_update()
             
             lines: list[str] = [
-                "📊 Session Status:",
+                "[STATUS] Session Status:",
                 f"   Text: '{display_text}'",
                 f"   Length: {status.character_count} characters",
                 f"   Source: {status.text_source.value if hasattr(status.text_source, 'value') else status.text_source}",
@@ -434,7 +434,7 @@ class CommandProcessor:
         except Exception as e:
             return CommandResult(
                 success=False,
-                message=f"❌ Failed to get status: {e}"
+                message=f"[ERROR] Failed to get status: {e}"
             )
     
     def _handle_clear_command(self) -> CommandResult:
@@ -443,13 +443,13 @@ class CommandProcessor:
             self.session.clear_working_text()
             return CommandResult(
                 success=True,
-                message="✅ Working text cleared."
+                message="[SUCCESS] Working text cleared."
             )
             
         except Exception as e:
             return CommandResult(
                 success=False,
-                message=f"❌ Failed to clear text: {e}"
+                message=f"[ERROR] Failed to clear text: {e}"
             )
     
     def _handle_copy_command(self) -> CommandResult:
@@ -458,7 +458,7 @@ class CommandProcessor:
             if not self.session.current_text:
                 return CommandResult(
                     success=False,
-                    message="❌ No text to copy. Use 'refresh' to load text from clipboard."
+                    message="[ERROR] No text to copy. Use 'refresh' to load text from clipboard."
                 )
             
             self.session.io_manager.set_output_text(self.session.current_text)
@@ -466,13 +466,13 @@ class CommandProcessor:
             
             return CommandResult(
                 success=True,
-                message=f"✅ Copied {char_count} characters to clipboard."
+                message=f"[SUCCESS] Copied {char_count} characters to clipboard."
             )
             
         except Exception as e:
             return CommandResult(
                 success=False,
-                message=f"❌ Failed to copy to clipboard: {e}"
+                message=f"[ERROR] Failed to copy to clipboard: {e}"
             )
     
     def _handle_auto_command(self, command: str) -> CommandResult:
@@ -494,12 +494,12 @@ class CommandProcessor:
                 else:
                     return CommandResult(
                         success=False,
-                        message="❌ Invalid argument. Use 'auto on' or 'auto off'."
+                        message="[ERROR] Invalid argument. Use 'auto on' or 'auto off'."
                     )
             else:
                 return CommandResult(
                     success=False,
-                    message="❌ Too many arguments. Use 'auto' or 'auto on/off'."
+                    message="[ERROR] Too many arguments. Use 'auto' or 'auto on/off'."
                 )
             
             success: bool = self.session.toggle_auto_detection(new_state)
@@ -508,7 +508,7 @@ class CommandProcessor:
                 state_text: str = "enabled" if new_state else "disabled"
                 return CommandResult(
                     success=True,
-                    message=f"✅ Auto-detection {state_text}."
+                    message=f"[SUCCESS] Auto-detection {state_text}."
                 )
             else:
                 return CommandResult(
@@ -519,13 +519,13 @@ class CommandProcessor:
         except Exception as e:
             return CommandResult(
                 success=False,
-                message=f"❌ Auto-detection command failed: {e}"
+                message=f"[ERROR] Auto-detection command failed: {e}"
             )
     
     def _handle_commands_command(self) -> CommandResult:
         """Handle commands list command."""
         lines: list[str] = [
-            "📋 Available Interactive Commands:",
+            "[HELP] Available Interactive Commands:",
             "",
             "Clipboard Operations:",
         ]
@@ -543,7 +543,7 @@ class CommandProcessor:
         
         lines.extend([
             "",
-            "💡 Tip: Type '/rule' to apply transformation rules (e.g., '/t/l' for trim + lowercase)"
+            "[TIP] Type '/rule' to apply transformation rules (e.g., '/t/l' for trim + lowercase)"
         ])
         
         return CommandResult(

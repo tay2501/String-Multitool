@@ -99,7 +99,7 @@ class InputOutputManager:
         try:
             pyperclip.copy(text)
             logger = get_logger(__name__)
-            log_info(logger, "✅ Text copied to clipboard")
+            log_info(logger, "[SUCCESS] Text copied to clipboard")
             
         except Exception as e:
             raise ClipboardError(

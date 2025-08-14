@@ -41,12 +41,12 @@ __author__ = "String_Multitool Development Team"
 __all__ = [
     # Exceptions
     "StringMultitoolError",
-    "ConfigurationError", 
+    "ConfigurationError",
     "TransformationError",
     "CryptographyError",
     "ClipboardError",
     "ValidationError",
-    
+
     # Types and Protocols
     "TransformationRule",
     "SessionState",
@@ -54,15 +54,15 @@ __all__ = [
     "TextSource",
     "TransformationRuleType",
     "ConfigManagerProtocol",
-    "IOManagerProtocol", 
+    "IOManagerProtocol",
     "TransformationEngineProtocol",
     "CryptoManagerProtocol",
-    
+
     # Core Components
     "ConfigurationManager",
     "CryptographyManager",
     "TextTransformationEngine",
-    
+
     # I/O Components
     "InputOutputManager",
     "ClipboardMonitor",

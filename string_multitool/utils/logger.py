@@ -18,7 +18,7 @@ import logging.handlers
 import os
 import sys
 from pathlib import Path
-from typing import Any, TextIO
+from typing import Any, TextIO, cast
 
 
 class LoggerManager:
@@ -84,6 +84,16 @@ class LoggerManager:
         console_handler.setLevel(logging.INFO)
         console_formatter = logging.Formatter('%(message)s')
         console_handler.setFormatter(console_formatter)
+        
+        # Set console encoding to handle Unicode characters on Windows
+        if hasattr(console_handler.stream, 'reconfigure'):
+            try:
+                # Type guard: sys.stdout has reconfigure method in Python 3.7+
+                # Cast to Any to access reconfigure method safely
+                cast(Any, console_handler.stream).reconfigure(encoding='utf-8')
+            except (AttributeError, OSError):
+                pass
+        
         root_logger.addHandler(console_handler)
         
         # File handler for detailed logging
@@ -206,10 +216,15 @@ def log_info(logger: logging.Logger, message: str, **kwargs: Any) -> None:
         message: Log message
         **kwargs: Additional context data
     """
+    # Remove potential Unicode characters that may cause encoding issues
+    safe_message = message.encode('ascii', errors='ignore').decode('ascii')
+    if not safe_message.strip():
+        safe_message = "Info message (contained non-ASCII characters)"
+    
     if kwargs:
-        logger.info(f"{message} - Context: {kwargs}")
+        logger.info(f"{safe_message} - Context: {kwargs}")
     else:
-        logger.info(message)
+        logger.info(safe_message)
 
 
 def log_error(logger: logging.Logger, message: str, exc_info: bool = True, **kwargs: Any) -> None:
@@ -221,10 +236,15 @@ def log_error(logger: logging.Logger, message: str, exc_info: bool = True, **kwa
         exc_info: Include exception traceback
         **kwargs: Additional context data
     """
+    # Remove potential Unicode characters that may cause encoding issues
+    safe_message = message.encode('ascii', errors='ignore').decode('ascii')
+    if not safe_message.strip():
+        safe_message = "Error occurred (message contained non-ASCII characters)"
+    
     if kwargs:
-        logger.error(f"{message} - Context: {kwargs}", exc_info=exc_info)
+        logger.error(f"{safe_message} - Context: {kwargs}", exc_info=exc_info)
     else:
-        logger.error(message, exc_info=exc_info)
+        logger.error(safe_message, exc_info=exc_info)
 
 
 def log_warning(logger: logging.Logger, message: str, **kwargs: Any) -> None:
