@@ -3,19 +3,22 @@
 Setup script for String_Multitool.
 """
 
-from setuptools import setup, find_packages
 from pathlib import Path
+
+from setuptools import find_packages, setup
 
 # Read the contents of README file using pathlib
 this_directory = Path(__file__).parent.resolve()
-readme_path = this_directory / 'README.md'
-with open(readme_path, encoding='utf-8') as f:
+readme_path = this_directory / "README.md"
+with open(readme_path, encoding="utf-8") as f:
     long_description = f.read()
 
 # Read requirements using pathlib
-requirements_path = this_directory / 'requirements.txt'
-with open(requirements_path, encoding='utf-8') as f:
-    requirements = [line.strip() for line in f if line.strip() and not line.startswith('#')]
+requirements_path = this_directory / "requirements.txt"
+with open(requirements_path, encoding="utf-8") as f:
+    requirements = [
+        line.strip() for line in f if line.strip() and not line.startswith("#")
+    ]
 
 setup(
     name="string-multitool",
@@ -50,8 +53,8 @@ setup(
     },
     keywords="text transformation clipboard encryption rsa unicode",
     project_urls={
-        "Bug Reports": "https://github.com/your-username/String-Multitool/issues",
-        "Source": "https://github.com/your-username/String-Multitool",
-        "Documentation": "https://github.com/your-username/String-Multitool#readme",
+        "Bug Reports": "https://github.com/tay2501/String-Multitool/issues",
+        "Source": "https://github.com/tay2501/String-Multitool",
+        "Documentation": "https://github.com/tay2501/String-Multitool#readme",
     },
 )

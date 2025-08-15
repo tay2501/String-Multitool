@@ -2,8 +2,8 @@
 I/O components for String_Multitool.
 """
 
-from .manager import InputOutputManager
 from .clipboard import ClipboardMonitor
+from .manager import InputOutputManager
 
 __all__ = [
     "InputOutputManager",

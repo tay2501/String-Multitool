@@ -7,35 +7,35 @@ all components to deliver the complete functionality.
 
 from __future__ import annotations
 
-import sys
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
-# Import logging utilities
-from .utils.logger import get_logger, log_info, log_error, log_warning, log_debug
-
-from .exceptions import (
-    StringMultitoolError,
-    ConfigurationError,
-    TransformationError,
-    CryptographyError,
-    ClipboardError,
-    ValidationError,
-)
 from .core.dependency_injection import ServiceRegistry, inject, injectable
 from .core.types import (
-    TextSource,
     CommandResult,
-    TransformationRuleType,
     ConfigManagerProtocol,
-    TransformationEngineProtocol,
     CryptoManagerProtocol,
+    TextSource,
+    TransformationEngineProtocol,
+    TransformationRuleType,
+)
+from .exceptions import (
+    ClipboardError,
+    ConfigurationError,
+    CryptographyError,
+    StringMultitoolError,
+    TransformationError,
+    ValidationError,
 )
 from .io.manager import InputOutputManager
-from .modes.interactive import InteractiveSession, CommandProcessor
-from .modes.daemon_refactored import DaemonModeRefactored
+from .modes.daemon import DaemonMode
 from .modes.hotkey import HotkeyMode
+from .modes.interactive import CommandProcessor, InteractiveSession
+
+# Import logging utilities
+from .utils.logger import get_logger, log_debug, log_error, log_info, log_warning
 
 
 @injectable
@@ -85,7 +85,7 @@ class ApplicationInterface:
             if config_manager and transformation_engine and io_manager:
                 # Manual initialization for testing - create minimal daemon mode
                 try:
-                    self.daemon_mode = DaemonModeRefactored(
+                    self.daemon_mode = DaemonMode(
                         transformation_engine=transformation_engine,
                         config_manager=config_manager,
                     )
@@ -94,7 +94,7 @@ class ApplicationInterface:
                 self.hotkey_mode = None  # Skip hotkey mode in testing
             else:
                 # Use DI for production
-                self.daemon_mode = inject(DaemonModeRefactored)
+                self.daemon_mode = inject(DaemonMode)
 
                 # Initialize hotkey mode (optional, injected)
                 try:
@@ -132,40 +132,78 @@ class ApplicationInterface:
             # Main interactive loop
             while True:
                 try:
-                    # Check for clipboard changes if auto-detection is enabled
-                    if session.auto_detection_enabled:
-                        new_content: str | None = session.check_clipboard_changes()
-                        if (
-                            new_content is not None
-                            and new_content != session.current_text
-                        ):
-                            # Display clipboard content preview
-                            display_content: str = (
-                                new_content[:100] + "..."
-                                if len(new_content) > 100
-                                else new_content
-                            )
-                            # Replace newlines with visible characters for better display
-                            display_content = (
-                                display_content.replace("\n", "\\n")
-                                .replace("\r", "\\r")
-                                .replace("\t", "\\t")
-                            )
-
-                            logger = get_logger(__name__)
-                            log_info(
-                                logger,
-                                f"\n[CLIPBOARD] New content detected ({len(new_content)} chars)",
-                            )
-                            log_info(logger, f"   Content: '{display_content}'")
-                            log_info(
-                                logger,
-                                "   Type 'refresh' to load new content or continue with current text.",
-                            )
+                    # Check for clipboard changes (auto-detection is always enabled)
+                    new_content: str | None = session.check_clipboard_changes()
+                    if new_content is not None and new_content != session.current_text:
+                        # Display clipboard content preview
+                        display_content: str = (
+                            new_content[:100] + "..."
+                            if len(new_content) > 100
+                            else new_content
+                        )
+                        # Replace newlines with visible characters for better display
+                        display_content = (
+                            display_content.replace("\n", "\\n")
+                            .replace("\r", "\\r")
+                            .replace("\t", "\\t")
+                        )
 
                     # Get user input
                     try:
-                        user_input: str = input("Rules: ").strip()
+                        # Check if this is pipe input and no more data available
+                        if text_source == "pipe" and not sys.stdin.isatty():
+                            # For pipe input, try to read from stdin, but if EOF immediately,
+                            # switch to terminal input for interactive mode
+                            try:
+                                user_input: str = input("Rules: ").strip()
+                            except EOFError:
+                                logger = get_logger(__name__)
+                                log_info(
+                                    logger,
+                                    "\n[INFO] Pipe input received. Switching to interactive mode...",
+                                )
+                                log_info(
+                                    logger,
+                                    "You can now enter transformation rules (e.g., /u for uppercase) or commands.",
+                                )
+                                log_info(
+                                    logger,
+                                    "Type 'help' for available rules, 'status' to see current text, or 'quit' to exit.",
+                                )
+
+                                # Switch to terminal input by reopening stdin
+                                import os
+
+                                if os.name == "nt":  # Windows
+                                    try:
+                                        sys.stdin.close()
+                                        sys.stdin = open("CON", "r")
+                                    except:
+                                        # Fallback: continue with current stdin
+                                        pass
+                                else:  # Unix-like systems
+                                    try:
+                                        sys.stdin.close()
+                                        sys.stdin = open("/dev/tty", "r")
+                                    except:
+                                        # Fallback: continue with current stdin
+                                        pass
+
+                                # Update text_source to indicate we're now interactive
+                                text_source = "clipboard"
+
+                                # Try to get input from terminal
+                                try:
+                                    user_input: str = input("Rules: ").strip()
+                                except EOFError:
+                                    logger = get_logger(__name__)
+                                    log_info(
+                                        logger,
+                                        "Unable to switch to interactive input. Exiting...",
+                                    )
+                                    break
+                        else:
+                            user_input: str = input("Rules: ").strip()
                     except EOFError:
                         logger = get_logger(__name__)
                         log_info(logger, "\nGoodbye!")
@@ -189,11 +227,6 @@ class ApplicationInterface:
                         if result.message == "SWITCH_TO_DAEMON":
                             logger = get_logger(__name__)
                             log_info(logger, "[MODE] Switching to daemon mode...")
-                            log_info(
-                                logger,
-                                "   Interactive mode will exit and daemon mode will start.",
-                            )
-                            log_info(logger, "")
                             # Clean up interactive session
                             session.cleanup()
                             # Start daemon mode
@@ -233,9 +266,9 @@ class ApplicationInterface:
                                             else fresh_content
                                         )
                                         logger = get_logger(__name__)
-                                        log_info(
+                                        log_debug(
                                             logger,
-                                            f"[CLIPBOARD] Using fresh content: '{display_old}' -> '{display_new}'",
+                                            f"'{display_old}' -> '{display_new}'",
                                         )
                                         session.update_working_text(
                                             fresh_content, "clipboard"
@@ -261,10 +294,7 @@ class ApplicationInterface:
                                 else transformation_result
                             )
                             logger = get_logger(__name__)
-                            log_info(logger, f"Result: '{display_result}'")
-                            log_info(
-                                logger, "[SUCCESS] Transformation completed successfully!"
-                            )
+                            log_info(logger, f"'{display_result}'")
 
                         except (ValidationError, TransformationError) as e:
                             logger = get_logger(__name__)
@@ -315,7 +345,7 @@ class ApplicationInterface:
             logger = get_logger(__name__)
             log_info(logger, f"Applied: {rule_string}")
             log_info(logger, f"Result: '{display_result}'")
-            log_info(logger, "[SUCCESS] Transformation completed successfully!")
+            # log_info(logger, "[SUCCESS] Transformation completed successfully!")
 
         except (ValidationError, TransformationError, ClipboardError) as e:
             logger = get_logger(__name__)
@@ -368,9 +398,6 @@ class ApplicationInterface:
         try:
             logger = get_logger(__name__)
             log_info(logger, "String_Multitool - Daemon Mode")
-            log_info(logger, "=" * 40)
-            log_info(logger, "Continuous clipboard monitoring and transformation")
-            log_info(logger, "")
 
             # Show available presets
             daemon_config_path: Path = Path("config/daemon_config.json")
@@ -390,7 +417,6 @@ class ApplicationInterface:
                                     log_info(logger, f"  {name}: {rules}")
                                 else:
                                     log_info(logger, f"  {name}: {' -> '.join(rules)}")
-                            log_info(logger, "")
                 except Exception:
                     pass
 
@@ -407,7 +433,6 @@ class ApplicationInterface:
             log_info(logger, "  status            - Show daemon status")
             log_info(logger, "  interactive       - Switch to interactive mode")
             log_info(logger, "  quit              - Exit daemon mode")
-            log_info(logger, "")
 
             while True:
                 try:
@@ -459,7 +484,9 @@ class ApplicationInterface:
                                 self.daemon_mode.set_preset(preset_name)
                             else:
                                 logger = get_logger(__name__)
-                                log_warning(logger, "[WARNING] Daemon mode not available")
+                                log_warning(
+                                    logger, "[WARNING] Daemon mode not available"
+                                )
                         except (ValidationError, ConfigurationError) as e:
                             logger = get_logger(__name__)
                             log_warning(logger, f"[WARNING] {e}")
@@ -479,10 +506,14 @@ class ApplicationInterface:
                                 rule_string
                             ]  # Store as single rule string for sequential application
                             if self.daemon_mode:
-                                self.daemon_mode.set_transformation_rules(daemon_rule_list)
+                                self.daemon_mode.set_transformation_rules(
+                                    daemon_rule_list
+                                )
                             else:
                                 logger = get_logger(__name__)
-                                log_warning(logger, "[WARNING] Daemon mode not available")
+                                log_warning(
+                                    logger, "[WARNING] Daemon mode not available"
+                                )
                         except Exception as e:
                             logger = get_logger(__name__)
                             log_warning(logger, f"[WARNING] Invalid rule string: {e}")
@@ -491,7 +522,9 @@ class ApplicationInterface:
                         try:
                             if not self.daemon_mode:
                                 logger = get_logger(__name__)
-                                log_warning(logger, "[WARNING] Daemon mode not available")
+                                log_warning(
+                                    logger, "[WARNING] Daemon mode not available"
+                                )
                             elif self.daemon_mode.is_running:
                                 logger = get_logger(__name__)
                                 log_info(logger, "[DAEMON] Already running")
@@ -499,12 +532,12 @@ class ApplicationInterface:
                                 # Start daemon monitoring without blocking command input
                                 self.daemon_mode.start_monitoring()
                                 logger = get_logger(__name__)
-                                log_info(logger, "[DAEMON] Check interval: 1.0s")
+                                log_debug(logger, "[DAEMON] Check interval: 1.0s")
                                 log_info(
                                     logger,
                                     f"[DAEMON] Active transformation: {' -> '.join(self.daemon_mode.active_rules)}",
                                 )
-                                log_info(
+                                log_debug(
                                     logger, "[DAEMON] Monitoring started in background"
                                 )
                         except (ValidationError, TransformationError) as e:
@@ -515,7 +548,9 @@ class ApplicationInterface:
                         try:
                             if not self.daemon_mode:
                                 logger = get_logger(__name__)
-                                log_warning(logger, "[WARNING] Daemon mode not available")
+                                log_warning(
+                                    logger, "[WARNING] Daemon mode not available"
+                                )
                             else:
                                 self.daemon_mode.stop()
                         except TransformationError as e:
@@ -555,7 +590,6 @@ class ApplicationInterface:
                             logger,
                             "   Daemon mode will exit and interactive mode will start.",
                         )
-                        log_info(logger, "")
                         # Stop daemon if running
                         if self.daemon_mode and self.daemon_mode.is_running:
                             self.daemon_mode.stop()
@@ -625,7 +659,6 @@ class ApplicationInterface:
             logger = get_logger(__name__)
             log_info(logger, "String_Multitool - Advanced Text Transformation Tool")
             log_info(logger, "=" * 55)
-            log_info(logger, "")
             log_info(logger, "Usage:")
             log_info(
                 logger,
@@ -651,7 +684,6 @@ class ApplicationInterface:
                 logger,
                 "  echo 'text' | String_Multitool.py /t/l # Apply trim + lowercase to piped text",
             )
-            log_info(logger, "")
             log_info(logger, "Available Transformation Rules:")
             log_info(logger, "-" * 35)
 
@@ -684,7 +716,6 @@ class ApplicationInterface:
                         log_info(logger, f"  /{rule_key} - {rule.name}")
                     log_info(logger, f"    Example: {rule.example}")
 
-            log_info(logger, "")
             log_info(logger, "Usage Examples:")
             log_info(logger, "  /t                        # Trim whitespace")
             log_info(logger, "  /t/l                      # Trim then lowercase")
@@ -694,23 +725,20 @@ class ApplicationInterface:
             log_info(logger, "  /r 'old' 'new'            # Replace 'old' with 'new'")
 
             if self.crypto_manager:
-                log_info(logger, "")
                 log_info(logger, "RSA Encryption Information:")
-                log_info(logger, "  • Key Size: RSA-4096")
-                log_info(logger, "  • AES Encryption: AES-256-CBC")
-                log_info(logger, "  • Hash Algorithm: SHA256")
-                log_info(logger, "  • Keys Location: rsa/")
-                log_info(logger, "  • Auto-generated on first use")
-                log_info(logger, "  • Supports unlimited text size")
+                log_info(logger, "Key Size: RSA-4096")
+                log_info(logger, "AES Encryption: AES-256-CBC")
+                log_info(logger, "Hash Algorithm: SHA256")
+                log_info(logger, "Keys Location: rsa/")
+                log_info(logger, "Auto-generated on first use")
+                log_info(logger, "Supports unlimited text size")
 
-            log_info(logger, "")
             log_info(logger, "Daemon Mode:")
-            log_info(logger, "  String_Multitool.py --daemon")
-            log_info(logger, "  • Continuous clipboard monitoring")
-            log_info(logger, "  • Automatic transformation application")
-            log_info(logger, "  • Configurable transformation presets")
-            log_info(logger, "  • Background operation")
-            log_info(logger, "  • Real-time clipboard processing")
+            log_info(logger, "String_Multitool.py --daemon")
+            log_info(logger, "Continuous clipboard monitoring")
+            log_info(logger, "Automatic transformation application")
+            log_info(logger, "Background operation")
+            log_info(logger, "Real-time clipboard processing")
 
         except Exception as e:
             logger = get_logger(__name__)
@@ -723,56 +751,55 @@ class ApplicationInterface:
             display_text: str = session.get_display_text()
 
             logger = get_logger(__name__)
-            log_info(logger, "String_Multitool - Interactive Mode")
-            log_info(logger, "=" * 45)
+            log_debug(logger, "String_Multitool - Interactive Mode")
             log_info(
+                logger,
+                f"'{display_text}'",
+            )
+            log_debug(
                 logger,
                 f"Input text: '{display_text}' ({status.character_count} chars, from {status.text_source.value if hasattr(status.text_source, 'value') else status.text_source})",
             )
-            log_info(
-                logger,
-                f"Auto-detection: {'ON' if status.auto_detection_enabled else 'OFF'}",
-            )
+            # log_debug(
+            #     logger,
+            #     "Auto-detection: ON (always enabled)",
+            # )
 
-            # Show full clipboard content if available at startup
-            if (
-                status.text_source == TextSource.CLIPBOARD
-                and session.current_text.strip()
-            ):
-                log_info(logger, "")
-                log_info(logger, "[CLIPBOARD] Current clipboard content:")
-                # Display full content with proper formatting
-                full_content: str = session.current_text
-                if len(full_content) <= 200:
-                    # Show full content for shorter text
-                    formatted_content: str = (
-                        full_content.replace("\n", "\\n")
-                        .replace("\r", "\\r")
-                        .replace("\t", "\\t")
-                    )
-                    log_info(logger, f"   '{formatted_content}'")
-                else:
-                    # Show first 200 characters for longer text
-                    preview: str = full_content[:200] + "..."
-                    formatted_preview: str = (
-                        preview.replace("\n", "\\n")
-                        .replace("\r", "\\r")
-                        .replace("\t", "\\t")
-                    )
-                    log_info(logger, f"   '{formatted_preview}'")
+            # # Show full clipboard content if available at startup
+            # if (
+            #     status.text_source == TextSource.CLIPBOARD
+            #     and session.current_text.strip()
+            # ):
+            #     # Display full content with proper formatting
+            #     full_content: str = session.current_text
+            #     if len(full_content) <= 200:
+            #         # Show full content for shorter text
+            #         formatted_content: str = (
+            #             full_content.replace("\n", "\\n")
+            #             .replace("\r", "\\r")
+            #             .replace("\t", "\\t")
+            #         )
+            #         log_info(logger, f"'{formatted_content}'")
+            #     else:
+            #         # Show first 200 characters for longer text
+            #         preview: str = full_content[:200] + "..."
+            #         formatted_preview: str = (
+            #             preview.replace("\n", "\\n")
+            #             .replace("\r", "\\r")
+            #             .replace("\t", "\\t")
+            #         )
+            #         log_info(logger, f"'{formatted_preview}'")
 
-            log_info(logger, "")
-            log_info(
-                logger,
-                "Available commands: help, refresh, auto, status, clear, copy, commands, quit",
-            )
-            log_info(logger, "Enter transformation rules (e.g., /t/l) or command:")
-            if status.text_source == TextSource.CLIPBOARD:
-                log_info(
-                    logger,
-                    "Note: Transformation rules will use the latest clipboard content",
-                )
-            log_info(logger, "")
+            # log_info(
+            #     logger,
+            #     "Commands: help, status, quit",
+            # )
+            # log_info(logger, "Transformation rules (e.g., /t/l) or command.")
+            # if status.text_source == TextSource.CLIPBOARD:
+            #     log_info(
+            #         logger,
+            #         "Note: Transformation rules will use the latest clipboard content",
+            #     )
 
         except Exception as e:
             logger = get_logger(__name__)

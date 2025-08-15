@@ -23,7 +23,6 @@
 'area:architecture':
   - string_multitool/core/dependency_injection.py
   - string_multitool/application_factory.py
-  - string_multitool/core/error_handling.py
 
 # Cryptography and security
 'area:security':
@@ -102,7 +101,6 @@
 # Error handling and exceptions
 'area:error-handling':
   - string_multitool/exceptions.py
-  - string_multitool/core/error_handling.py
 
 # Logging and utilities
 'area:utils':

@@ -6,19 +6,19 @@ from .config import ConfigurationManager
 from .crypto import CryptographyManager
 from .transformations import TextTransformationEngine
 from .types import (
-    TransformationRule,
-    SessionState,
     CommandResult,
-    TextSource,
-    TransformationRuleType,
     ConfigManagerProtocol,
-    TransformationEngineProtocol,
     CryptoManagerProtocol,
+    SessionState,
+    TextSource,
+    TransformationEngineProtocol,
+    TransformationRule,
+    TransformationRuleType,
 )
 
 __all__ = [
     "ConfigurationManager",
-    "CryptographyManager", 
+    "CryptographyManager",
     "TextTransformationEngine",
     "TransformationRule",
     "SessionState",

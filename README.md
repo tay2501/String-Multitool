@@ -28,7 +28,7 @@ An advanced, enterprise-grade text transformation tool with modular architecture
 - **Sequential Processing**: Chain multiple transformations (e.g., `/t/l/u`)
 - **Argument Support**: Advanced rules with parameters (e.g., `/r 'old' 'new'`)
 - **Clipboard Integration**: Automatically copies results to clipboard
-- **Auto-Detection**: Smart clipboard monitoring with notifications in interactive mode
+- **Auto-Detection**: Automatic clipboard monitoring with notifications in interactive mode (always enabled)
 - **Daemon Mode**: Continuous background processing for automated workflows
 - **Hotkey Mode**: Global keyboard shortcuts for instant transformations (Ctrl+Shift+S + key)
 - **Cross-Platform**: Works on Windows, macOS, and Linux
@@ -119,7 +119,7 @@ string-multitool version
 # File input with rules
 Get-Content file.txt | python String_Multitool.py /t/l
 
-# Interactive mode with auto-detection (enabled by default)
+# Interactive mode with auto-detection (always enabled)
 python String_Multitool.py
 Rules: /t/s                  # Set transformation rule
 # Copy text from any app → automatic notification → type 'refresh' to process
@@ -303,7 +303,6 @@ The interactive mode now supports powerful clipboard management commands:
 
 **Clipboard Operations:**
 - `refresh`, `reload`, `replace` - Refresh input text from clipboard
-- `auto [on|off]` - Toggle automatic clipboard change detection
 - `copy` - Copy current working text back to clipboard
 - `clear` - Clear current working text
 
@@ -320,7 +319,7 @@ The interactive mode now supports powerful clipboard management commands:
 2. **Apply Transformations**: Use transformation rules as usual
 3. **Copy New Content**: Copy different text to clipboard in another app
 4. **Refresh**: Type `refresh` to load new clipboard content
-5. **Auto-Detection**: Enable with `auto on` for automatic change notifications
+5. **Auto-Detection**: Automatically monitors clipboard changes and provides notifications
 6. **Continue Working**: Seamlessly work with multiple text snippets
 
 **Example Session:**
@@ -328,7 +327,6 @@ The interactive mode now supports powerful clipboard management commands:
 Rules: /u                    # Transform to uppercase
 Rules: refresh               # Load new clipboard content
 Rules: /t/s                  # Trim and convert to snake_case
-Rules: auto on               # Enable auto-detection
 Rules: status                # Check session status
 Rules: copy                  # Copy result back to clipboard
 ```
@@ -343,13 +341,12 @@ Auto-detection monitors your clipboard in the background while you work in inter
 
 ##### 📋 How It Works
 
-1. **Auto-Enabled**: Monitoring starts automatically when entering interactive mode
+1. **Always Enabled**: Monitoring starts automatically when entering interactive mode
 2. **Startup Display**: Shows current clipboard content (up to 200 chars) at startup
 3. **Background Monitoring**: Checks clipboard every 1 second for changes
 4. **Smart Notification**: Displays alert with content preview when new content is detected
 5. **Content Preview**: Shows first 100 characters of new clipboard content
 6. **Manual Processing**: Use `refresh` to load the new content when ready
-7. **Optional Control**: Use `auto off` to disable monitoring if needed
 
 ##### 🎯 When to Use Auto-Detection
 
@@ -357,7 +354,7 @@ Auto-detection monitors your clipboard in the background while you work in inter
 
 **1. Batch Text Processing**
 ```bash
-Rules: /t/s                  # Set transformation rule (auto-detection already ON)
+Rules: /t/s                  # Set transformation rule (auto-detection is always ON)
 
 # Copy text from document → 🔔 Clipboard changed! New content available (25 chars)
 #                            Content: 'new text from document'
@@ -368,7 +365,7 @@ Rules: copy                  # Process and copy result
 
 **2. Code Review & Variable Naming**
 ```bash
-Rules: /p                    # PascalCase conversion (auto-detection already ON)
+Rules: /p                    # PascalCase conversion (auto-detection is always ON)
 
 # Copy variable names from IDE → 🔔 Clipboard changed! New content available (15 chars)
 #                                Content: 'userFirstName'
@@ -378,7 +375,7 @@ Rules: /p                    # PascalCase conversion (auto-detection already ON)
 
 **3. Document Formatting Workflow**
 ```bash
-Rules: /t/l                  # Trim and lowercase (auto-detection already ON)
+Rules: /t/l                  # Trim and lowercase (auto-detection is always ON)
 
 # Copy text from Word/Email → 🔔 Clipboard changed! New content available (42 chars)
 #                              Content: '  IMPORTANT DOCUMENT SECTION TITLE  '
@@ -400,18 +397,19 @@ Rules: /t/l                  # Trim and lowercase (auto-detection already ON)
 ##### 🛠 Auto-Detection Commands
 
 ```bash
-auto on          # Enable automatic clipboard monitoring
-auto off         # Disable monitoring
-auto             # Toggle current state
-status           # Check if monitoring is active
-refresh          # Load detected clipboard changes
+# Auto-detection is always enabled - no toggle commands needed
+# Use these commands to interact with clipboard monitoring:
+
+status           # Check current auto-detection state
+refresh          # Manually refresh from clipboard
+commands         # Show all available commands
 ```
 
 ##### 💡 Practical Examples
 
 **Example 1: API Response Formatting**
 ```bash
-python String_Multitool.py  # Auto-detection starts automatically
+python String_Multitool.py  # Auto-detection is always active
 Rules: /t                    # Set trim rule
 
 # Copy JSON from Postman → 🔔 Clipboard changed! New content available (156 chars)
@@ -427,7 +425,7 @@ Rules: refresh               # Process next response
 
 **Example 2: Database Column Names**
 ```bash
-Rules: /s                    # snake_case conversion (auto-detection already ON)
+Rules: /s                    # snake_case conversion (auto-detection is always ON)
 
 # Copy "UserFirstName" from schema → 🔔 Clipboard changed! New content available (13 chars)
 #                                    Content: 'UserFirstName'
@@ -442,7 +440,7 @@ Rules: refresh               # Load and convert automatically
 
 **Example 3: Multi-Language Text Processing**
 ```bash
-Rules: /fh                   # Full-width to half-width (auto-detection already ON)
+Rules: /fh                   # Full-width to half-width (auto-detection is always ON)
 
 # Copy Japanese text with full-width chars → 🔔 Clipboard changed! New content available (9 chars)
 #                                           Content: 'ＴＢＬ－ＣＨＡ１'
@@ -460,7 +458,6 @@ Customize auto-detection behavior in `config/security_config.json`:
   "interactive_mode": {
     "clipboard_refresh": {
       "auto_detection_interval": 1.0,           // Check interval (seconds)
-      "enable_auto_detection_by_default": true,  // Auto-enable on startup
       "max_content_size": 1048576,              // Max clipboard size (1MB)
       "show_character_count": true,             // Show char count in status
       "show_timestamps": true                   // Show last update time
@@ -477,7 +474,7 @@ Check auto-detection status anytime:
 Rules: status
 # =============================================
 # Input text: 'your clipboard content...' (25 chars, from clipboard)
-# Auto-detection: ON                    ← Monitoring active
+# Auto-detection: ON (always enabled)   ← Monitoring always active
 # Monitor active: Yes                   ← Background monitoring running
 # Last updated: 2 seconds ago          ← Time since last clipboard change
 # =============================================
@@ -485,13 +482,12 @@ Rules: status
 
 ##### 🚀 Pro Tips
 
-1. **Efficient Workflow**: Auto-detection is enabled by default - just start using it!
+1. **Efficient Workflow**: Auto-detection is always enabled - just start using it!
 2. **Content Preview**: Notification shows first 100 characters of new clipboard content
 3. **Rule Changes**: Change transformation rules anytime while monitoring continues
 4. **Batch Processing**: Perfect for processing multiple similar text snippets
 5. **Resource Friendly**: Uses minimal system resources (1-second intervals)
 6. **Cross-Application**: Works with any application that uses system clipboard
-7. **Optional Control**: Use `auto off` to disable monitoring when not needed
 
 **Auto-detection makes interactive mode incredibly efficient for repetitive text processing tasks!**
 
@@ -1048,7 +1044,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ### Version 2.2.0 (Dynamic Clipboard Enhancement)
 - **Dynamic Clipboard Refresh**: Refresh input text from clipboard during interactive sessions
-- **Auto-Detection**: Optional automatic clipboard change monitoring with notifications
+- **Auto-Detection**: Automatic clipboard change monitoring with notifications (always enabled)
 - **Enhanced Interactive Commands**: New commands for session management and clipboard operations
 - **Session State Management**: Track text source, timestamps, and character counts
 - **Improved User Experience**: Better status information and command feedback
