@@ -12,13 +12,12 @@ Reference:
 from __future__ import annotations
 
 import json
-import logging
+from logging import getLogger
 import logging.config
 import logging.handlers
-import os
 import sys
 from pathlib import Path
-from typing import Any, TextIO, cast
+from typing import Any, cast
 
 
 class LoggerManager:
@@ -49,7 +48,7 @@ class LoggerManager:
 
         # Determine which config file to use
         config_dir = Path("config")
-        local_config = config_dir / "logging_config.local.json"
+        local_config = config_dir / "logging_config_local.json"
         default_config = config_dir / "logging_config.json"
 
         config_file = local_config if local_config.exists() else default_config
@@ -63,8 +62,11 @@ class LoggerManager:
                 logging.config.dictConfig(config)
                 return
             except Exception as e:
-                print(f"Warning: Failed to load logging config from {config_file}: {e}")
-                print("Falling back to default configuration...")
+                from ..exceptions import ConfigurationError
+                raise ConfigurationError(
+                    f"Failed to load logging config from {config_file}: {e}",
+                    {"config_file": str(config_file), "error_type": type(e).__name__},
+                ) from e
 
         # Fallback to hardcoded configuration
         self._configure_default_logging()
@@ -72,7 +74,7 @@ class LoggerManager:
     def _configure_default_logging(self) -> None:
         """Configure default logging when config files are not available."""
         # Configure root logger
-        root_logger = logging.getLogger()
+        root_logger = getLogger(__name__)
         root_logger.setLevel(logging.INFO)
 
         # Remove existing handlers to avoid duplicates
@@ -135,7 +137,7 @@ class LoggerManager:
         if isinstance(level, str):
             level = getattr(logging, level.upper())
 
-        root_logger = logging.getLogger()
+        root_logger = getLogger()
         root_logger.setLevel(level)
 
         # Update all handlers
@@ -175,7 +177,7 @@ class LoggerManager:
         )
         file_handler.setFormatter(formatter)
 
-        root_logger = logging.getLogger()
+        root_logger = getLogger()
         root_logger.addHandler(file_handler)
 
     @staticmethod
@@ -211,6 +213,18 @@ def get_logger(name: str) -> logging.Logger:
     """
     return LoggerManager.get_logger(name)
 
+def log_debug(logger: logging.Logger, message: str, **kwargs: Any) -> None:
+    """Log a debug message with optional extra context.
+
+    Args:
+        logger: Logger instance
+        message: Debug message
+        **kwargs: Additional context data
+    """
+    if kwargs:
+        logger.debug(f"{message} - Context: {kwargs}")
+    else:
+        logger.debug(message)
 
 def log_info(logger: logging.Logger, message: str, **kwargs: Any) -> None:
     """Log an info message with optional extra context.
@@ -220,38 +234,10 @@ def log_info(logger: logging.Logger, message: str, **kwargs: Any) -> None:
         message: Log message
         **kwargs: Additional context data
     """
-    # Remove potential Unicode characters that may cause encoding issues
-    # safe_message = message.encode('ascii', errors='ignore').decode('ascii')
-    # if not safe_message.strip():
-    #     safe_message = "Info message (contained non-ASCII characters)"
-
     if kwargs:
         logger.info(f"{message} - Context: {kwargs}")
     else:
         logger.info(message)
-
-
-def log_error(
-    logger: logging.Logger, message: str, exc_info: bool = True, **kwargs: Any
-) -> None:
-    """Log an error message with optional exception info.
-
-    Args:
-        logger: Logger instance
-        message: Error message
-        exc_info: Include exception traceback
-        **kwargs: Additional context data
-    """
-    # Remove potential Unicode characters that may cause encoding issues
-    safe_message = message.encode("ascii", errors="ignore").decode("ascii")
-    if not safe_message.strip():
-        safe_message = "Error occurred (message contained non-ASCII characters)"
-
-    if kwargs:
-        logger.error(f"{safe_message} - Context: {kwargs}", exc_info=exc_info)
-    else:
-        logger.error(safe_message, exc_info=exc_info)
-
 
 def log_warning(logger: logging.Logger, message: str, **kwargs: Any) -> None:
     """Log a warning message with optional extra context.
@@ -267,15 +253,19 @@ def log_warning(logger: logging.Logger, message: str, **kwargs: Any) -> None:
         logger.warning(message)
 
 
-def log_debug(logger: logging.Logger, message: str, **kwargs: Any) -> None:
-    """Log a debug message with optional extra context.
+def log_error(
+    logger: logging.Logger, message: str, **kwargs: Any
+) -> None:
+    """Log an error message with optional exception info.
 
     Args:
         logger: Logger instance
-        message: Debug message
+        message: Error message
+        exc_info: Include exception traceback
         **kwargs: Additional context data
     """
     if kwargs:
         logger.debug(f"{message} - Context: {kwargs}")
     else:
         logger.debug(message)
+

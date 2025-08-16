@@ -67,7 +67,7 @@ config/
 ├── 📄 daemon_config.json             # 🤖 Daemon mode configuration
 ├── 📄 hotkey_config.json             # ⌨️ Hotkey configuration
 ├── 📄 logging_config.json            # 📝 Logging configuration
-└── 📄 logging_config.local.json      # 📝 Local logging overrides
+└── 📄 logging_config_local.json      # 📝 Local logging overrides
 ```
 
 **Purpose**: Externalized configuration for rules, security, and daemon settings.

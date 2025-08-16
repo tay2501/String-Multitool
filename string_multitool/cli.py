@@ -16,7 +16,7 @@ from rich.panel import Panel
 from rich.table import Table
 from typer import Typer
 
-from .exceptions import StringMultitoolError
+from .exceptions import ConfigurationError, StringMultitoolError
 from .main import ApplicationInterface
 
 # Import logging utilities
@@ -45,7 +45,13 @@ def get_app() -> ApplicationInterface:
     """Get or create application instance."""
     global _app_instance
     if _app_instance is None:
-        _app_instance = ApplicationInterface()
+        try:
+            _app_instance = ApplicationInterface()
+        except Exception as e:
+            raise ConfigurationError(
+                f"Failed to initialize application: {e}",
+                {"error_type": type(e).__name__},
+            )
     return _app_instance
 
 
@@ -56,6 +62,8 @@ def interactive_mode() -> None:
         app_instance = get_app()
         input_text = app_instance.io_manager.get_input_text()
         app_instance.run_interactive_mode(input_text)
+        logger = get_logger(__name__)
+        log_debug(logger, f":interactive_mode()")
     except StringMultitoolError as e:
         logger = get_logger(__name__)
         log_error(logger, f"Error: {e}")
@@ -64,6 +72,13 @@ def interactive_mode() -> None:
         logger = get_logger(__name__)
         log_info(logger, "\nGoodbye!")
         raise typer.Exit(0)
+    except Exception as e:
+        logger = get_logger(__name__)
+        log_error(logger, f"Unexpected error in interactive mode: {e}")
+        raise ConfigurationError(
+            f"Interactive mode failed: {e}",
+            {"error_type": type(e).__name__},
+        )
 
 
 @app.command("transform", help="Apply transformation rules to text")  # type: ignore
@@ -114,6 +129,13 @@ def transform_text(
         logger = get_logger(__name__)
         log_error(logger, f"Error: {e}")
         raise typer.Exit(1)
+    except Exception as e:
+        logger = get_logger(__name__)
+        log_error(logger, f"Unexpected error in text transformation: {e}")
+        raise ConfigurationError(
+            f"Text transformation failed: {e}",
+            {"error_type": type(e).__name__, "rules": rules},
+        )
 
 
 @app.command("encrypt", help="Encrypt text using RSA+AES hybrid encryption")  # type: ignore
@@ -167,6 +189,13 @@ def encrypt_text(
         logger = get_logger(__name__)
         log_error(logger, f"Error: {e}")
         raise typer.Exit(1)
+    except Exception as e:
+        logger = get_logger(__name__)
+        log_error(logger, f"Unexpected error in text encryption: {e}")
+        raise ConfigurationError(
+            f"Text encryption failed: {e}",
+            {"error_type": type(e).__name__},
+        )
 
 
 @app.command("decrypt", help="Decrypt text using RSA+AES hybrid decryption")  # type: ignore
@@ -220,6 +249,13 @@ def decrypt_text(
         logger = get_logger(__name__)
         log_error(logger, f"Error: {e}")
         raise typer.Exit(1)
+    except Exception as e:
+        logger = get_logger(__name__)
+        log_error(logger, f"Unexpected error in text decryption: {e}")
+        raise ConfigurationError(
+            f"Text decryption failed: {e}",
+            {"error_type": type(e).__name__},
+        )
 
 
 @app.command("daemon", help="Start daemon mode for continuous clipboard monitoring")  # type: ignore
@@ -269,6 +305,13 @@ def daemon_mode(
         logger = get_logger(__name__)
         log_info(logger, "\nDaemon mode stopped")
         raise typer.Exit(0)
+    except Exception as e:
+        logger = get_logger(__name__)
+        log_error(logger, f"Unexpected error in daemon mode: {e}")
+        raise ConfigurationError(
+            f"Daemon mode failed: {e}",
+            {"error_type": type(e).__name__, "rules": rules, "preset": preset},
+        )
 
 
 @app.command("rules", help="Display available transformation rules")  # type: ignore
@@ -341,6 +384,13 @@ def show_rules(
         logger = get_logger(__name__)
         log_error(logger, f"Error: {e}")
         raise typer.Exit(1)
+    except Exception as e:
+        logger = get_logger(__name__)
+        log_error(logger, f"Unexpected error in rules display: {e}")
+        raise ConfigurationError(
+            f"Rules display failed: {e}",
+            {"error_type": type(e).__name__, "category": category, "search": search},
+        )
 
 
 @app.command("version", help="Show version information")  # type: ignore

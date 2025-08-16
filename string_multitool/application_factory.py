@@ -25,6 +25,8 @@ from .modes.hotkey import HotkeyMode
 from .modes.interactive import CommandProcessor, InteractiveSession
 from .utils.logger import get_logger, log_warning
 
+from .main import ApplicationInterface  # Import here to avoid circular imports"
+
 
 def configure_services(container: DIContainer) -> None:
     """Configure all application services in the DI container."""
@@ -133,6 +135,3 @@ class ApplicationFactory:
         ServiceRegistry.configure(configure_test_services)
 
         return ApplicationInterface()
-
-
-from .main import ApplicationInterface  # Import here to avoid circular imports"

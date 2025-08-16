@@ -5,7 +5,7 @@ Setup script for String_Multitool.
 
 from pathlib import Path
 
-from setuptools import find_packages, setup
+from setuptools import setup
 
 # Read the contents of README file using pathlib
 this_directory = Path(__file__).parent.resolve()

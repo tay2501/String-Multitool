@@ -70,6 +70,7 @@ class ApplicationInterface:
                 TransformationEngineProtocol
             )
             self.io_manager = io_manager or inject(InputOutputManager)
+            self._logger = get_logger(__name__)
 
             # Get optional crypto manager
             try:
@@ -77,8 +78,7 @@ class ApplicationInterface:
                 if self.crypto_manager:
                     self.transformation_engine.set_crypto_manager(self.crypto_manager)
             except Exception as e:
-                logger = get_logger(__name__)
-                log_warning(logger, f"[WARNING] Cryptography not available: {e}")
+                self._logger.error(f"[ERROR] Cryptography not available: {e}")
                 self.crypto_manager = None
 
             # Initialize daemon mode (injected) - skip if all dependencies provided
@@ -157,18 +157,14 @@ class ApplicationInterface:
                             try:
                                 user_input: str = input("Rules: ").strip()
                             except EOFError:
-                                logger = get_logger(__name__)
-                                log_info(
-                                    logger,
-                                    "\n[INFO] Pipe input received. Switching to interactive mode...",
+                                self._logger.info(
+                                    "\n[INFO] Pipe input received. Switching to interactive mode..."
                                 )
-                                log_info(
-                                    logger,
-                                    "You can now enter transformation rules (e.g., /u for uppercase) or commands.",
+                                self._logger.info(
+                                    "You can now enter transformation rules (e.g., /u for uppercase) or commands."
                                 )
-                                log_info(
-                                    logger,
-                                    "Type 'help' for available rules, 'status' to see current text, or 'quit' to exit.",
+                                self._logger.info(
+                                    "Type 'help' for available rules, 'status' to see current text, or 'quit' to exit."
                                 )
 
                                 # Switch to terminal input by reopening stdin
@@ -196,22 +192,18 @@ class ApplicationInterface:
                                 try:
                                     user_input: str = input("Rules: ").strip()
                                 except EOFError:
-                                    logger = get_logger(__name__)
-                                    log_info(
-                                        logger,
-                                        "Unable to switch to interactive input. Exiting...",
+                                    self._logger.error(
+                                        "Unable to switch to interactive input. Exiting..."
                                     )
                                     break
                         else:
                             user_input: str = input("Rules: ").strip()
                     except EOFError:
-                        logger = get_logger(__name__)
-                        log_info(logger, "\nGoodbye!")
+                        self._logger.info("\nGoodbye!")
                         break
 
                     if not user_input:
-                        logger = get_logger(__name__)
-                        log_info(logger, "Please enter a rule, command, or 'help'")
+                        self._logger.info("Please enter a rule, command, or 'help'")
                         continue
 
                     # Process command or transformation rule
@@ -225,16 +217,14 @@ class ApplicationInterface:
                             continue
 
                         if result.message == "SWITCH_TO_DAEMON":
-                            logger = get_logger(__name__)
-                            log_info(logger, "[MODE] Switching to daemon mode...")
+                            self._logger.info("[MODE] Switching to daemon mode...")
                             # Clean up interactive session
                             session.cleanup()
                             # Start daemon mode
                             self.run_daemon_mode()
                             return
 
-                        logger = get_logger(__name__)
-                        log_info(logger, result.message)
+                        self._logger.info(result.message)
 
                         if result.updated_text is not None:
                             # Text was updated by command
@@ -265,9 +255,7 @@ class ApplicationInterface:
                                             if len(fresh_content) > 30
                                             else fresh_content
                                         )
-                                        logger = get_logger(__name__)
-                                        log_debug(
-                                            logger,
+                                        self._logger.debug(
                                             f"'{display_old}' -> '{display_new}'",
                                         )
                                         session.update_working_text(
@@ -293,23 +281,24 @@ class ApplicationInterface:
                                 if len(transformation_result) > 100
                                 else transformation_result
                             )
-                            logger = get_logger(__name__)
-                            log_info(logger, f"'{display_result}'")
+                            self._logger.info(f"'{display_result}'")
 
                         except (ValidationError, TransformationError) as e:
-                            logger = get_logger(__name__)
-                            log_error(logger, f"[ERROR] Transformation error: {e}")
+                            self._logger.error(f"[ERROR] Transformation error: {e}")
                         except Exception as e:
-                            logger = get_logger(__name__)
-                            log_error(logger, f"[ERROR] Unexpected error: {e}")
+                            raise StringMultitoolError(
+                                f"Unexpected interactive transformation error: {e}",
+                                {"error_type": type(e).__name__},
+                            ) from e
 
                 except KeyboardInterrupt:
-                    logger = get_logger(__name__)
-                    log_info(logger, "\nGoodbye!")
+                    self._logger.info("\nGoodbye!")
                     break
                 except Exception as e:
-                    logger = get_logger(__name__)
-                    log_error(logger, f"[ERROR] Error: {e}")
+                    raise StringMultitoolError(
+                        f"Interactive session error: {e}",
+                        {"error_type": type(e).__name__},
+                    ) from e
 
             # Cleanup
             session.cleanup()
@@ -342,19 +331,17 @@ class ApplicationInterface:
 
             # Display applied rules and result for user feedback
             display_result: str = result[:100] + "..." if len(result) > 100 else result
-            logger = get_logger(__name__)
-            log_info(logger, f"Applied: {rule_string}")
-            log_info(logger, f"Result: '{display_result}'")
-            # log_info(logger, "[SUCCESS] Transformation completed successfully!")
+            self._logger.info(f"Applied: {rule_string}")
+            self._logger.info(f"Result: '{display_result}'")
 
         except (ValidationError, TransformationError, ClipboardError) as e:
-            logger = get_logger(__name__)
-            log_error(logger, f"[ERROR] Error: {e}")
+            self._logger.error(f"[ERROR] Error: {e}")
             sys.exit(1)
         except Exception as e:
-            logger = get_logger(__name__)
-            log_error(logger, f"[ERROR] Unexpected error: {e}")
-            sys.exit(1)
+            raise StringMultitoolError(
+                f"Command mode execution failed: {e}",
+                {"error_type": type(e).__name__},
+            ) from e
 
     def run_hotkey_mode(self) -> None:
         """Run application in hotkey mode.
@@ -363,8 +350,7 @@ class ApplicationInterface:
             StringMultitoolError: If hotkey mode fails
         """
         try:
-            logger = get_logger(__name__)
-            log_info(logger, "Starting hotkey mode...")
+            self._logger.info("Starting hotkey mode...")
 
             # Initialize hotkey mode if not already done
             if self.hotkey_mode is None:
@@ -376,15 +362,12 @@ class ApplicationInterface:
             self.hotkey_mode.run()
 
         except KeyboardInterrupt:
-            logger = get_logger(__name__)
-            log_info(logger, "Hotkey mode stopped by user")
+            self._logger.info("Hotkey mode stopped by user")
         except ConfigurationError as e:
-            logger = get_logger(__name__)
-            log_error(logger, f"Hotkey configuration error: {e}")
+            self._logger.error(f"Hotkey configuration error: {e}")
             raise
         except Exception as e:
-            logger = get_logger(__name__)
-            log_error(logger, f"Hotkey mode error: {e}")
+            self._logger.error(f"Hotkey mode error: {e}")
             raise StringMultitoolError(
                 f"Hotkey mode failed: {e}", {"error_type": type(e).__name__}
             ) from e
@@ -396,8 +379,7 @@ class ApplicationInterface:
             StringMultitoolError: If daemon mode fails
         """
         try:
-            logger = get_logger(__name__)
-            log_info(logger, "String_Multitool - Daemon Mode")
+            self._logger.info("String_Multitool - Daemon Mode")
 
             # Show available presets
             daemon_config_path: Path = Path("config/daemon_config.json")
@@ -410,37 +392,36 @@ class ApplicationInterface:
                         ).get("rule_presets", {})
 
                         if presets:
-                            logger = get_logger(__name__)
-                            log_info(logger, "Available presets:")
+                            self._logger.info("Available presets:")
                             for name, rules in presets.items():
                                 if isinstance(rules, str):
-                                    log_info(logger, f"  {name}: {rules}")
+                                    self._logger.info(f"  {name}: {rules}")
                                 else:
-                                    log_info(logger, f"  {name}: {' -> '.join(rules)}")
-                except Exception:
-                    pass
+                                    self._logger.info(f"  {name}: {' -> '.join(rules)}")
+                except Exception as e:
+                    raise ConfigurationError(
+                        f"Failed to load daemon config: {e}",
+                        {"error_type": type(e).__name__},
+                    ) from e
 
-            logger = get_logger(__name__)
-            log_info(logger, "Commands:")
-            log_info(logger, "  preset <n>     - Set transformation preset")
-            log_info(logger, "  rules <rules>     - Set custom transformation rules")
-            log_info(
-                logger,
-                "  /rule             - Set transformation rule directly (e.g., '/t/l')",
+            self._logger.info("Commands:")
+            self._logger.info("  preset <n>     - Set transformation preset")
+            self._logger.info("  rules <rules>     - Set custom transformation rules")
+            self._logger.info(
+                "  /rule             - Set transformation rule directly (e.g., '/t/l')"
             )
-            log_info(logger, "  start             - Start daemon monitoring")
-            log_info(logger, "  stop              - Stop daemon monitoring")
-            log_info(logger, "  status            - Show daemon status")
-            log_info(logger, "  interactive       - Switch to interactive mode")
-            log_info(logger, "  quit              - Exit daemon mode")
+            self._logger.info("  start             - Start daemon monitoring")
+            self._logger.info("  stop              - Stop daemon monitoring")
+            self._logger.info("  status            - Show daemon status")
+            self._logger.info("  interactive       - Switch to interactive mode")
+            self._logger.info("  quit              - Exit daemon mode")
 
             while True:
                 try:
                     try:
                         user_input: str = input("Daemon> ").strip()
                     except EOFError:
-                        logger = get_logger(__name__)
-                        log_info(logger, "\nGoodbye!")
+                        self._logger.info("\nGoodbye!")
                         break
 
                     if not user_input:
@@ -458,8 +439,10 @@ class ApplicationInterface:
                             if self.daemon_mode:
                                 self.daemon_mode.set_transformation_rules(rule_list)
                         except Exception as e:
-                            logger = get_logger(__name__)
-                            log_warning(logger, f"[WARNING] Invalid rule string: {e}")
+                            raise ValidationError(
+                                f"Invalid daemon preset rule string: {e}",
+                                {"error_type": type(e).__name__},
+                            ) from e
                         continue
 
                     parts: list[str] = user_input.split()
@@ -468,14 +451,12 @@ class ApplicationInterface:
                     if command in ["quit", "q", "exit"]:
                         if self.daemon_mode and self.daemon_mode.is_running:
                             self.daemon_mode.stop()
-                        logger = get_logger(__name__)
-                        log_info(logger, "Goodbye!")
+                        self._logger.info("Goodbye!")
                         break
 
                     elif command == "preset":
                         if len(parts) < 2:
-                            logger = get_logger(__name__)
-                            log_info(logger, "Usage: preset <n>")
+                            self._logger.info("Usage: preset <n>")
                             continue
 
                         preset_name: str = parts[1]
@@ -483,19 +464,15 @@ class ApplicationInterface:
                             if self.daemon_mode:
                                 self.daemon_mode.set_preset(preset_name)
                             else:
-                                logger = get_logger(__name__)
-                                log_warning(
-                                    logger, "[WARNING] Daemon mode not available"
+                                self._logger.error(
+                                    "[ERROR] Daemon mode not available"
                                 )
                         except (ValidationError, ConfigurationError) as e:
-                            logger = get_logger(__name__)
-                            log_warning(logger, f"[WARNING] {e}")
+                            self._logger.error(f"[ERROR] {e}")
 
                     elif command == "rules":
                         if len(parts) < 2:
-                            logger = get_logger(__name__)
-                            log_info(logger, "Usage: rules <rule_string>")
-                            log_info(logger, "Example: rules /t/l")
+                            self._logger.info("Usage: rules <rule_string>, Example: rules /t/l")
                             continue
 
                         rule_string: str = " ".join(parts[1:])
@@ -510,84 +487,65 @@ class ApplicationInterface:
                                     daemon_rule_list
                                 )
                             else:
-                                logger = get_logger(__name__)
-                                log_warning(
-                                    logger, "[WARNING] Daemon mode not available"
-                                )
+                                self._logger.warning("[WARNING] Daemon mode not available")
                         except Exception as e:
-                            logger = get_logger(__name__)
-                            log_warning(logger, f"[WARNING] Invalid rule string: {e}")
+                            raise ValidationError(
+                                f"Invalid daemon custom rule string: {e}",
+                                {"error_type": type(e).__name__},
+                            ) from e
 
                     elif command == "start":
                         try:
                             if not self.daemon_mode:
-                                logger = get_logger(__name__)
-                                log_warning(
-                                    logger, "[WARNING] Daemon mode not available"
-                                )
+                                self._logger.warning("[WARNING] Daemon mode not available")
                             elif self.daemon_mode.is_running:
-                                logger = get_logger(__name__)
-                                log_info(logger, "[DAEMON] Already running")
+                                self._logger.info("[DAEMON] Already running")
                             else:
                                 # Start daemon monitoring without blocking command input
                                 self.daemon_mode.start_monitoring()
-                                logger = get_logger(__name__)
-                                log_debug(logger, "[DAEMON] Check interval: 1.0s")
-                                log_info(
-                                    logger,
+                                self._logger.debug("[DAEMON] Check interval: 1.0s")
+                                self._logger.info(
                                     f"[DAEMON] Active transformation: {' -> '.join(self.daemon_mode.active_rules)}",
                                 )
-                                log_debug(
-                                    logger, "[DAEMON] Monitoring started in background"
+                                self._logger.debug(
+                                    "[DAEMON] Monitoring started in background"
                                 )
                         except (ValidationError, TransformationError) as e:
-                            logger = get_logger(__name__)
-                            log_warning(logger, f"[WARNING] {e}")
+                            self._logger.warning(f"[WARNING] {e}")
 
                     elif command == "stop":
                         try:
                             if not self.daemon_mode:
-                                logger = get_logger(__name__)
-                                log_warning(
-                                    logger, "[WARNING] Daemon mode not available"
-                                )
+                                self._logger.warning("[WARNING] Daemon mode not available")
                             else:
                                 self.daemon_mode.stop()
                         except TransformationError as e:
-                            logger = get_logger(__name__)
-                            log_warning(logger, f"[WARNING] {e}")
+                            self._logger.warning(f"[WARNING] {e}")
 
                     elif command == "status":
                         if not self.daemon_mode:
-                            logger = get_logger(__name__)
-                            log_warning(logger, "[WARNING] Daemon mode not available")
+                            self._logger.warning("[WARNING] Daemon mode not available")
                         else:
                             status: dict[str, Any] = self.daemon_mode.get_status()
-                            logger = get_logger(__name__)
-                            log_info(
-                                logger,
+                            self._logger.info(
                                 f"Status: {'Running' if status['running'] else 'Stopped'}",
                             )
-                            log_info(
-                                logger,
+                            self._logger.info(
                                 f"Active rules: {' -> '.join(status['active_rules']) if status['active_rules'] else 'None'}",
                             )
-                            log_info(
-                                logger,
+                            self._logger.info(
                                 f"Active preset: {status['active_preset'] or 'None'}",
                             )
-                            log_info(
-                                logger,
+                            self._logger.info(
                                 f"Transformations applied: {status['stats']['transformations_applied']}",
                             )
                             if status.get("runtime"):
-                                log_info(logger, f"Runtime: {status['runtime']}")
+                                self._logger.info(f"Runtime: {status['runtime']}")
 
                     elif command == "interactive":
-                        logger = get_logger(__name__)
-                        log_info(logger, "[MODE] Switching to interactive mode...")
-                        log_info(
-                            logger,
+                        self._logger.info("[MODE] Switching to interactive mode...")
+                        self._logger.info(
+                            "[MODE] Daemon mode will exit and interactive mode will start."
                             "   Daemon mode will exit and interactive mode will start.",
                         )
                         # Stop daemon if running
@@ -598,50 +556,46 @@ class ApplicationInterface:
                             input_text: str = self.io_manager.get_input_text()
                             self.run_interactive_mode(input_text)
                         except Exception as e:
-                            logger = get_logger(__name__)
-                            log_error(
-                                logger, f"[ERROR] Error starting interactive mode: {e}"
-                            )
+                            raise StringMultitoolError(
+                                f"Failed to start interactive mode from daemon: {e}",
+                                {"error_type": type(e).__name__},
+                            ) from e
                         return
 
                     elif command == "help":
-                        logger = get_logger(__name__)
-                        log_info(logger, "Daemon Mode Commands:")
-                        log_info(logger, "  preset <n>     - Set transformation preset")
-                        log_info(
-                            logger,
+                        self._logger.info("Daemon Mode Commands:")
+                        self._logger.info("  preset <n>     - Set transformation preset")
+                        self._logger.info(
                             "  rules <rules>     - Set custom transformation rules",
                         )
-                        log_info(
-                            logger,
+                        self._logger.info(
                             "  /rule             - Set transformation rule directly (e.g., '/t/l')",
                         )
-                        log_info(
-                            logger, "  start             - Start daemon monitoring"
+                        self._logger.info(
+                            "  start             - Start daemon monitoring"
                         )
-                        log_info(logger, "  stop              - Stop daemon monitoring")
-                        log_info(logger, "  status            - Show daemon status")
-                        log_info(
-                            logger, "  interactive       - Switch to interactive mode"
+                        self._logger.info("  stop              - Stop daemon monitoring")
+                        self._logger.info("  status            - Show daemon status")
+                        self._logger.info(
+                            "  interactive       - Switch to interactive mode"
                         )
-                        log_info(logger, "  quit              - Exit daemon mode")
+                        self._logger.info("  quit              - Exit daemon mode")
 
                     else:
-                        logger = get_logger(__name__)
-                        log_info(
-                            logger,
+                        self._logger.warning(
                             f"Unknown command: {command}. Type 'help' for available commands.",
                         )
 
                 except KeyboardInterrupt:
                     if self.daemon_mode and self.daemon_mode.is_running:
                         self.daemon_mode.stop()
-                    logger = get_logger(__name__)
-                    log_info(logger, "\nGoodbye!")
+                    self._logger.info("\nGoodbye!")
                     break
                 except Exception as e:
-                    logger = get_logger(__name__)
-                    log_error(logger, f"[ERROR] Unexpected daemon error: {e}")
+                    raise StringMultitoolError(
+                        f"Unexpected daemon error: {e}",
+                        {"error_type": type(e).__name__},
+                    ) from e
 
         except Exception as e:
             raise StringMultitoolError(
@@ -656,36 +610,29 @@ class ApplicationInterface:
             )
             # rules_config: dict[str, Any] = self.config_manager.load_transformation_rules()
 
-            logger = get_logger(__name__)
-            log_info(logger, "String_Multitool - Advanced Text Transformation Tool")
-            log_info(logger, "=" * 55)
-            log_info(logger, "Usage:")
-            log_info(
-                logger,
+            self._logger.info("String_Multitool - Advanced Text Transformation Tool")
+            self._logger.info("=" * 55)
+            self._logger.info("Usage:")
+            self._logger.info(
                 "  String_Multitool.py                    # Interactive mode (clipboard input)",
             )
-            log_info(
-                logger,
+            self._logger.info(
                 "  String_Multitool.py /t/l               # Apply trim + lowercase to clipboard",
             )
-            log_info(
-                logger,
+            self._logger.info(
                 "  String_Multitool.py --daemon           # Daemon mode (continuous monitoring)",
             )
-            log_info(
-                logger,
+            self._logger.info(
                 "  String_Multitool.py --hotkey           # Hotkey mode (global keyboard shortcuts)",
             )
-            log_info(
-                logger,
+            self._logger.info(
                 "  echo 'text' | String_Multitool.py      # Interactive mode (pipe input)",
             )
-            log_info(
-                logger,
+            self._logger.info(
                 "  echo 'text' | String_Multitool.py /t/l # Apply trim + lowercase to piped text",
             )
-            log_info(logger, "Available Transformation Rules:")
-            log_info(logger, "-" * 35)
+            self._logger.info("Available Transformation Rules:")
+            self._logger.info("-" * 35)
 
             # Display rules by category
             category_display_names: dict[TransformationRuleType, str] = {
@@ -707,42 +654,44 @@ class ApplicationInterface:
             # Display each category
             for category, rules in rules_by_category.items():
                 category_name: str = category_display_names.get(category, str(category))
-                log_info(logger, f"\n{category_name}:")
+                self._logger.info(f"\n{category_name}:")
 
                 for rule_key, rule in rules:
                     if rule.requires_args:
-                        log_info(logger, f"  /{rule_key} '<args>' - {rule.name}")
+                        self._logger.info(f"  /{rule_key} '<args>' - {rule.name}")
                     else:
-                        log_info(logger, f"  /{rule_key} - {rule.name}")
-                    log_info(logger, f"    Example: {rule.example}")
+                        self._logger.info(f"  /{rule_key} - {rule.name}")
+                    self._logger.info(f"    Example: {rule.example}")
 
-            log_info(logger, "Usage Examples:")
-            log_info(logger, "  /t                        # Trim whitespace")
-            log_info(logger, "  /t/l                      # Trim then lowercase")
-            log_info(logger, "  /enc                      # Encrypt with RSA")
-            log_info(logger, "  /dec                      # Decrypt with RSA")
-            log_info(logger, "  /S '-'                    # Slugify with hyphen")
-            log_info(logger, "  /r 'old' 'new'            # Replace 'old' with 'new'")
+            self._logger.info("Usage Examples:")
+            self._logger.info("  /t                        # Trim whitespace")
+            self._logger.info("  /t/l                      # Trim then lowercase")
+            self._logger.info("  /enc                      # Encrypt with RSA")
+            self._logger.info("  /dec                      # Decrypt with RSA")
+            self._logger.info("  /S '-'                    # Slugify with hyphen")
+            self._logger.info("  /r 'old' 'new'            # Replace 'old' with 'new'")
 
             if self.crypto_manager:
-                log_info(logger, "RSA Encryption Information:")
-                log_info(logger, "Key Size: RSA-4096")
-                log_info(logger, "AES Encryption: AES-256-CBC")
-                log_info(logger, "Hash Algorithm: SHA256")
-                log_info(logger, "Keys Location: rsa/")
-                log_info(logger, "Auto-generated on first use")
-                log_info(logger, "Supports unlimited text size")
+                self._logger.info("RSA Encryption Information:")
+                self._logger.info("Key Size: RSA-4096")
+                self._logger.info("AES Encryption: AES-256-CBC")
+                self._logger.info("Hash Algorithm: SHA256")
+                self._logger.info("Keys Location: rsa/")
+                self._logger.info("Auto-generated on first use")
+                self._logger.info("Supports unlimited text size")
 
-            log_info(logger, "Daemon Mode:")
-            log_info(logger, "String_Multitool.py --daemon")
-            log_info(logger, "Continuous clipboard monitoring")
-            log_info(logger, "Automatic transformation application")
-            log_info(logger, "Background operation")
-            log_info(logger, "Real-time clipboard processing")
+            self._logger.info("Daemon Mode:")
+            self._logger.info("String_Multitool.py --daemon")
+            self._logger.info("Continuous clipboard monitoring")
+            self._logger.info("Automatic transformation application")
+            self._logger.info("Background operation")
+            self._logger.info("Real-time clipboard processing")
 
         except Exception as e:
-            logger = get_logger(__name__)
-            log_warning(logger, f"[WARNING] Error displaying help: {e}")
+            raise StringMultitoolError(
+                f"Failed to display help: {e}",
+                {"error_type": type(e).__name__},
+            ) from e
 
     def _display_interactive_header(self, session: InteractiveSession) -> None:
         """Display interactive mode header with current status."""
@@ -750,60 +699,18 @@ class ApplicationInterface:
             status: Any = session.get_status_info()
             display_text: str = session.get_display_text()
 
-            logger = get_logger(__name__)
-            log_debug(logger, "String_Multitool - Interactive Mode")
-            log_info(
-                logger,
+            self._logger.debug("String_Multitool - Interactive Mode")
+            self._logger.info(
                 f"'{display_text}'",
             )
-            log_debug(
-                logger,
+            self._logger.debug(
                 f"Input text: '{display_text}' ({status.character_count} chars, from {status.text_source.value if hasattr(status.text_source, 'value') else status.text_source})",
             )
-            # log_debug(
-            #     logger,
-            #     "Auto-detection: ON (always enabled)",
-            # )
-
-            # # Show full clipboard content if available at startup
-            # if (
-            #     status.text_source == TextSource.CLIPBOARD
-            #     and session.current_text.strip()
-            # ):
-            #     # Display full content with proper formatting
-            #     full_content: str = session.current_text
-            #     if len(full_content) <= 200:
-            #         # Show full content for shorter text
-            #         formatted_content: str = (
-            #             full_content.replace("\n", "\\n")
-            #             .replace("\r", "\\r")
-            #             .replace("\t", "\\t")
-            #         )
-            #         log_info(logger, f"'{formatted_content}'")
-            #     else:
-            #         # Show first 200 characters for longer text
-            #         preview: str = full_content[:200] + "..."
-            #         formatted_preview: str = (
-            #             preview.replace("\n", "\\n")
-            #             .replace("\r", "\\r")
-            #             .replace("\t", "\\t")
-            #         )
-            #         log_info(logger, f"'{formatted_preview}'")
-
-            # log_info(
-            #     logger,
-            #     "Commands: help, status, quit",
-            # )
-            # log_info(logger, "Transformation rules (e.g., /t/l) or command.")
-            # if status.text_source == TextSource.CLIPBOARD:
-            #     log_info(
-            #         logger,
-            #         "Note: Transformation rules will use the latest clipboard content",
-            #     )
-
         except Exception as e:
-            logger = get_logger(__name__)
-            log_warning(logger, f"[WARNING] Could not display header: {e}")
+            raise StringMultitoolError(
+                f"Failed to display interactive header: {e}",
+                {"error_type": type(e).__name__},
+            ) from e
 
     def run(self) -> None:
         """Main application entry point.
@@ -836,11 +743,9 @@ class ApplicationInterface:
                     and not arg.startswith("--hotkey")
                     and arg != "--help"
                 ):
-                    logger = get_logger(__name__)
-                    log_error(logger, f"[ERROR] Unknown option: {sys.argv[1]}")
-                    log_info(logger, "Available options: --daemon, --hotkey, --help")
-                    log_info(
-                        logger,
+                    self._logger.warning(f"[WARNING] Unknown option: {sys.argv[1]}")
+                    self._logger.info("Available options: --daemon, --hotkey, --help")
+                    self._logger.info(
                         "Or use transformation rules starting with '/' (e.g., /t/l)",
                     )
                     sys.exit(1)
@@ -860,21 +765,22 @@ class ApplicationInterface:
             CryptographyError,
             ClipboardError,
         ) as e:
-            logger = get_logger(__name__)
-            log_error(logger, str(e), exc_info=False)
+            self._logger.error(str(e))
             sys.exit(1)
         except KeyboardInterrupt:
-            logger = get_logger(__name__)
-            log_info(logger, "\nGoodbye!")
+            self._logger.info("\nGoodbye!")
             sys.exit(0)
         except Exception as e:
-            logger = get_logger(__name__)
-            log_error(logger, f"Unexpected error: {e}")
-            sys.exit(1)
+            raise StringMultitoolError(
+                f"Application run failed: {e}",
+                {"error_type": type(e).__name__},
+            ) from e
 
 
 def main() -> None:
     """Application entry point with Typer integration."""
+    logger = get_logger(__name__)
+    log_debug(logger, f"Starting Application entry point with Typer integration...")
     try:
         # Check for modern CLI usage (subcommands)
         if len(sys.argv) > 1 and sys.argv[1] in [
@@ -889,7 +795,6 @@ def main() -> None:
         ]:
             # Use new Typer CLI
             from .cli import run_cli
-
             run_cli()
         else:
             # Use legacy CLI for backward compatibility
@@ -898,9 +803,10 @@ def main() -> None:
             app.run()
     except Exception as e:
         logger = get_logger(__name__)
-        log_error(logger, f"Fatal error: {e}")
-        sys.exit(1)
-
+        raise StringMultitoolError(
+            f"Fatal main execution error: {e}",
+            {"error_type": type(e).__name__},
+        ) from e
 
 if __name__ == "__main__":
     main()
