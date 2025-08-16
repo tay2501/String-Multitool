@@ -27,6 +27,9 @@ import sys
 from pathlib import Path
 from typing import TextIO
 
+# Import and run the main application with dependency injection
+from string_multitool.application_factory import ApplicationFactory
+
 # Ensure UTF-8 encoding for stdout/stderr on Windows
 if sys.platform.startswith("win"):
     # Type-safe reconfigure with proper type checking
@@ -44,9 +47,6 @@ if sys.platform.startswith("win"):
 current_dir: Path = Path(__file__).parent
 if str(current_dir) not in sys.path:
     sys.path.insert(0, str(current_dir))
-
-# Import and run the main application with dependency injection
-from string_multitool.application_factory import ApplicationFactory
 
 
 def main() -> None:

@@ -8,7 +8,6 @@ comprehensive help system, auto-completion support, and intuitive subcommands.
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 from typing import Annotated, Any, Optional
 
 import typer
@@ -17,7 +16,6 @@ from rich.panel import Panel
 from rich.table import Table
 from typer import Typer
 
-from .core.types import TextSource
 from .exceptions import StringMultitoolError
 from .main import ApplicationInterface
 

@@ -1964,8 +1964,6 @@ class RuleEngineProtocol(Protocol):
         ...
 
 
-
-
 # Helper functions for type-safe validation using TypeGuards
 
 

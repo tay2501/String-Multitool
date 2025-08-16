@@ -7,7 +7,6 @@ with proper dependency injection configuration.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 from .core.config import ConfigurationManager
@@ -19,7 +18,7 @@ from .core.types import (
     CryptoManagerProtocol,
     TransformationEngineProtocol,
 )
-from .exceptions import ConfigurationError, CryptographyError
+from .exceptions import CryptographyError
 from .io.manager import InputOutputManager
 from .modes.daemon import DaemonMode
 from .modes.hotkey import HotkeyMode

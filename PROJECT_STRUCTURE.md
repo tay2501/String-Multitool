@@ -31,13 +31,15 @@ string_multitool/
 ├── 📄 __init__.py                      # Package initialization
 ├── 📄 main.py                          # 🎯 Main application interface
 ├── 📄 cli.py                           # 🖥️ Modern Typer CLI interface
+├── 📄 application_factory.py          # 🏭 Application factory and DI container
 ├── 📄 exceptions.py                    # 🚨 Custom exception definitions
 ├── 📁 core/                           # Core business logic
 │   ├── 📄 __init__.py
 │   ├── 📄 config.py                   # 🔧 Configuration management
 │   ├── 📄 crypto.py                   # 🔒 RSA encryption/decryption
 │   ├── 📄 transformations.py          # 🔄 Text transformation engine
-│   └── 📄 types.py                    # 📋 Type definitions and protocols
+│   ├── 📄 types.py                    # 📋 Type definitions and protocols
+│   └── 📄 dependency_injection.py     # 🔗 Dependency injection framework
 ├── 📁 io/                             # Input/Output operations
 │   ├── 📄 __init__.py
 │   ├── 📄 clipboard.py                # 📋 Clipboard operations
@@ -45,7 +47,10 @@ string_multitool/
 ├── 📁 modes/                          # Application execution modes
 │   ├── 📄 __init__.py
 │   ├── 📄 daemon.py                   # 🔄 Daemon mode (continuous monitoring)
+│   ├── 📄 daemon_config_manager.py    # 🔧 Daemon configuration management
+│   ├── 📄 clipboard_monitor.py        # 📋 Clipboard monitoring functionality
 │   ├── 📄 hotkey.py                   # ⌨️ Hotkey mode (global keyboard shortcuts)
+│   ├── 📄 hotkey_sequence_manager.py  # ⌨️ Hotkey sequence management
 │   └── 📄 interactive.py              # 💬 Interactive mode
 └── 📁 utils/                          # Utility modules
     ├── 📄 __init__.py
@@ -59,7 +64,10 @@ string_multitool/
 config/
 ├── 📄 transformation_rules.json       # 🔄 Transformation rule definitions
 ├── 📄 security_config.json           # 🔒 Security and encryption settings
-└── 📄 daemon_config.json             # 🤖 Daemon mode configuration
+├── 📄 daemon_config.json             # 🤖 Daemon mode configuration
+├── 📄 hotkey_config.json             # ⌨️ Hotkey configuration
+├── 📄 logging_config.json            # 📝 Logging configuration
+└── 📄 logging_config.local.json      # 📝 Local logging overrides
 ```
 
 **Purpose**: Externalized configuration for rules, security, and daemon settings.
@@ -89,10 +97,11 @@ rsa/
 ### `/logs/` - Application Logs
 ```
 logs/
-└── 📄 string_multitool.log           # 📝 Application runtime logs
+├── 📄 string_multitool.log           # 📝 Application runtime logs
+└── 📄 debug.log                      # 🐛 Debug-level logging
 ```
 
-**Purpose**: Runtime logging for debugging and monitoring.
+**Purpose**: Runtime logging for debugging and monitoring with multiple log levels.
 
 ## 📁 Build and Distribution
 
@@ -100,7 +109,7 @@ logs/
 ```
 build/                                 # 🔨 Build intermediate files
 dist/                                  # 📦 Distribution packages
-*.exe                                  # 💻 Executable files
+String_Multitool.exe                   # 💻 Executable file (when built)
 ```
 
 **Purpose**: Generated during build process, excluded from version control.
@@ -114,27 +123,32 @@ dist/                                  # 📦 Distribution packages
    - Handles mode switching and user interaction
    - Manages component initialization and lifecycle
 
-2. **TextTransformationEngine** (`core/transformations.py`)
+2. **ApplicationFactory** (`application_factory.py`)
+   - Dependency injection container
+   - Component creation and lifecycle management
+   - Configuration-driven component assembly
+
+3. **TextTransformationEngine** (`core/transformations.py`)
    - Core text transformation logic
    - Rule parsing and sequential processing
    - Configuration-driven rule registration
 
-3. **CryptographyManager** (`core/crypto.py`)
+4. **CryptographyManager** (`core/crypto.py`)
    - RSA-4096 key management
    - Hybrid AES+RSA encryption
    - Secure key storage and permissions
 
-4. **ConfigurationManager** (`core/config.py`)
+5. **ConfigurationManager** (`core/config.py`)
    - JSON configuration loading and caching
    - Validation and error handling
    - Runtime configuration updates
 
-5. **InputOutputManager** (`io/manager.py`)
+6. **InputOutputManager** (`io/manager.py`)
    - Clipboard operations
    - Stdin/stdout handling
    - Cross-platform compatibility
 
-6. **Modern CLI Interface** (`cli.py`)
+7. **Modern CLI Interface** (`cli.py`)
    - Typer-based command-line interface
    - Rich terminal output
    - Subcommand organization
@@ -151,6 +165,11 @@ dist/                                  # 📦 Distribution packages
    - Automatic transformations
    - Preset-based configuration
 
+3. **Hotkey Mode** (`modes/hotkey.py`)
+   - Global hotkey support
+   - Sequence-based hotkey management
+   - System tray integration
+
 ### Type Safety System
 
 - **Protocol Definitions** (`types.py`): Structural typing for dependency injection
@@ -162,8 +181,9 @@ dist/                                  # 📦 Distribution packages
 
 ### Entry Points
 - **Legacy CLI**: `String_Multitool.py` - Backward compatible entry point
-- **Modern CLI**: `string-multitool` command via pyproject.toml script
+- **Modern CLI**: `python -m string_multitool.main` or `string-multitool` command
 - **Package Import**: `from string_multitool.main import ApplicationInterface`
+- **Direct Execution**: `python string_multitool/main.py`
 
 ### Configuration Management
 - JSON-based configuration files in `/config/`

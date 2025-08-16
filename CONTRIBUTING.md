@@ -1,6 +1,6 @@
-# Contributing to Clipboard Transformer
+# Contributing to String_Multitool
 
-Thank you for your interest in contributing to Clipboard Transformer! This document provides guidelines and information for contributors.
+Thank you for your interest in contributing to String_Multitool! This document provides guidelines and information for contributors.
 
 ## Getting Started
 
@@ -15,8 +15,8 @@ Thank you for your interest in contributing to Clipboard Transformer! This docum
 1. Fork the repository on GitHub
 2. Clone your fork locally:
    ```bash
-   git clone https://github.com/your-username/clipboard-transformer.git
-   cd clipboard-transformer
+   git clone https://github.com/your-username/String-Multitool.git
+   cd String-Multitool
    ```
 
 3. Create a virtual environment:
@@ -28,11 +28,12 @@ Thank you for your interest in contributing to Clipboard Transformer! This docum
 4. Install dependencies:
    ```bash
    pip install -r requirements.txt
+   pip install -r requirements-dev.txt
    ```
 
 5. Run tests to ensure everything works:
    ```bash
-   pytest
+   python -m pytest test_transform.py -v
    ```
 
 ## Development Workflow
@@ -55,8 +56,8 @@ Thank you for your interest in contributing to Clipboard Transformer! This docum
 3. Add or update tests as needed
 4. Run the test suite:
    ```bash
-   pytest
-   pytest --cov=src  # With coverage
+   python -m pytest test_transform.py -v
+   python -m pytest test_transform.py --cov=string_multitool
    ```
 
 5. Update documentation if needed
@@ -67,11 +68,11 @@ Thank you for your interest in contributing to Clipboard Transformer! This docum
 Use clear, descriptive commit messages:
 
 ```
-Add support for custom hotkey modifiers
+Add new text transformation rule
 
-- Allow combinations like ctrl+shift+alt+key
-- Update configuration validation
-- Add tests for new hotkey formats
+- Implement transformation logic in TextTransformationEngine
+- Update config/transformation_rules.json
+- Add comprehensive test cases
 ```
 
 ## Code Standards
@@ -93,26 +94,28 @@ Add support for custom hotkey modifiers
 ### Example Code Style
 
 ```python
-def transform_text(text: str, pattern: str, replacement: str) -> str:
+def apply_transformation(self, text: str, rule_string: str) -> str:
     """
-    Transform text using regex pattern and replacement.
+    Apply transformation rules to input text.
     
     Args:
         text: Input text to transform
-        pattern: Regex pattern to match
-        replacement: Replacement string
+        rule_string: Rule string (e.g., '/t/l/u')
         
     Returns:
         Transformed text
         
     Raises:
-        ValueError: If pattern is invalid
+        StringMultitoolError: If rule is invalid
     """
     try:
-        import re
-        return re.sub(pattern, replacement, text)
-    except re.error as e:
-        raise ValueError(f"Invalid regex pattern: {e}")
+        rules = self.parse_rule_string(rule_string)
+        result = text
+        for rule in rules:
+            result = rule.function(result)
+        return result
+    except Exception as e:
+        raise StringMultitoolError(f"Transformation failed: {e}")
 ```
 
 ## Testing
@@ -121,16 +124,16 @@ def transform_text(text: str, pattern: str, replacement: str) -> str:
 
 ```bash
 # Run all tests
-pytest
+python -m pytest test_transform.py -v
 
-# Run specific test file
-pytest tests/test_transformer.py
+# Run specific test categories
+python test_transform.py
 
 # Run with coverage report
-pytest --cov=src --cov-report=html
+python -m pytest test_transform.py --cov=string_multitool
 
-# Run tests with verbose output
-pytest -v
+# Run integration tests
+python -m pytest test_readme_examples.py -v
 ```
 
 ### Writing Tests
@@ -145,15 +148,15 @@ Example test:
 ```python
 def test_hyphen_to_underscore_transformation():
     """Test basic hyphen to underscore transformation."""
-    transformer = TransformationEngine("test_config.json")
-    result = transformer.apply_transformation("test-string", "hyphen_to_underscore")
+    engine = TextTransformationEngine()
+    result = engine.apply_transformations("test-string", "/h")
     assert result == "test_string"
 
-def test_transformation_with_invalid_pattern():
-    """Test transformation with invalid regex pattern."""
-    transformer = TransformationEngine("test_config.json")
-    with pytest.raises(ValueError):
-        transformer.apply_transformation("test", "invalid_pattern")
+def test_sequential_transformations():
+    """Test chaining multiple transformations."""
+    engine = TextTransformationEngine()
+    result = engine.apply_transformations("Hello-World", "/h/l")
+    assert result == "hello_world"
 ```
 
 ## Documentation
@@ -167,8 +170,8 @@ def test_transformation_with_invalid_pattern():
 ### User Documentation
 
 - Update README.md for user-facing changes
-- Add configuration examples for new features
-- Update troubleshooting section for known issues
+- Add transformation examples to config/transformation_rules.json
+- Update CLAUDE.md for development workflow changes
 
 ## Submitting Changes
 
@@ -179,8 +182,8 @@ def test_transformation_with_invalid_pattern():
 3. Create a pull request with:
    - Clear title and description
    - Reference to related issues
-   - Screenshots for UI changes
-   - Test results
+   - Test results for all transformation rules
+   - Updated documentation if needed
 
 ### Pull Request Template
 
@@ -212,11 +215,11 @@ Brief description of changes
 
 Include:
 - Operating system and version
-- Python version (if applicable)
+- Python version
 - Steps to reproduce
 - Expected vs actual behavior
-- Log files if available
-- Configuration file (remove sensitive data)
+- Log files from logs/ directory
+- Configuration files from config/ directory (remove RSA keys)
 
 ### Feature Requests
 
@@ -237,12 +240,12 @@ We use semantic versioning (MAJOR.MINOR.PATCH):
 
 ### Release Checklist
 
-1. Update version numbers
-2. Update CHANGELOG.md
-3. Run full test suite
-4. Build and test executable
-5. Create GitHub release
-6. Update documentation
+1. Update version in pyproject.toml
+2. Run full test suite with all transformation rules
+3. Build executable with .\build.ps1
+4. Test interactive and daemon modes
+5. Update README.md examples
+6. Create GitHub release
 
 ## Community Guidelines
 
@@ -263,8 +266,8 @@ We use semantic versioning (MAJOR.MINOR.PATCH):
 ## Recognition
 
 Contributors will be recognized in:
-- CONTRIBUTORS.md file
+- README.md acknowledgments section
 - Release notes for significant contributions
 - GitHub contributor statistics
 
-Thank you for contributing to Clipboard Transformer!
+Thank you for contributing to String_Multitool!
