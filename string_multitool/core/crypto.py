@@ -10,7 +10,7 @@ from __future__ import annotations
 import base64
 import secrets
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 from ..exceptions import ConfigurationError, CryptographyError
 
@@ -27,6 +27,9 @@ try:
     CRYPTOGRAPHY_AVAILABLE = True
 except ImportError:
     CRYPTOGRAPHY_AVAILABLE = False
+
+# Define Final constant after conditional assignment
+CRYPTOGRAPHY_AVAILABLE: Final[bool] = CRYPTOGRAPHY_AVAILABLE
 
 if TYPE_CHECKING:
     from cryptography.hazmat.primitives.asymmetric.rsa import (

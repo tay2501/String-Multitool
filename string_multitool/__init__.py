@@ -7,6 +7,8 @@ pipe support, and secure RSA encryption capabilities.
 
 from __future__ import annotations
 
+from typing import Final
+
 from .core.config import ConfigurationManager
 from .core.crypto import CryptographyManager
 from .core.transformations import TextTransformationEngine
@@ -32,8 +34,8 @@ from .exceptions import (
 from .io.clipboard import ClipboardMonitor
 from .io.manager import InputOutputManager
 
-__version__ = "2.1.0"
-__author__ = "String_Multitool Development Team"
+__version__: Final[str] = "2.1.0"
+__author__: Final[str] = "String_Multitool Development Team"
 
 __all__ = [
     # Exceptions

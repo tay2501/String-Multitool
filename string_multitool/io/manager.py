@@ -8,7 +8,7 @@ clipboard access and pipe input detection.
 from __future__ import annotations
 
 import sys
-from typing import Any
+from typing import Any, Final
 
 from ..core.types import IOManagerProtocol
 from ..exceptions import ClipboardError
@@ -22,6 +22,9 @@ try:
     CLIPBOARD_AVAILABLE = True
 except ImportError:
     CLIPBOARD_AVAILABLE = False
+
+# Define Final constant after conditional assignment
+CLIPBOARD_AVAILABLE: Final[bool] = CLIPBOARD_AVAILABLE
 
 
 class InputOutputManager:

@@ -97,7 +97,7 @@ class TransformationRule:
     rule_type: TransformationRuleType = TransformationRuleType.BASIC
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, frozen=True)
 class SessionState:
     """Represents current interactive session state."""
 
@@ -109,7 +109,7 @@ class SessionState:
     clipboard_monitor_active: bool
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, frozen=True)
 class CommandResult:
     """Result of command processing."""
 

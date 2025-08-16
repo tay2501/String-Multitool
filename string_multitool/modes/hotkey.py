@@ -10,7 +10,7 @@ from __future__ import annotations
 import threading
 import time
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Final, Optional
 
 try:
     import keyboard
@@ -23,6 +23,9 @@ except ImportError as e:
         "keyboard and pyperclip are required for hotkey mode. "
         "Install with: pip install keyboard pyperclip"
     ) from e
+
+# Define Final constant after conditional assignment
+KEYBOARD_AVAILABLE: Final[bool] = KEYBOARD_AVAILABLE
 
 from ..core.types import (
     ConfigManagerProtocol,

@@ -17,7 +17,7 @@ import logging.config
 import logging.handlers
 import sys
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Final, cast
 
 
 class LoggerManager:
@@ -99,11 +99,14 @@ class LoggerManager:
         root_logger.addHandler(console_handler)
 
         # File handler for detailed logging
+        MAX_LOG_SIZE: Final[int] = 10 * 1024 * 1024  # 10MB
+        BACKUP_COUNT: Final[int] = 5
+        
         logs_dir = Path("logs")
         file_handler = logging.handlers.RotatingFileHandler(
             logs_dir / "string_multitool.log",
-            maxBytes=10 * 1024 * 1024,  # 10MB
-            backupCount=5,
+            maxBytes=MAX_LOG_SIZE,
+            backupCount=BACKUP_COUNT,
             encoding="utf-8",
         )
         file_handler.setLevel(logging.DEBUG)
@@ -164,10 +167,13 @@ class LoggerManager:
         if isinstance(level, str):
             level = getattr(logging, level.upper())
 
+        MAX_LOG_SIZE: Final[int] = 10 * 1024 * 1024  # 10MB
+        BACKUP_COUNT: Final[int] = 5
+        
         file_handler = logging.handlers.RotatingFileHandler(
             file_path,
-            maxBytes=10 * 1024 * 1024,  # 10MB
-            backupCount=5,
+            maxBytes=MAX_LOG_SIZE,
+            backupCount=BACKUP_COUNT,
             encoding="utf-8",
         )
         file_handler.setLevel(level)
