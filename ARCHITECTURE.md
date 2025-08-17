@@ -2,7 +2,7 @@
 
 ## Overview
 
-String_Multitool follows a modular, enterprise-grade architecture designed for maintainability, extensibility, and security. The application is structured using the separation of concerns principle with dedicated managers for different aspects of functionality.
+String_Multitool follows a modular, enterprise-grade architecture designed for maintainability, extensibility, and security. The application is structured using the separation of concerns principle with dedicated managers for different aspects of functionality. Recent architectural improvements include the implementation of individual transformation classes inheriting from an abstract base class, providing enhanced type safety and maintainability.
 
 ## Architecture Diagram
 
@@ -277,7 +277,10 @@ Structure:
 
 ### Implemented Features
 - Modular enterprise architecture with dependency injection
-- Comprehensive text transformation engine
+- **Individual transformation classes** inheriting from abstract base class
+- **Factory pattern** for dynamic transformation instantiation
+- **Enhanced type safety** with abstract method enforcement
+- Comprehensive text transformation engine with class-based architecture
 - RSA-4096 + AES-256 hybrid encryption
 - Interactive, daemon, and hotkey operation modes
 - JSON-based configuration system
@@ -285,13 +288,25 @@ Structure:
 - Comprehensive test suite
 - Modern CLI interface with Typer and Rich
 
+### Recent Architectural Improvements (v2.5.0)
+- **Modular Transformation Classes**: Each rule implemented as separate class
+- **Abstract Base Class Pattern**: Consistent interface enforcement
+- **State Management**: Internal input/output text tracking
+- **Error Context Enhancement**: Transformation-specific error information
+- **Protocol-Based Design**: Type-safe interfaces using Python protocols
+- **Factory Pattern Integration**: Dynamic class instantiation system
+
 ## Future Enhancements
 
 ### Planned Features
-- Plugin system for custom rules
-- Web API interface
+- Plugin system for custom transformation classes
+- Web API interface with REST endpoints
 - Batch processing capabilities
 - Configuration validation schema
+- **Transformation Class Templates**: Code generation for new rule types
+- **Advanced State Management**: Transformation history and rollback
+- **Performance Metrics**: Individual class performance monitoring
+- **Dynamic Loading**: Runtime loading of external transformation modules
 
 ### Security Improvements
 - Hardware security module support

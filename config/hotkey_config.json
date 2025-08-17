@@ -3,6 +3,7 @@
         "enabled": true,
         "description": "Direct global hotkey configuration for String_Multitool",
         "sequence_timeout_seconds": 2.0,
+        "suppress": true,
         "modifier_key": "ctrl+shift+alt",
         "alternative_modifiers": [
             "ctrl+alt",

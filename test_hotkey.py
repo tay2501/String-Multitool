@@ -16,46 +16,49 @@ from string_multitool.core.config import ConfigurationManager
 from string_multitool.core.transformations import TextTransformationEngine
 from string_multitool.exceptions import ConfigurationError, ValidationError
 from string_multitool.io.manager import InputOutputManager
-from string_multitool.modes.hotkey import HotkeyMode, HotkeyState
+from string_multitool.modes.hotkey import HotkeyMode, SequenceState
 
 
-class TestHotkeyState:
-    """Test cases for HotkeyState class."""
+class TestSequenceState:
+    """Test cases for SequenceState class."""
 
     def test_initialization(self):
-        """Test HotkeyState initialization."""
-        state = HotkeyState(timeout_seconds=3.0)
+        """Test SequenceState initialization."""
+        state = SequenceState(timeout_seconds=3.0)
         assert state.timeout_seconds == 3.0
-        assert not state.is_waiting_for_command
-        assert state.prefix_time is None
+        assert not state.is_waiting
+        assert state.start_time is None
+        assert state.first_key is None
 
     def test_start_sequence(self):
         """Test starting a key sequence."""
-        state = HotkeyState()
-        state.start_sequence()
+        state = SequenceState()
+        state.start_sequence("h")
 
-        assert state.is_waiting_for_command
-        assert state.prefix_time is not None
-        assert isinstance(state.prefix_time, datetime)
+        assert state.is_waiting
+        assert state.start_time is not None
+        assert isinstance(state.start_time, datetime)
+        assert state.first_key == "h"
 
     def test_end_sequence(self):
         """Test ending a key sequence."""
-        state = HotkeyState()
-        state.start_sequence()
+        state = SequenceState()
+        state.start_sequence("h")
         state.end_sequence()
 
-        assert not state.is_waiting_for_command
-        assert state.prefix_time is None
+        assert not state.is_waiting
+        assert state.start_time is None
+        assert state.first_key is None
 
     def test_is_sequence_active(self):
         """Test sequence active detection."""
-        state = HotkeyState(timeout_seconds=0.1)
+        state = SequenceState(timeout_seconds=0.1)
 
         # Initially not active
         assert not state.is_sequence_active()
 
         # Active after starting
-        state.start_sequence()
+        state.start_sequence("h")
         assert state.is_sequence_active()
 
         # Still active within timeout
@@ -68,16 +71,17 @@ class TestHotkeyState:
 
     def test_timeout_cleanup(self):
         """Test that timeout automatically cleans up state."""
-        state = HotkeyState(timeout_seconds=0.1)
-        state.start_sequence()
+        state = SequenceState(timeout_seconds=0.1)
+        state.start_sequence("h")
 
         # Wait for timeout
         time.sleep(0.2)
 
         # Check that is_sequence_active cleans up expired state
         assert not state.is_sequence_active()
-        assert not state.is_waiting_for_command
-        assert state.prefix_time is None
+        assert not state.is_waiting
+        assert state.start_time is None
+        assert state.first_key is None
 
 
 class TestHotkeyMode:
@@ -117,8 +121,8 @@ class TestHotkeyMode:
         assert hotkey_mode.io_manager is io_manager
         assert hotkey_mode.transformation_engine is transformation_engine
         assert hotkey_mode.config_manager is config_manager
-        assert isinstance(hotkey_mode.state, HotkeyState)
-        assert hotkey_mode.state.timeout_seconds == 2.0
+        assert isinstance(hotkey_mode.sequence_state, SequenceState)
+        assert hotkey_mode.sequence_state.timeout_seconds == 2.0
         assert not hotkey_mode.is_running()
 
     def test_initialization_invalid_io_manager(self, mock_dependencies):
@@ -126,7 +130,7 @@ class TestHotkeyMode:
         _, transformation_engine, config_manager = mock_dependencies
 
         with pytest.raises(ValidationError, match="IO manager cannot be None"):
-            HotkeyMode(None, transformation_engine, config_manager)
+            HotkeyMode(None, transformation_engine, config_manager)  # type: ignore
 
     def test_initialization_invalid_transformation_engine(self, mock_dependencies):
         """Test initialization with invalid transformation_engine."""
@@ -135,7 +139,7 @@ class TestHotkeyMode:
         with pytest.raises(
             ValidationError, match="Transformation engine cannot be None"
         ):
-            HotkeyMode(io_manager, None, config_manager)
+            HotkeyMode(io_manager, None, config_manager)  # type: ignore
 
     def test_initialization_invalid_config_manager(self, mock_dependencies):
         """Test initialization with invalid config_manager."""
@@ -144,27 +148,7 @@ class TestHotkeyMode:
         with pytest.raises(
             ValidationError, match="Configuration manager cannot be None"
         ):
-            HotkeyMode(io_manager, transformation_engine, None)
-
-    def test_parse_key_combination(self, mock_dependencies):
-        """Test key combination parsing."""
-        io_manager, transformation_engine, config_manager = mock_dependencies
-
-        hotkey_mode = HotkeyMode(io_manager, transformation_engine, config_manager)
-
-        # Test simple key combination
-        keys = hotkey_mode._parse_key_combination("ctrl+s")
-        assert "s" in keys
-
-        # Test complex key combination
-        keys = hotkey_mode._parse_key_combination("ctrl+shift+s")
-        assert "s" in keys
-
-        # Should handle both left and right modifier keys
-        from pynput.keyboard import Key
-
-        assert Key.ctrl_l in keys or Key.ctrl_r in keys
-        assert Key.shift_l in keys or Key.shift_r in keys
+            HotkeyMode(io_manager, transformation_engine, None)  # type: ignore
 
     def test_execute_command(self, mock_dependencies):
         """Test command execution."""
@@ -232,40 +216,6 @@ class TestHotkeyMode:
 
         with pytest.raises(ConfigurationError, match="Hotkey mode is disabled"):
             hotkey_mode.start()
-
-    def test_handle_command_key(self, mock_dependencies):
-        """Test command key handling."""
-        io_manager, transformation_engine, config_manager = mock_dependencies
-
-        # Mock clipboard content
-        io_manager.read_clipboard.return_value = "test text"
-
-        hotkey_mode = HotkeyMode(io_manager, transformation_engine, config_manager)
-
-        # Start sequence
-        hotkey_mode.state.start_sequence()
-
-        # Handle command key
-        with patch.object(hotkey_mode, "_execute_command") as mock_execute:
-            hotkey_mode._handle_command_key("l")
-
-            mock_execute.assert_called_once_with("/l")
-            assert not hotkey_mode.state.is_sequence_active()
-
-    def test_handle_unknown_command_key(self, mock_dependencies):
-        """Test handling unknown command key."""
-        io_manager, transformation_engine, config_manager = mock_dependencies
-
-        hotkey_mode = HotkeyMode(io_manager, transformation_engine, config_manager)
-
-        # Start sequence
-        hotkey_mode.state.start_sequence()
-
-        # Handle unknown command key
-        hotkey_mode._handle_command_key("z")
-
-        # Should end sequence
-        assert not hotkey_mode.state.is_sequence_active()
 
 
 class TestHotkeyIntegration:

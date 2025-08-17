@@ -23,13 +23,11 @@ try:
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import padding, rsa
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-
-    CRYPTOGRAPHY_AVAILABLE = True
+    _cryptography_available = True
 except ImportError:
-    CRYPTOGRAPHY_AVAILABLE = False
+    _cryptography_available = False
 
-# Define Final constant after conditional assignment
-CRYPTOGRAPHY_AVAILABLE: Final[bool] = CRYPTOGRAPHY_AVAILABLE
+CRYPTOGRAPHY_AVAILABLE: Final[bool] = _cryptography_available
 
 if TYPE_CHECKING:
     from cryptography.hazmat.primitives.asymmetric.rsa import (

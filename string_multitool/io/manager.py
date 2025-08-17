@@ -18,13 +18,11 @@ from ..utils.logger import get_logger, log_debug, log_error, log_info, log_warni
 
 try:
     import pyperclip
-
-    CLIPBOARD_AVAILABLE = True
+    _clipboard_available = True
 except ImportError:
-    CLIPBOARD_AVAILABLE = False
+    _clipboard_available = False
 
-# Define Final constant after conditional assignment
-CLIPBOARD_AVAILABLE: Final[bool] = CLIPBOARD_AVAILABLE
+CLIPBOARD_AVAILABLE: Final[bool] = _clipboard_available
 
 
 class InputOutputManager:

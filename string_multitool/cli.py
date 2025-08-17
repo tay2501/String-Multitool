@@ -55,7 +55,7 @@ def get_app() -> ApplicationInterface:
     return _app_instance
 
 
-@app.command("interactive", help="Start interactive mode for real-time text transformation")  # type: ignore
+@app.command("interactive", help="Start interactive mode for real-time text transformation")
 def interactive_mode() -> None:
     """Start interactive mode with clipboard monitoring and real-time transformation."""
     try:
@@ -81,7 +81,7 @@ def interactive_mode() -> None:
         )
 
 
-@app.command("transform", help="Apply transformation rules to text")  # type: ignore
+@app.command("transform", help="Apply transformation rules to text")
 def transform_text(
     rules: Annotated[
         str,
@@ -138,7 +138,7 @@ def transform_text(
         )
 
 
-@app.command("encrypt", help="Encrypt text using RSA+AES hybrid encryption")  # type: ignore
+@app.command("encrypt", help="Encrypt text using RSA+AES hybrid encryption")
 def encrypt_text(
     text: Annotated[
         Optional[str],
@@ -198,7 +198,7 @@ def encrypt_text(
         )
 
 
-@app.command("decrypt", help="Decrypt text using RSA+AES hybrid decryption")  # type: ignore
+@app.command("decrypt", help="Decrypt text using RSA+AES hybrid decryption")
 def decrypt_text(
     text: Annotated[
         Optional[str],
@@ -258,7 +258,7 @@ def decrypt_text(
         )
 
 
-@app.command("daemon", help="Start daemon mode for continuous clipboard monitoring")  # type: ignore
+@app.command("daemon", help="Start daemon mode for continuous clipboard monitoring")
 def daemon_mode(
     rules: Annotated[
         Optional[str],
@@ -314,7 +314,7 @@ def daemon_mode(
         )
 
 
-@app.command("rules", help="Display available transformation rules")  # type: ignore
+@app.command("rules", help="Display available transformation rules")
 def show_rules(
     category: Annotated[
         Optional[str],
@@ -393,7 +393,7 @@ def show_rules(
         )
 
 
-@app.command("version", help="Show version information")  # type: ignore
+@app.command("version", help="Show version information")
 def show_version() -> None:
     """Display version and system information."""
     console.print(

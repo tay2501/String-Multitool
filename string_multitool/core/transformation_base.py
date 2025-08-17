@@ -46,6 +46,33 @@ class TransformationBase(ABC):
         """
         ...
 
+    @abstractmethod
+    def get_transformation_rule(self) -> str:
+        """適用される変換ルールを取得する抽象メソッド
+        
+        Returns:
+            変換ルール文字列（例: '/t', '/l', '/u'など）
+        """
+        ...
+
+    @abstractmethod
+    def get_input_text(self) -> str:
+        """変換前の文字列を取得する抽象メソッド
+        
+        Returns:
+            変換前の文字列
+        """
+        ...
+
+    @abstractmethod
+    def get_output_text(self) -> str:
+        """変換後の文字列を取得する抽象メソッド
+        
+        Returns:
+            変換後の文字列
+        """
+        ...
+
     def validate_input(self, text: str) -> bool:
         """入力テキストの妥当性を検証
         
@@ -56,9 +83,7 @@ class TransformationBase(ABC):
             入力が妥当な場合True
         """
         try:
-            if not isinstance(text, str):
-                return False
-            return True
+            return isinstance(text, str)
         except Exception:
             # EAFPスタイル: 例外が発生した場合は無効とみなす
             return False
@@ -168,6 +193,30 @@ class TextTransformerProtocol(Protocol):
             
         Returns:
             入力が妥当な場合True
+        """
+        ...
+
+    def get_transformation_rule(self) -> str:
+        """適用される変換ルールを取得
+        
+        Returns:
+            変換ルール文字列（例: '/t', '/l', '/u'など）
+        """
+        ...
+
+    def get_input_text(self) -> str:
+        """変換前の文字列を取得
+        
+        Returns:
+            変換前の文字列
+        """
+        ...
+
+    def get_output_text(self) -> str:
+        """変換後の文字列を取得
+        
+        Returns:
+            変換後の文字列
         """
         ...
 

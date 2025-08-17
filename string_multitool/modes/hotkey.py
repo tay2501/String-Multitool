@@ -15,17 +15,15 @@ from typing import Any, Dict, Final, Optional
 try:
     import keyboard
     import pyperclip
-
-    KEYBOARD_AVAILABLE = True
+    _keyboard_available = True
 except ImportError as e:
-    KEYBOARD_AVAILABLE = False
+    _keyboard_available = False
     raise ImportError(
         "keyboard and pyperclip are required for hotkey mode. "
         "Install with: pip install keyboard pyperclip"
     ) from e
 
-# Define Final constant after conditional assignment
-KEYBOARD_AVAILABLE: Final[bool] = KEYBOARD_AVAILABLE
+KEYBOARD_AVAILABLE: Final[bool] = _keyboard_available
 
 from ..core.types import (
     ConfigManagerProtocol,
@@ -395,14 +393,8 @@ class HotkeyMode:
         try:
             self.logger.info("Hotkey mode is now active. Press Ctrl+C to exit.")
 
-            # Keep the main thread alive
-            while self._is_running:
-                time.sleep(0.1)
-
-                # Clean up timed out sequences
-                if self.sequence_state.is_sequence_active():
-                    # The is_sequence_active method handles timeout cleanup
-                    pass
+            # Wait for keyboard events (CPU efficient)
+            keyboard.wait()
 
         except KeyboardInterrupt:
             self.logger.info("Hotkey mode interrupted by user")

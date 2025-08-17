@@ -89,27 +89,32 @@ class DaemonConfigManager:
     def get_daemon_mode_config(self) -> Mapping[str, Any]:
         """Get daemon mode specific configuration."""
         config = self.load_config()
-        return config.get("daemon_mode", {})
+        result = config.get("daemon_mode", {})
+        return dict(result) if isinstance(result, dict) else {}
 
     def get_clipboard_monitoring_config(self) -> Mapping[str, Any]:
         """Get clipboard monitoring configuration."""
         config = self.load_config()
-        return config.get("clipboard_monitoring", {})
+        result = config.get("clipboard_monitoring", {})
+        return dict(result) if isinstance(result, dict) else {}
 
     def get_auto_transformation_config(self) -> Mapping[str, Any]:
         """Get auto transformation configuration."""
         config = self.load_config()
-        return config.get("auto_transformation", {})
+        result = config.get("auto_transformation", {})
+        return dict(result) if isinstance(result, dict) else {}
 
     def get_sequence_hotkeys_config(self) -> Mapping[str, Any]:
         """Get sequence hotkeys configuration."""
         config = self.load_config()
-        return config.get("sequence_hotkeys", {})
+        result = config.get("sequence_hotkeys", {})
+        return dict(result) if isinstance(result, dict) else {}
 
     def get_rule_presets(self) -> Mapping[str, Any]:
         """Get available rule presets."""
         auto_config = self.get_auto_transformation_config()
-        return auto_config.get("rule_presets", {})
+        result = auto_config.get("rule_presets", {})
+        return dict(result) if isinstance(result, dict) else {}
 
     def get_preset_rules(self, preset_name: str) -> list[str]:
         """
@@ -167,7 +172,8 @@ class DaemonConfigManager:
         """Load configuration from file."""
         try:
             with self._config_path.open("r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                return dict(data) if isinstance(data, dict) else {}
         except (OSError, json.JSONDecodeError) as e:
             raise ConfigurationError(
                 f"Failed to read daemon config file '{self._config_path}': {e}"

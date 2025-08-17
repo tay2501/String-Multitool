@@ -13,6 +13,7 @@ An advanced, enterprise-grade text transformation tool with modular architecture
 - [Interactive Mode](#interactive-mode)
   - [Auto-Detection Feature](#auto-detection-feature-detailed-guide)
 - [Daemon Mode](#daemon-mode-continuous-monitoring)
+- [System Tray Mode](#system-tray-mode-background-operation)
 - [Hotkey Mode](#hotkey-mode-global-keyboard-shortcuts)
 - [Use Cases](#use-cases)
 - [Installation & Setup](#installation--setup)
@@ -29,6 +30,7 @@ An advanced, enterprise-grade text transformation tool with modular architecture
 - **Clipboard Integration**: Automatically copies results to clipboard
 - **Auto-Detection**: Automatic clipboard monitoring with notifications in interactive mode (always enabled)
 - **Daemon Mode**: Continuous background processing for automated workflows
+- **System Tray Mode**: Background operation with system tray icon interface
 - **Hotkey Mode**: Global keyboard shortcuts for instant transformations (Ctrl+Shift+S + key)
 - **Cross-Platform**: Works on Windows, macOS, and Linux
 - **Modern Python**: Requires Python 3.10+ with full type annotations and latest language features
@@ -101,6 +103,10 @@ string-multitool decrypt  # Uses clipboard content
 # Daemon mode with presets
 string-multitool daemon --preset uppercase
 string-multitool daemon --rules "/t/l"
+
+# System tray mode (background with tray icon)
+python String_Multitool.py --tray
+string-multitool tray
 
 # Hotkey mode (global keyboard shortcuts)
 python String_Multitool.py --hotkey
@@ -605,6 +611,155 @@ Rules: /s                    # Continue with transformations
 - **Flexible Workflow**: Choose the right mode for each task
 - **Efficient**: No need to exit and restart the application
 
+### System Tray Mode (Background Operation)
+
+For background operation with system tray icon interface:
+
+#### Starting System Tray Mode
+
+```bash
+# Legacy CLI
+python String_Multitool.py --tray
+
+# Modern Typer CLI
+string-multitool tray
+```
+
+#### How It Works
+
+System tray mode provides a convenient background service with system tray icon:
+
+1. **Background Service**: Runs silently in the background with minimal resource usage
+2. **Tray Icon Interface**: Right-click tray icon for all control options
+3. **Daemon Integration**: Uses daemon mode internally for clipboard monitoring
+4. **Visual Feedback**: Icon tooltip shows current status and active preset
+5. **Easy Access**: No command line required after startup
+
+#### System Tray Features
+
+**Tray Menu Options:**
+- **Start/Stop Monitoring**: Toggle clipboard monitoring on/off
+- **Set Preset 1/2/3**: Quick access to configured transformation presets
+- **Status**: View current monitoring status and active rules
+- **Help**: Show usage information in console
+- **Exit**: Stop application and remove tray icon
+
+**Status Indicators:**
+- Icon tooltip shows current state: "Monitoring Active" or "Monitoring Stopped"
+- Menu items update to reflect current monitoring status
+- Visual confirmation of active preset selection
+
+#### Example Workflow
+
+```bash
+# 1. Start system tray mode
+python String_Multitool.py --tray
+# Console: "[TRAY] Starting system tray mode..."
+# Console: "[TRAY] Right-click the tray icon for options"
+
+# 2. Right-click tray icon → Set Preset 1 (e.g., uppercase transformation)
+# Console: "[TRAY] Preset 1 activated"
+
+# 3. Right-click tray icon → Start Monitoring
+# Console: "[TRAY] Monitoring started"
+
+# 4. Copy text in any application → automatic transformation
+# Copy "hello world" → automatically becomes "HELLO WORLD"
+
+# 5. Right-click tray icon → Stop Monitoring (when needed)
+# Console: "[TRAY] Monitoring stopped"
+
+# 6. Right-click tray icon → Exit (to close)
+# Console: "[TRAY] Exiting application..."
+```
+
+#### Configuration
+
+System tray mode uses the same daemon configuration file for presets:
+
+**`config/daemon_config.json`:**
+```json
+{
+  "presets": {
+    "1": {
+      "name": "uppercase",
+      "rules": "/u",
+      "description": "Convert to UPPERCASE"
+    },
+    "2": {
+      "name": "lowercase", 
+      "rules": "/l",
+      "description": "Convert to lowercase"
+    },
+    "3": {
+      "name": "snake_case",
+      "rules": "/s", 
+      "description": "Convert to snake_case"
+    }
+  }
+}
+```
+
+#### System Requirements
+
+- **Dependency**: Requires `pystray` and `PIL` (Pillow) libraries
+- **Installation**: `pip install pystray pillow`
+- **Platform**: Windows, macOS, Linux (with system tray support)
+- **Icon**: Uses custom icon from `resources/icon.png` or default blue square
+
+#### Benefits
+
+- **Set and Forget**: Start once, runs until you stop it
+- **Visual Interface**: No need to remember command line syntax
+- **Quick Preset Access**: Switch transformation types with menu clicks
+- **Background Operation**: Works while using any application
+- **Resource Efficient**: Minimal CPU and memory usage
+- **No Application Switching**: Direct tray icon access from anywhere
+
+#### Use Cases
+
+**1. Daily Text Processing**
+```bash
+# Morning: Start tray → Set Preset 1 (uppercase) → Start monitoring
+# Work day: Copy email addresses → auto-uppercase for database entry
+# Evening: Right-click → Exit
+```
+
+**2. Development Workflow**
+```bash
+# Project start: Tray → Set Preset 3 (snake_case) → Start monitoring  
+# During coding: Copy variable names → auto-convert to snake_case
+# Code review: Stop monitoring when not needed
+```
+
+**3. Documentation Tasks**
+```bash
+# Document editing: Tray → Set Preset 2 (lowercase) → Start monitoring
+# Content creation: Copy headings → auto-normalize case
+# Quick preset switching for different formatting needs
+```
+
+#### Troubleshooting
+
+**Tray icon not appearing:**
+- Install required dependencies: `pip install pystray pillow`
+- Check system tray is enabled in your OS
+- Try running with administrator privileges
+
+**Menu not responding:**
+- Ensure no other clipboard applications conflict
+- Check console output for error messages
+- Restart application if menu becomes unresponsive
+
+**Dependencies missing:**
+```bash
+# Install system tray dependencies
+pip install pystray pillow
+
+# Verify installation
+python -c "import pystray; print('pystray available')"
+```
+
 ### Hotkey Mode (Global Keyboard Shortcuts)
 
 For instant text transformation using global keyboard shortcuts:
@@ -982,26 +1137,73 @@ python test_transform.py
 
 ### Adding New Rules
 
-#### Method 1: Configuration-Based (Recommended)
+#### Method 1: Individual Class-Based (Recommended)
+1. Create new transformation class in appropriate module under `string_multitool/transformations/`
+2. Inherit from `TransformationBase` and implement required abstract methods:
+   - `transform(text: str) -> str`: Main transformation logic
+   - `get_transformation_rule() -> str`: Return rule identifier
+   - `get_input_text() -> str`: Return input text
+   - `get_output_text() -> str`: Return output text
+3. Add class to `__init__.py` exports and `get_transformation_class_map()`
+4. Add rule definition to `config/transformation_rules.json`
+5. Add comprehensive test cases to `test_transform.py`
+6. Update documentation
+
+#### Method 2: Configuration-Based (Legacy)
 1. Add rule definition to `config/transformation_rules.json`
 2. Implement the transformation method in `TextTransformationEngine`
 3. Register the method in `_initialize_rules()` method
 4. Add test cases to `test_transform.py`
 5. Update documentation
 
-#### Method 2: Code-Based
-1. Add rule function to `TextTransformationEngine` class
-2. Register in `transformation_rules` or `argument_rules` dictionary
-3. Add corresponding entry in `config/transformation_rules.json`
-4. Add test cases to `test_transform.py`
-5. Update documentation
-
 #### Example: Adding a New Rule
 ```python
-# In TextTransformationEngine class
-def _my_new_rule(self, text: str) -> str:
-    """My custom transformation."""
-    return text.upper().replace(' ', '_')
+# Create string_multitool/transformations/custom_transformations.py
+from ..core.transformation_base import TransformationBase
+from ..core.types import ConfigDict
+from ..exceptions import TransformationError
+
+class MyNewRuleTransformation(TransformationBase):
+    """Custom transformation that converts to uppercase and replaces spaces with underscores."""
+    
+    def __init__(self, config: ConfigDict | None = None) -> None:
+        super().__init__(config)
+        self._rule: str = "mn"
+        self._input_text: str = ""
+        self._output_text: str = ""
+    
+    def transform(self, text: str) -> str:
+        """Convert to uppercase and replace spaces with underscores."""
+        try:
+            self._input_text = text
+            self._output_text = text.upper().replace(' ', '_')
+            return self._output_text
+        except Exception as e:
+            self.set_error_context({
+                "rule": self._rule,
+                "input_length": len(text),
+                "error_type": type(e).__name__
+            })
+            raise TransformationError(f"Custom transformation failed: {e}", self.get_error_context()) from e
+    
+    def get_transformation_rule(self) -> str:
+        return self._rule
+    
+    def get_input_text(self) -> str:
+        return self._input_text
+    
+    def get_output_text(self) -> str:
+        return self._output_text
+
+# Add to string_multitool/transformations/__init__.py
+from .custom_transformations import MyNewRuleTransformation
+
+# Update get_transformation_class_map()
+def get_transformation_class_map() -> dict[str, type]:
+    return {
+        # ... existing mappings ...
+        "mn": MyNewRuleTransformation,
+    }
 
 # In config/transformation_rules.json
 {
@@ -1020,6 +1222,19 @@ def _my_new_rule(self, text: str) -> str:
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Changelog
+
+### Version 2.5.0 (Modular Transformation Architecture)
+- **Modular Architecture**: Complete refactor of transformation system into individual classes
+- **Abstract Base Classes**: Introduction of `TransformationBase` with required abstract methods
+- **Individual Transformation Classes**: Each rule implemented as a separate, testable class
+- **Enhanced Type Safety**: Abstract methods ensure consistent interface across all transformations
+- **Improved Maintainability**: Clear separation of concerns with dedicated classes per transformation
+- **Factory Pattern**: Clean rule-to-class mapping system for dynamic transformation instantiation
+- **State Management**: Internal tracking of input/output text for debugging and analysis
+- **Error Context**: Enhanced error handling with transformation-specific context information
+- **Protocol-Based Design**: Type-safe interfaces using Python protocols
+- **Extensibility**: Simplified addition of new transformation rules as individual classes
+- **Documentation**: Updated architecture documentation and development guidelines
 
 ### Version 2.4.0 (Global Hotkey Support)
 - **Hotkey Mode**: Global keyboard shortcuts for instant text transformations

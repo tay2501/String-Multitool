@@ -10,7 +10,7 @@ import sys
 from string_multitool.core.config import ConfigurationManager
 from string_multitool.core.transformations import TextTransformationEngine
 from string_multitool.io.manager import InputOutputManager
-from string_multitool.modes.hotkey import HotkeyMode, HotkeyState
+from string_multitool.modes.hotkey import HotkeyMode, SequenceState
 
 
 def test_hotkey_mode_initialization():
@@ -29,45 +29,12 @@ def test_hotkey_mode_initialization():
         print(f"  OK: HotkeyMode initialized successfully")
         print(f"  OK: Direct hotkeys: {len(hotkey_mode._direct_hotkeys)}")
         print(f"  OK: Sequence hotkeys: {len(hotkey_mode._sequence_hotkeys)}")
-        print(f"  OK: Timeout: {hotkey_mode.state.timeout_seconds}s")
+        print(f"  OK: Timeout: {hotkey_mode.sequence_state.timeout_seconds}s")
 
         return True
 
     except Exception as e:
         print(f"  ERROR: Initialization failed: {e}")
-        return False
-
-
-def test_key_normalization():
-    """Test key string normalization."""
-    print("Testing key normalization...")
-
-    try:
-        config_manager = ConfigurationManager()
-        io_manager = InputOutputManager()
-        transformation_engine = TextTransformationEngine(config_manager)
-        hotkey_mode = HotkeyMode(io_manager, transformation_engine, config_manager)
-
-        # Test various key combinations
-        test_cases = [
-            ("ctrl+shift+s", "<ctrl>+<shift>+s"),
-            ("ctrl+alt+t", "<ctrl>+<alt>+t"),
-            ("win+s", "<cmd>+s"),
-            ("ctrl+shift+f12", "<ctrl>+<shift>+f12"),
-        ]
-
-        for input_key, expected in test_cases:
-            result = hotkey_mode._normalize_key_string(input_key)
-            if result == expected:
-                print(f"  OK: {input_key} -> {result}")
-            else:
-                print(f"  ERROR: {input_key} -> {result} (expected: {expected})")
-                return False
-
-        return True
-
-    except Exception as e:
-        print(f"  ERROR: Key normalization failed: {e}")
         return False
 
 
@@ -106,7 +73,7 @@ def test_state_management():
     print("Testing state management...")
 
     try:
-        state = HotkeyState(timeout_seconds=1.0)
+        state = SequenceState(timeout_seconds=1.0)
 
         # Test initial state
         if state.is_sequence_active():
@@ -114,7 +81,7 @@ def test_state_management():
             return False
 
         # Test sequence start
-        state.start_sequence()
+        state.start_sequence("h")
         if not state.is_sequence_active():
             print("  ERROR: State should be active after start")
             return False
@@ -163,7 +130,6 @@ def main():
 
     tests = [
         test_hotkey_mode_initialization,
-        test_key_normalization,
         test_configuration_loading,
         test_state_management,
         test_command_execution,

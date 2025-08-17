@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Callable, Mapping
-from typing import Any, Generic, TypeVar, get_args, get_origin, get_type_hints
+from typing import Any, Generic, TypeVar, cast, get_args, get_origin, get_type_hints
 
 from typing_extensions import ParamSpec
 
@@ -111,17 +111,20 @@ class DIContainer:
 
         # Check singletons first
         if service_type in self._singletons:
-            return self._singletons[service_type]
+            instance = self._singletons[service_type]
+            return cast(T, instance)
 
         # Check factories
         if service_type in self._factories:
             factory = self._factories[service_type]
-            return self._create_with_dependencies(factory)
+            instance = self._create_with_dependencies(factory)
+            return cast(T, instance)
 
         # Check registered services
         if service_type in self._services:
             implementation = self._services[service_type]
-            return self._create_instance(implementation)
+            instance = self._create_instance(implementation)
+            return cast(T, instance)
 
         # Try to create directly if it's a concrete class
         if inspect.isclass(service_type) and not inspect.isabstract(service_type):

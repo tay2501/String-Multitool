@@ -293,15 +293,25 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
         try:
             # crypto_managerの存在を確認せずに直接使用を試みる
             if rule_name == "enc":
+                if self.crypto_manager is None:
+                    raise TransformationError(
+                        "Cryptography manager not available for encryption",
+                        {"rule": rule_name}
+                    )
                 print("Using existing RSA key pair")
-                result = self.crypto_manager.encrypt_text(text)  # AttributeErrorが発生する可能性
+                result = self.crypto_manager.encrypt_text(text)
                 print(
                     f"Text encrypted successfully (AES-256+RSA-4096, {len(text)} bytes)"
                 )
                 return result
             elif rule_name == "dec":
+                if self.crypto_manager is None:
+                    raise TransformationError(
+                        "Cryptography manager not available for decryption",
+                        {"rule": rule_name}
+                    )
                 print("Using existing RSA key pair")
-                result = self.crypto_manager.decrypt_text(text)  # AttributeErrorが発生する可能性
+                result = self.crypto_manager.decrypt_text(text)
                 print(
                     f"Text decrypted successfully (AES-256+RSA-4096, {len(result)} chars)"
                 )
@@ -678,14 +688,17 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
     def _to_pascal_case(self, text: str) -> str:
         """Convert text to PascalCase."""
         words = re.findall(r"\w+", text)
-        return "".join(word.capitalize() for word in words)
+        result: str = "".join(word.capitalize() for word in words)
+        return result
 
     def _to_camel_case(self, text: str) -> str:
         """Convert text to camelCase."""
         words = re.findall(r"\w+", text)
         if not words:
             return text
-        return words[0].lower() + "".join(word.capitalize() for word in words[1:])
+        first_word: str = words[0].lower()
+        capitalized_words: str = "".join(word.capitalize() for word in words[1:])
+        return first_word + capitalized_words
 
     def _to_snake_case(self, text: str) -> str:
         """Convert text to snake_case."""
@@ -834,3 +847,28 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
         except Exception:
             # その他のエラー時はデフォルトメッセージ
             return "Help information is not available at this time."
+
+    # TransformationBaseの抽象メソッドの実装
+    def get_input_text(self) -> str:
+        """変換前の文字列を取得する抽象メソッドの実装
+        
+        Returns:
+            変換前の文字列（このクラスでは空文字列）
+        """
+        return ""
+
+    def get_output_text(self) -> str:
+        """変換後の文字列を取得する抽象メソッドの実装
+        
+        Returns:
+            変換後の文字列（このクラスでは空文字列）
+        """
+        return ""
+
+    def get_transformation_rule(self) -> str:
+        """適用される変換ルールを取得する抽象メソッドの実装
+        
+        Returns:
+            変換ルール文字列（このクラスでは空文字列）
+        """
+        return ""

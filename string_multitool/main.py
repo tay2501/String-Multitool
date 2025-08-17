@@ -33,6 +33,7 @@ from .io.manager import InputOutputManager
 from .modes.daemon import DaemonMode
 from .modes.hotkey import HotkeyMode
 from .modes.interactive import CommandProcessor, InteractiveSession
+from .modes.system_tray import SystemTrayMode
 
 # Import logging utilities
 from .utils.logger import get_logger, log_debug, log_error, log_info, log_warning
@@ -92,6 +93,7 @@ class ApplicationInterface:
                 except Exception:
                     self.daemon_mode = None
                 self.hotkey_mode = None  # Skip hotkey mode in testing
+                self.system_tray_mode = None  # Skip system tray mode in testing
             else:
                 # Use DI for production
                 self.daemon_mode = inject(DaemonMode)
@@ -101,6 +103,16 @@ class ApplicationInterface:
                     self.hotkey_mode = inject(HotkeyMode)
                 except Exception:
                     self.hotkey_mode = None
+                
+                # Initialize system tray mode (optional)
+                try:
+                    self.system_tray_mode = SystemTrayMode(
+                        transformation_engine=self.transformation_engine,
+                        config_manager=self.config_manager,
+                        io_manager=self.io_manager,
+                    )
+                except Exception:
+                    self.system_tray_mode = None
 
         except Exception as e:
             raise ConfigurationError(
@@ -341,6 +353,37 @@ class ApplicationInterface:
             raise StringMultitoolError(
                 f"Command mode execution failed: {e}",
                 {"error_type": type(e).__name__},
+            ) from e
+
+    def run_system_tray_mode(self) -> None:
+        """Run application in system tray mode.
+
+        Raises:
+            StringMultitoolError: If system tray mode fails
+        """
+        try:
+            self._logger.info("Starting system tray mode...")
+
+            # Initialize system tray mode if not already done
+            if self.system_tray_mode is None:
+                self.system_tray_mode = SystemTrayMode(
+                    transformation_engine=self.transformation_engine,
+                    config_manager=self.config_manager,
+                    io_manager=self.io_manager,
+                )
+
+            # Run system tray mode (blocking)
+            self.system_tray_mode.run()
+
+        except KeyboardInterrupt:
+            self._logger.info("System tray mode stopped by user")
+        except ConfigurationError as e:
+            self._logger.error(f"System tray configuration error: {e}")
+            raise
+        except Exception as e:
+            self._logger.error(f"System tray mode error: {e}")
+            raise StringMultitoolError(
+                f"System tray mode failed: {e}", {"error_type": type(e).__name__}
             ) from e
 
     def run_hotkey_mode(self) -> None:
@@ -626,6 +669,9 @@ class ApplicationInterface:
                 "  String_Multitool.py --hotkey           # Hotkey mode (global keyboard shortcuts)",
             )
             self._logger.info(
+                "  String_Multitool.py --tray             # System tray mode (background with tray icon)",
+            )
+            self._logger.info(
                 "  echo 'text' | String_Multitool.py      # Interactive mode (pipe input)",
             )
             self._logger.info(
@@ -736,15 +782,20 @@ class ApplicationInterface:
                     self.run_hotkey_mode()
                     return
 
+                if arg in ["-t", "--tray", "tray"] or arg.startswith("--tray"):
+                    self.run_system_tray_mode()
+                    return
+
                 # Check for invalid options starting with --
                 if (
                     arg.startswith("--")
                     and not arg.startswith("--daemon")
                     and not arg.startswith("--hotkey")
+                    and not arg.startswith("--tray")
                     and arg != "--help"
                 ):
                     self._logger.warning(f"[WARNING] Unknown option: {sys.argv[1]}")
-                    self._logger.info("Available options: --daemon, --hotkey, --help")
+                    self._logger.info("Available options: --daemon, --hotkey, --tray, --help")
                     self._logger.info(
                         "Or use transformation rules starting with '/' (e.g., /t/l)",
                     )
@@ -790,6 +841,7 @@ def main() -> None:
             "decrypt",
             "daemon",
             "hotkey",
+            "tray",
             "rules",
             "version",
         ]:

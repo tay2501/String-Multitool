@@ -97,6 +97,10 @@ class HotkeySequenceManager:
         self._config = sequence_config
         self._timeout = timeout
 
+        # Load suppress setting from hotkey_settings
+        hotkey_settings = sequence_config.get("hotkey_settings", {})
+        self._suppress = hotkey_settings.get("suppress", True)
+
         # State management
         self._is_active = False
         self._hotkey_listener: Any | None = None
@@ -220,8 +224,8 @@ class HotkeySequenceManager:
                 first_key = sequence[0].replace("+", "+")
                 second_key = sequence[1].replace("+", "+")
 
-                keyboard.add_hotkey(first_key, first_callback)
-                keyboard.add_hotkey(second_key, second_callback)
+                keyboard.add_hotkey(first_key, first_callback, suppress=self._suppress)
+                keyboard.add_hotkey(second_key, second_callback, suppress=self._suppress)
 
                 self._registered_hotkeys.extend([first_key, second_key])
 

@@ -26,5 +26,9 @@ pytest==8.4.1
 pytest-cov==6.2.1
 pytest-mock==3.14.1
 
+# System tray support (optional)
+pystray==0.19.5
+pillow==10.4.0
+
 # Build dependencies
 pyinstaller==6.12.0

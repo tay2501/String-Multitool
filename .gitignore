@@ -159,6 +159,14 @@ config/*.json.bak
 config/hotkey_config.json.bak
 config/*_custom.json
 
+# Transformation class development files
+string_multitool/transformations/*_test.py
+string_multitool/transformations/*_experimental.py
+string_multitool/transformations/custom_*.py
+string_multitool/transformations/user_*.py
+transformation_*.py.bak
+*_transformation_backup.py
+
 # Hotkey mode specific files
 hotkey.pid
 hotkey_session.log
@@ -187,6 +195,12 @@ daemon.pid
 *.temp
 *.bak
 
+# Transformation class testing and development
+transformation_test_output/
+transformation_debug.log
+class_mapping_*.json
+transformation_benchmark_*.txt
+
 # Build artifacts
 build/
 dist/
@@ -209,6 +223,12 @@ pytest_cache/
 .coverage.*
 coverage.xml.*
 htmlcov.*
+
+# Transformation class testing
+test_transformations_*.py
+transformation_test_*.json
+transformation_coverage_*.xml
+class_test_output/
 
 # Personal notes and documentation
 NOTES.md
@@ -280,6 +300,12 @@ Scripts/
 .isort.cfg.bak
 setup.cfg.bak
 pyproject.toml.bak
+
+# Python type checking for transformation classes
+.mypy_cache/transformation_*.json
+.pyright/transformation_*/
+transformation_type_hints.json
+abstract_method_validation.log
 
 # Modern formatting and linting tools (2024+)
 .autoflake/
@@ -438,6 +464,18 @@ ai_logs/
 .fleet/
 .nova/
 .neovim/
+
+# IDE-specific transformation development
+.vscode/transformation_*.json
+.idea/transformation_classes/
+transformation_workspace.xml
+class_mapping_debug.json
+
+# Claude Code interaction files for transformations
+transformation_claude_*.md
+class_development_*.json
+abstract_base_discussion.md
+modular_architecture_notes.md
 
 # Container development (2025)
 .devcontainer/
