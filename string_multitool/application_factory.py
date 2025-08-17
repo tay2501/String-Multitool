@@ -20,12 +20,11 @@ from .core.types import (
 )
 from .exceptions import CryptographyError
 from .io.manager import InputOutputManager
+from .main import ApplicationInterface  # Import here to avoid circular imports"
 from .modes.daemon import DaemonMode
 from .modes.hotkey import HotkeyMode
 from .modes.interactive import CommandProcessor, InteractiveSession
 from .utils.logger import get_logger, log_warning
-
-from .main import ApplicationInterface  # Import here to avoid circular imports"
 
 
 def configure_services(container: DIContainer) -> None:

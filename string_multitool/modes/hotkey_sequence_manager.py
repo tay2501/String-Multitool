@@ -225,7 +225,9 @@ class HotkeySequenceManager:
                 second_key = sequence[1].replace("+", "+")
 
                 keyboard.add_hotkey(first_key, first_callback, suppress=self._suppress)
-                keyboard.add_hotkey(second_key, second_callback, suppress=self._suppress)
+                keyboard.add_hotkey(
+                    second_key, second_callback, suppress=self._suppress
+                )
 
                 self._registered_hotkeys.extend([first_key, second_key])
 

@@ -23,6 +23,7 @@ try:
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import padding, rsa
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+
     _cryptography_available = True
 except ImportError:
     _cryptography_available = False

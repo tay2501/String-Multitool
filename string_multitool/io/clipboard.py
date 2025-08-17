@@ -37,7 +37,7 @@ class ClipboardMonitor:
         # Constants
         DEFAULT_CHECK_INTERVAL: Final[float] = 1.0  # seconds
         MAX_CONTENT_SIZE: Final[int] = 1024 * 1024  # 1MB limit
-        
+
         # Instance variable annotations following PEP 526
         self.io_manager: IOManagerProtocol = io_manager
         self.is_monitoring: bool = False

@@ -12,13 +12,12 @@
     "enabled": true,
     "default_rules": [],
     "rule_presets": {
-      "uppercase": "/u",
-      "lowercase": "/l",
-      "snake_case": "/s",
-      "pascal_case": "/p",
-      "camel_case": "/c",
-      "trim_lowercase": "/t/l",
-      "hyphen_to_underscore": "/hu"
+      "1": "/t",
+      "2": "/fh",
+      "3": "/hf",
+      "4": "/hu",
+      "5": "/uh",
+      "6": "/si"
     },
     "active_preset": "",
     "custom_rules": []

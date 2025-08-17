@@ -8,7 +8,7 @@ clipboard access and pipe input detection.
 from __future__ import annotations
 
 import sys
-from typing import Any, Final
+from typing import Final
 
 from ..core.types import IOManagerProtocol
 from ..exceptions import ClipboardError
@@ -18,6 +18,7 @@ from ..utils.logger import get_logger, log_debug, log_error, log_info, log_warni
 
 try:
     import pyperclip
+
     _clipboard_available = True
 except ImportError:
     _clipboard_available = False

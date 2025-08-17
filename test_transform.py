@@ -36,6 +36,16 @@ from string_multitool.exceptions import (
 )
 from string_multitool.main import ApplicationInterface
 from string_multitool.modes import CommandProcessor, InteractiveSession
+
+try:
+    from string_multitool.transformations.encryption_transformations import (
+        DecryptTransformation,
+        EncryptTransformation,
+    )
+
+    CRYPTO_TRANSFORMATIONS_AVAILABLE = True
+except ImportError:
+    CRYPTO_TRANSFORMATIONS_AVAILABLE = False
 from string_multitool.utils.logger import get_logger
 
 
@@ -502,6 +512,246 @@ class TestApplicationInterface:
         """Test help display functionality."""
         # This should not raise an exception
         app_interface.display_help()
+
+
+class TestModularTransformations:
+    """Test modular transformation classes."""
+
+    @pytest.fixture
+    def transformation_classes(self) -> dict[str, Any]:
+        """Get available transformation classes."""
+        from string_multitool.transformations.advanced_transformations import (
+            ReplaceTransformation,
+        )
+        from string_multitool.transformations.basic_transformations import (
+            FullToHalfWidthTransformation,
+            HalfToFullWidthTransformation,
+            HyphenToUnderbarTransformation,
+            UnderbarToHyphenTransformation,
+        )
+        from string_multitool.transformations.case_transformations import (
+            CamelCaseTransformation,
+            CapitalizeTransformation,
+            LowercaseTransformation,
+            PascalCaseTransformation,
+            SnakeCaseTransformation,
+            UppercaseTransformation,
+        )
+        from string_multitool.transformations.encryption_transformations import (
+            DecryptTransformation,
+            EncryptTransformation,
+        )
+        from string_multitool.transformations.string_operations import (
+            TrimTransformation,
+        )
+
+        return {
+            "uh": UnderbarToHyphenTransformation,
+            "hu": HyphenToUnderbarTransformation,
+            "fh": FullToHalfWidthTransformation,
+            "hf": HalfToFullWidthTransformation,
+            "l": LowercaseTransformation,
+            "u": UppercaseTransformation,
+            "p": PascalCaseTransformation,
+            "c": CamelCaseTransformation,
+            "s": SnakeCaseTransformation,
+            "a": CapitalizeTransformation,
+            "t": TrimTransformation,
+            "r": ReplaceTransformation,
+            "enc": EncryptTransformation,
+            "dec": DecryptTransformation,
+        }
+
+    def test_basic_transformation_classes(
+        self, transformation_classes: dict[str, Any]
+    ) -> None:
+        """Test individual transformation classes."""
+        test_cases: list[tuple[str, str, str]] = [
+            ("uh", "TBL_CHA1", "TBL-CHA1"),
+            ("hu", "TBL-CHA1", "TBL_CHA1"),
+            ("fh", "ＴＢＬ－ＣＨＡ１", "TBL-CHA1"),
+            ("hf", "TBL-CHA1", "ＴＢＬ－ＣＨＡ１"),
+        ]
+
+        for rule, input_text, expected in test_cases:
+            transformation_class = transformation_classes[rule]
+            transformation = transformation_class()
+            result = transformation.transform(input_text)
+
+            assert (
+                result == expected
+            ), f"Rule {rule} failed: got '{result}', expected '{expected}'"
+            assert transformation.get_transformation_rule() == rule
+            assert transformation.get_input_text() == input_text
+            assert transformation.get_output_text() == expected
+
+    def test_case_transformation_classes(
+        self, transformation_classes: dict[str, Any]
+    ) -> None:
+        """Test case transformation classes."""
+        test_cases: list[tuple[str, str, str]] = [
+            ("l", "SAY HELLO TO MY LITTLE FRIEND!", "say hello to my little friend!"),
+            ("u", "Can you hear me, Major Tom?", "CAN YOU HEAR ME, MAJOR TOM?"),
+            (
+                "p",
+                "The quick brown fox jumps over the lazy dog",
+                "TheQuickBrownFoxJumpsOverTheLazyDog",
+            ),
+            ("c", "is error state!", "isErrorState"),
+            ("s", "is error state!", "is_error_state"),
+            (
+                "a",
+                "the quick brown fox jumps over the lazy dog",
+                "The Quick Brown Fox Jumps Over The Lazy Dog",
+            ),
+        ]
+
+        for rule, input_text, expected in test_cases:
+            transformation_class = transformation_classes[rule]
+            transformation = transformation_class()
+            result = transformation.transform(input_text)
+
+            assert (
+                result == expected
+            ), f"Rule {rule} failed: got '{result}', expected '{expected}'"
+            assert transformation.get_transformation_rule() == rule
+            assert transformation.get_input_text() == input_text
+            assert transformation.get_output_text() == expected
+
+    def test_transformation_error_handling(
+        self, transformation_classes: dict[str, Any]
+    ) -> None:
+        """Test error handling in transformation classes."""
+        from string_multitool.exceptions import TransformationError
+
+        # Test with None input converted to string (Python handles this)
+        transformation = transformation_classes["l"]()
+
+        # Test error handling by trying to access attributes that would cause exceptions
+        # Since we can't mock str.lower directly, we test error handling through actual errors
+        import os
+        import tempfile
+
+        # Create a mock transformation that will fail
+        with patch.object(
+            transformation, "transform", side_effect=RuntimeError("Mock error")
+        ):
+            with pytest.raises(RuntimeError, match="Mock error"):
+                transformation.transform("test")
+
+        # Test that error context can be set and retrieved
+        transformation.set_error_context({"test_key": "test_value", "rule": "l"})
+        error_context = transformation.get_error_context()
+        assert "test_key" in error_context
+        assert "rule" in error_context
+
+    def test_string_operation_classes(
+        self, transformation_classes: dict[str, Any]
+    ) -> None:
+        """Test string operation transformation classes."""
+        test_cases: list[tuple[str, str, str]] = [
+            ("t", "  Well, something is happening  ", "Well, something is happening"),
+        ]
+
+        for rule, input_text, expected in test_cases:
+            transformation_class = transformation_classes[rule]
+            transformation = transformation_class()
+            result = transformation.transform(input_text)
+
+            assert (
+                result == expected
+            ), f"Rule {rule} failed: got '{result}', expected '{expected}'"
+            assert transformation.get_transformation_rule() == rule
+            assert transformation.get_input_text() == input_text
+            assert transformation.get_output_text() == expected
+
+    def test_advanced_transformation_classes_with_args(
+        self, transformation_classes: dict[str, Any]
+    ) -> None:
+        """Test advanced transformation classes with arguments."""
+        # Test replace transformation
+        replace_transformation = transformation_classes["r"]()
+
+        # Test replace with both arguments
+        replace_transformation.set_arguments(["Will", "Bill"])
+        result = replace_transformation.transform("I'm Will, Will's son")
+        assert result == "I'm Bill, Bill's son"
+
+        # Test replace with single argument (removal)
+        replace_transformation.set_arguments(["this"])
+        result = replace_transformation.transform("remove this text")
+        assert result == "remove  text"
+
+        # Test error with no arguments
+        with pytest.raises(
+            TransformationError, match="置換処理には最低1つの引数が必要"
+        ):
+            replace_transformation.set_arguments([])
+
+    def test_transformation_with_config(
+        self, transformation_classes: dict[str, Any]
+    ) -> None:
+        """Test transformation classes with configuration."""
+        config = {"test_setting": "test_value"}
+        transformation = transformation_classes["u"](config)
+
+        result = transformation.transform("hello")
+        assert result == "HELLO"
+
+        # Config should be available through base class
+        assert hasattr(transformation, "_config")
+
+    def test_transformation_base_methods(
+        self, transformation_classes: dict[str, Any]
+    ) -> None:
+        """Test transformation base class methods."""
+        transformation = transformation_classes["l"]()
+
+        # Test initial state
+        assert transformation.get_input_text() == ""
+        assert transformation.get_output_text() == ""
+        assert transformation.get_error_context() == {}
+
+        # Test after transformation
+        result = transformation.transform("HELLO")
+        assert result == "hello"
+        assert transformation.get_input_text() == "HELLO"
+        assert transformation.get_output_text() == "hello"
+
+        # Test error context setting
+        transformation.set_error_context({"test": "value"})
+        assert transformation.get_error_context() == {"test": "value"}
+
+    def test_encryption_transformation_classes(
+        self, transformation_classes: dict[str, Any]
+    ) -> None:
+        """Test encryption transformation classes."""
+        from string_multitool.exceptions import TransformationError
+
+        # Test encryption without crypto manager (should fail)
+        encrypt_transformation = transformation_classes["enc"]()
+        with pytest.raises(
+            TransformationError, match="暗号化マネージャーが設定されていません"
+        ):
+            encrypt_transformation.transform("test")
+
+        # Test with mock crypto manager
+        mock_crypto_manager = Mock()
+        mock_crypto_manager.encrypt_text.return_value = "encrypted_text"
+        mock_crypto_manager.decrypt_text.return_value = "decrypted_text"
+
+        # Test encryption
+        encrypt_transformation.set_crypto_manager(mock_crypto_manager)
+        result = encrypt_transformation.transform("hello world")
+        assert result == "encrypted_text"
+        mock_crypto_manager.encrypt_text.assert_called_once_with("hello world")
+
+        # Test decryption
+        decrypt_transformation = transformation_classes["dec"]()
+        decrypt_transformation.set_crypto_manager(mock_crypto_manager)
+        result = decrypt_transformation.transform("encrypted_data")
+        assert result == "decrypted_text"
+        mock_crypto_manager.decrypt_text.assert_called_once_with("encrypted_data")
 
 
 def test_main_functionality() -> None:

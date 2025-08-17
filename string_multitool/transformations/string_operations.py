@@ -17,7 +17,7 @@ class TrimTransformation(TransformationBase):
 
     def __init__(self, config: ConfigDict | None = None) -> None:
         """初期化
-        
+
         Args:
             config: 変換設定辞書（オプション）
         """
@@ -28,13 +28,13 @@ class TrimTransformation(TransformationBase):
 
     def transform(self, text: str) -> str:
         """文字列の前後の空白を削除
-        
+
         Args:
             text: 変換対象のテキスト
-            
+
         Returns:
             変換されたテキスト
-            
+
         Raises:
             TransformationError: 変換処理に失敗した場合
         """
@@ -43,19 +43,20 @@ class TrimTransformation(TransformationBase):
             self._output_text = text.strip()
             return self._output_text
         except Exception as e:
-            self.set_error_context({
-                "rule": self._rule,
-                "input_length": len(text) if isinstance(text, str) else 0,
-                "error_type": type(e).__name__
-            })
+            self.set_error_context(
+                {
+                    "rule": self._rule,
+                    "input_length": len(text) if isinstance(text, str) else 0,
+                    "error_type": type(e).__name__,
+                }
+            )
             raise TransformationError(
-                f"トリム処理に失敗: {e}",
-                self.get_error_context()
+                f"トリム処理に失敗: {e}", self.get_error_context()
             ) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得
-        
+
         Returns:
             変換ルール文字列
         """
@@ -63,7 +64,7 @@ class TrimTransformation(TransformationBase):
 
     def get_input_text(self) -> str:
         """変換前の文字列を取得
-        
+
         Returns:
             変換前の文字列
         """
@@ -71,7 +72,7 @@ class TrimTransformation(TransformationBase):
 
     def get_output_text(self) -> str:
         """変換後の文字列を取得
-        
+
         Returns:
             変換後の文字列
         """
@@ -83,7 +84,7 @@ class ReverseTransformation(TransformationBase):
 
     def __init__(self, config: ConfigDict | None = None) -> None:
         """初期化
-        
+
         Args:
             config: 変換設定辞書（オプション）
         """
@@ -94,13 +95,13 @@ class ReverseTransformation(TransformationBase):
 
     def transform(self, text: str) -> str:
         """文字列を逆順にする
-        
+
         Args:
             text: 変換対象のテキスト
-            
+
         Returns:
             変換されたテキスト
-            
+
         Raises:
             TransformationError: 変換処理に失敗した場合
         """
@@ -109,19 +110,20 @@ class ReverseTransformation(TransformationBase):
             self._output_text = text[::-1]
             return self._output_text
         except Exception as e:
-            self.set_error_context({
-                "rule": self._rule,
-                "input_length": len(text) if isinstance(text, str) else 0,
-                "error_type": type(e).__name__
-            })
+            self.set_error_context(
+                {
+                    "rule": self._rule,
+                    "input_length": len(text) if isinstance(text, str) else 0,
+                    "error_type": type(e).__name__,
+                }
+            )
             raise TransformationError(
-                f"リバース処理に失敗: {e}",
-                self.get_error_context()
+                f"リバース処理に失敗: {e}", self.get_error_context()
             ) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得
-        
+
         Returns:
             変換ルール文字列
         """
@@ -129,7 +131,7 @@ class ReverseTransformation(TransformationBase):
 
     def get_input_text(self) -> str:
         """変換前の文字列を取得
-        
+
         Returns:
             変換前の文字列
         """
@@ -137,7 +139,7 @@ class ReverseTransformation(TransformationBase):
 
     def get_output_text(self) -> str:
         """変換後の文字列を取得
-        
+
         Returns:
             変換後の文字列
         """
@@ -149,7 +151,7 @@ class SqlInClauseTransformation(TransformationBase):
 
     def __init__(self, config: ConfigDict | None = None) -> None:
         """初期化
-        
+
         Args:
             config: 変換設定辞書（オプション）
         """
@@ -160,13 +162,13 @@ class SqlInClauseTransformation(TransformationBase):
 
     def transform(self, text: str) -> str:
         """SQL IN句形式に変換
-        
+
         Args:
             text: 変換対象のテキスト
-            
+
         Returns:
             変換されたテキスト
-            
+
         Raises:
             TransformationError: 変換処理に失敗した場合
         """
@@ -175,19 +177,20 @@ class SqlInClauseTransformation(TransformationBase):
             self._output_text = self._to_sql_in_clause(text)
             return self._output_text
         except Exception as e:
-            self.set_error_context({
-                "rule": self._rule,
-                "input_length": len(text) if isinstance(text, str) else 0,
-                "error_type": type(e).__name__
-            })
+            self.set_error_context(
+                {
+                    "rule": self._rule,
+                    "input_length": len(text) if isinstance(text, str) else 0,
+                    "error_type": type(e).__name__,
+                }
+            )
             raise TransformationError(
-                f"SQL IN句変換に失敗: {e}",
-                self.get_error_context()
+                f"SQL IN句変換に失敗: {e}", self.get_error_context()
             ) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得
-        
+
         Returns:
             変換ルール文字列
         """
@@ -195,7 +198,7 @@ class SqlInClauseTransformation(TransformationBase):
 
     def get_input_text(self) -> str:
         """変換前の文字列を取得
-        
+
         Returns:
             変換前の文字列
         """
@@ -203,7 +206,7 @@ class SqlInClauseTransformation(TransformationBase):
 
     def get_output_text(self) -> str:
         """変換後の文字列を取得
-        
+
         Returns:
             変換後の文字列
         """
@@ -211,10 +214,10 @@ class SqlInClauseTransformation(TransformationBase):
 
     def _to_sql_in_clause(self, text: str) -> str:
         """SQL IN句形式に変換するヘルパーメソッド
-        
+
         Args:
             text: 変換対象のテキスト
-            
+
         Returns:
             変換されたテキスト
         """
@@ -228,7 +231,7 @@ class DeleteLineBreaksTransformation(TransformationBase):
 
     def __init__(self, config: ConfigDict | None = None) -> None:
         """初期化
-        
+
         Args:
             config: 変換設定辞書（オプション）
         """
@@ -239,34 +242,37 @@ class DeleteLineBreaksTransformation(TransformationBase):
 
     def transform(self, text: str) -> str:
         """改行を削除
-        
+
         Args:
             text: 変換対象のテキスト
-            
+
         Returns:
             変換されたテキスト
-            
+
         Raises:
             TransformationError: 変換処理に失敗した場合
         """
         try:
             self._input_text = text
-            self._output_text = text.replace("\r\n", "").replace("\n", "").replace("\r", "")
+            self._output_text = (
+                text.replace("\r\n", "").replace("\n", "").replace("\r", "")
+            )
             return self._output_text
         except Exception as e:
-            self.set_error_context({
-                "rule": self._rule,
-                "input_length": len(text) if isinstance(text, str) else 0,
-                "error_type": type(e).__name__
-            })
+            self.set_error_context(
+                {
+                    "rule": self._rule,
+                    "input_length": len(text) if isinstance(text, str) else 0,
+                    "error_type": type(e).__name__,
+                }
+            )
             raise TransformationError(
-                f"改行削除処理に失敗: {e}",
-                self.get_error_context()
+                f"改行削除処理に失敗: {e}", self.get_error_context()
             ) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得
-        
+
         Returns:
             変換ルール文字列
         """
@@ -274,7 +280,7 @@ class DeleteLineBreaksTransformation(TransformationBase):
 
     def get_input_text(self) -> str:
         """変換前の文字列を取得
-        
+
         Returns:
             変換前の文字列
         """
@@ -282,7 +288,7 @@ class DeleteLineBreaksTransformation(TransformationBase):
 
     def get_output_text(self) -> str:
         """変換後の文字列を取得
-        
+
         Returns:
             変換後の文字列
         """

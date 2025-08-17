@@ -25,7 +25,9 @@ from .types import (
 )
 
 
-class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], TransformationBase):
+class TextTransformationEngine(
+    ConfigurableComponent[dict[str, Any]], TransformationBase
+):
     """Advanced text transformation engine with configurable rules.
 
     This class provides a comprehensive set of text transformation operations
@@ -67,10 +69,10 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
 
     def transform(self, text: str) -> str:
         """基底クラスで要求される変換メソッド（単一変換用）
-        
+
         Args:
             text: 変換対象テキスト
-            
+
         Returns:
             変換されたテキスト
         """
@@ -105,7 +107,7 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
                     f"Rule string must be a string, got {type(rule_string).__name__}",
                     {"rule_type": type(rule_string).__name__},
                 )
-                
+
             if not rule_string.strip():
                 raise ValidationError("Rule string cannot be empty")
 
@@ -127,14 +129,15 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
             raise
         except Exception as e:
             # エラーコンテキストを設定
-            self.set_error_context({
-                "rule_string": rule_string,
-                "text_length": len(text) if isinstance(text, str) else 0,
-                "error_type": type(e).__name__,
-            })
+            self.set_error_context(
+                {
+                    "rule_string": rule_string,
+                    "text_length": len(text) if isinstance(text, str) else 0,
+                    "error_type": type(e).__name__,
+                }
+            )
             raise TransformationError(
-                f"Unexpected error during transformation: {e}",
-                self.get_error_context()
+                f"Unexpected error during transformation: {e}", self.get_error_context()
             ) from e
 
     def parse_rule_string(self, rule_string: str) -> list[tuple[str, list[str]]]:
@@ -226,10 +229,10 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
         # EAFPスタイル：まずルール適用を試行し、失敗時に詳細検証
         try:
             available_rules = self.get_available_rules()
-            
+
             # ルールの存在確認
             rule = available_rules[rule_name]  # KeyErrorが発生する可能性
-            
+
             # Handle rules that require arguments
             if rule.requires_args:
                 if not args and rule.default_args:
@@ -265,15 +268,16 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
             raise
         except Exception as e:
             # エラーコンテキストを設定
-            self.set_error_context({
-                "rule_name": rule_name,
-                "args": args,
-                "text_length": len(text),
-                "error_type": type(e).__name__,
-            })
+            self.set_error_context(
+                {
+                    "rule_name": rule_name,
+                    "args": args,
+                    "text_length": len(text),
+                    "error_type": type(e).__name__,
+                }
+            )
             raise TransformationError(
-                f"Failed to apply rule '{rule_name}': {e}",
-                self.get_error_context()
+                f"Failed to apply rule '{rule_name}': {e}", self.get_error_context()
             ) from e
 
     def _apply_crypto_rule(self, text: str, rule_name: str) -> str:
@@ -296,7 +300,7 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
                 if self.crypto_manager is None:
                     raise TransformationError(
                         "Cryptography manager not available for encryption",
-                        {"rule": rule_name}
+                        {"rule": rule_name},
                     )
                 print("Using existing RSA key pair")
                 result = self.crypto_manager.encrypt_text(text)
@@ -308,7 +312,7 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
                 if self.crypto_manager is None:
                     raise TransformationError(
                         "Cryptography manager not available for decryption",
-                        {"rule": rule_name}
+                        {"rule": rule_name},
                     )
                 print("Using existing RSA key pair")
                 result = self.crypto_manager.decrypt_text(text)
@@ -327,14 +331,15 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
             )
         except Exception as e:
             # エラーコンテキストを設定
-            self.set_error_context({
-                "rule_name": rule_name, 
-                "error_type": type(e).__name__,
-                "text_length": len(text)
-            })
+            self.set_error_context(
+                {
+                    "rule_name": rule_name,
+                    "error_type": type(e).__name__,
+                    "text_length": len(text),
+                }
+            )
             raise TransformationError(
-                f"Cryptography operation failed: {e}",
-                self.get_error_context()
+                f"Cryptography operation failed: {e}", self.get_error_context()
             ) from e
 
     def _apply_rule_with_args(self, text: str, rule_name: str, args: list[str]) -> str:
@@ -359,7 +364,7 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
                     # 引数不足の場合
                     raise TransformationError(
                         "Replace rule requires at least 1 argument",
-                        {"rule_name": rule_name, "args_count": len(args)}
+                        {"rule_name": rule_name, "args_count": len(args)},
                     )
 
             elif rule_name == "S":  # Slugify
@@ -370,21 +375,19 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
             else:
                 raise TransformationError(
                     f"Unknown rule with arguments: {rule_name}",
-                    {"rule_name": rule_name}
+                    {"rule_name": rule_name},
                 )
 
         except TransformationError:
             raise
         except Exception as e:
             # エラーコンテキストを設定
-            self.set_error_context({
-                "rule_name": rule_name,
-                "args": args,
-                "error_type": type(e).__name__
-            })
+            self.set_error_context(
+                {"rule_name": rule_name, "args": args, "error_type": type(e).__name__}
+            )
             raise TransformationError(
                 f"Failed to apply rule '{rule_name}' with arguments: {e}",
-                self.get_error_context()
+                self.get_error_context(),
             ) from e
 
     def _parse_with_quotes(self, text: str) -> list[str]:
@@ -723,17 +726,17 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
             return encoded_bytes.decode("ascii")
         except UnicodeEncodeError as e:
             # UTF-8エンコードエラーの場合
-            self.set_error_context({"encoding_error": str(e), "text_preview": text[:50]})
+            self.set_error_context(
+                {"encoding_error": str(e), "text_preview": text[:50]}
+            )
             raise TransformationError(
-                f"Text encoding failed: {e}", 
-                self.get_error_context()
+                f"Text encoding failed: {e}", self.get_error_context()
             ) from e
         except Exception as e:
             # その他のエラー
             self.set_error_context({"error_type": type(e).__name__})
             raise TransformationError(
-                f"Base64 encoding failed: {e}",
-                self.get_error_context()
+                f"Base64 encoding failed: {e}", self.get_error_context()
             ) from e
 
     def _base64_decode(self, text: str) -> str:
@@ -748,15 +751,13 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
             # UTF-8デコードエラーの場合
             self.set_error_context({"unicode_error": str(e)})
             raise TransformationError(
-                f"Text decoding failed: {e}",
-                self.get_error_context()
+                f"Text decoding failed: {e}", self.get_error_context()
             ) from e
         except Exception as e:
             # Base64デコードエラーまたはその他のエラー
             self.set_error_context({"decode_error": str(e), "text_preview": text[:50]})
             raise TransformationError(
-                f"Base64 decoding failed: {e}",
-                self.get_error_context()
+                f"Base64 decoding failed: {e}", self.get_error_context()
             ) from e
 
     def _format_json(self, text: str) -> str:
@@ -769,22 +770,22 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
             return json.dumps(parsed, indent=2, ensure_ascii=False)
         except json.JSONDecodeError as e:
             # JSONパーシングエラーの場合
-            self.set_error_context({
-                "json_error": str(e),
-                "error_line": getattr(e, 'lineno', 'unknown'),
-                "error_pos": getattr(e, 'pos', 'unknown'),
-                "text_preview": text[:100]
-            })
+            self.set_error_context(
+                {
+                    "json_error": str(e),
+                    "error_line": getattr(e, "lineno", "unknown"),
+                    "error_pos": getattr(e, "pos", "unknown"),
+                    "text_preview": text[:100],
+                }
+            )
             raise TransformationError(
-                f"Invalid JSON format: {e}",
-                self.get_error_context()
+                f"Invalid JSON format: {e}", self.get_error_context()
             ) from e
         except Exception as e:
             # その他のエラー
             self.set_error_context({"error_type": type(e).__name__})
             raise TransformationError(
-                f"JSON formatting failed: {e}",
-                self.get_error_context()
+                f"JSON formatting failed: {e}", self.get_error_context()
             ) from e
 
     def validate_rule_string(self, rule_string: str) -> tuple[bool, str | None]:
@@ -827,7 +828,7 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
         # EAFPスタイル：まずルールのアクセスを試行
         try:
             rules = self.get_available_rules()
-            
+
             if rule_name is None:
                 # Return help for all rules
                 help_text = "Available transformation rules:\n"
@@ -840,7 +841,7 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
                 # Return help for specific rule
                 rule = rules[rule_name]  # KeyErrorが発生する可能性
                 return f"/{rule_name} - {rule.name}\n{rule.description}\nExample: {rule.example}"
-                
+
         except KeyError:
             # ルールが見つからない場合のEAFP処理
             return f"Unknown rule: {rule_name}"
@@ -851,7 +852,7 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
     # TransformationBaseの抽象メソッドの実装
     def get_input_text(self) -> str:
         """変換前の文字列を取得する抽象メソッドの実装
-        
+
         Returns:
             変換前の文字列（このクラスでは空文字列）
         """
@@ -859,7 +860,7 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
 
     def get_output_text(self) -> str:
         """変換後の文字列を取得する抽象メソッドの実装
-        
+
         Returns:
             変換後の文字列（このクラスでは空文字列）
         """
@@ -867,7 +868,7 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得する抽象メソッドの実装
-        
+
         Returns:
             変換ルール文字列（このクラスでは空文字列）
         """

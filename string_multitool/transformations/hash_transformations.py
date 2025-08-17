@@ -18,7 +18,7 @@ class Sha256HashTransformation(TransformationBase):
 
     def __init__(self, config: ConfigDict | None = None) -> None:
         """初期化
-        
+
         Args:
             config: 変換設定辞書（オプション）
         """
@@ -29,13 +29,13 @@ class Sha256HashTransformation(TransformationBase):
 
     def transform(self, text: str) -> str:
         """SHA-256ハッシュを生成
-        
+
         Args:
             text: 変換対象のテキスト
-            
+
         Returns:
             SHA-256ハッシュ文字列
-            
+
         Raises:
             TransformationError: ハッシュ生成に失敗した場合
         """
@@ -44,19 +44,20 @@ class Sha256HashTransformation(TransformationBase):
             self._output_text = self._sha256_hash(text)
             return self._output_text
         except Exception as e:
-            self.set_error_context({
-                "rule": self._rule,
-                "input_length": len(text) if isinstance(text, str) else 0,
-                "error_type": type(e).__name__
-            })
+            self.set_error_context(
+                {
+                    "rule": self._rule,
+                    "input_length": len(text) if isinstance(text, str) else 0,
+                    "error_type": type(e).__name__,
+                }
+            )
             raise TransformationError(
-                f"SHA-256ハッシュ生成に失敗: {e}",
-                self.get_error_context()
+                f"SHA-256ハッシュ生成に失敗: {e}", self.get_error_context()
             ) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得
-        
+
         Returns:
             変換ルール文字列
         """
@@ -64,7 +65,7 @@ class Sha256HashTransformation(TransformationBase):
 
     def get_input_text(self) -> str:
         """変換前の文字列を取得
-        
+
         Returns:
             変換前の文字列
         """
@@ -72,7 +73,7 @@ class Sha256HashTransformation(TransformationBase):
 
     def get_output_text(self) -> str:
         """変換後の文字列を取得
-        
+
         Returns:
             変換後の文字列
         """
@@ -80,10 +81,10 @@ class Sha256HashTransformation(TransformationBase):
 
     def _sha256_hash(self, text: str) -> str:
         """SHA-256ハッシュを生成するヘルパーメソッド
-        
+
         Args:
             text: ハッシュ対象のテキスト
-            
+
         Returns:
             SHA-256ハッシュ文字列（16進数）
         """

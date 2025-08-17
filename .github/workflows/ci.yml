@@ -161,7 +161,12 @@ jobs:
     
     - name: Run tests
       run: |
-        python -m pytest test_transform.py --cov=string_multitool --cov-report=xml --cov-report=term-missing --junit-xml=test-results-${{ matrix.python-version }}.xml --timeout=300 -v
+        python -m pytest test_transform.py test_system_integration.py test_readme_examples.py --cov=string_multitool --cov-report=xml --cov-report=term-missing --junit-xml=test-results-${{ matrix.python-version }}.xml --timeout=300 -v
+    
+    - name: Run hotkey tests (environment permitting)
+      run: |
+        python -m pytest test_hotkey.py --junit-xml=hotkey-test-results-${{ matrix.python-version }}.xml --timeout=60 -v
+      continue-on-error: true  # ホットキーテストは環境依存のため
     
     - name: Check coverage threshold  
       if: matrix.upload-coverage
@@ -186,6 +191,7 @@ jobs:
         name: test-results-python${{ matrix.python-version }}
         path: |
           test-results-${{ matrix.python-version }}.xml
+          hotkey-test-results-${{ matrix.python-version }}.xml
           coverage.xml
         retention-days: 7
     

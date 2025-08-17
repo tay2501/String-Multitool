@@ -55,15 +55,15 @@ def get_app() -> ApplicationInterface:
     return _app_instance
 
 
-@app.command("interactive", help="Start interactive mode for real-time text transformation")
+@app.command(
+    "interactive", help="Start interactive mode for real-time text transformation"
+)
 def interactive_mode() -> None:
     """Start interactive mode with clipboard monitoring and real-time transformation."""
     try:
         app_instance = get_app()
         input_text = app_instance.io_manager.get_input_text()
         app_instance.run_interactive_mode(input_text)
-        logger = get_logger(__name__)
-        log_debug(logger, f":interactive_mode()")
     except StringMultitoolError as e:
         logger = get_logger(__name__)
         log_error(logger, f"Error: {e}")

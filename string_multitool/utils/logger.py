@@ -12,10 +12,10 @@ Reference:
 from __future__ import annotations
 
 import json
-from logging import getLogger
 import logging.config
 import logging.handlers
 import sys
+from logging import getLogger
 from pathlib import Path
 from typing import Any, Final, cast
 
@@ -63,6 +63,7 @@ class LoggerManager:
                 return
             except Exception as e:
                 from ..exceptions import ConfigurationError
+
                 raise ConfigurationError(
                     f"Failed to load logging config from {config_file}: {e}",
                     {"config_file": str(config_file), "error_type": type(e).__name__},
@@ -101,7 +102,7 @@ class LoggerManager:
         # File handler for detailed logging
         MAX_LOG_SIZE: Final[int] = 10 * 1024 * 1024  # 10MB
         BACKUP_COUNT: Final[int] = 5
-        
+
         logs_dir = Path("logs")
         file_handler = logging.handlers.RotatingFileHandler(
             logs_dir / "string_multitool.log",
@@ -169,7 +170,7 @@ class LoggerManager:
 
         MAX_LOG_SIZE: Final[int] = 10 * 1024 * 1024  # 10MB
         BACKUP_COUNT: Final[int] = 5
-        
+
         file_handler = logging.handlers.RotatingFileHandler(
             file_path,
             maxBytes=MAX_LOG_SIZE,
@@ -219,6 +220,7 @@ def get_logger(name: str) -> logging.Logger:
     """
     return LoggerManager.get_logger(name)
 
+
 def log_debug(logger: logging.Logger, message: str, **kwargs: Any) -> None:
     """Log a debug message with optional extra context.
 
@@ -232,6 +234,7 @@ def log_debug(logger: logging.Logger, message: str, **kwargs: Any) -> None:
     else:
         logger.debug(message)
 
+
 def log_info(logger: logging.Logger, message: str, **kwargs: Any) -> None:
     """Log an info message with optional extra context.
 
@@ -244,6 +247,7 @@ def log_info(logger: logging.Logger, message: str, **kwargs: Any) -> None:
         logger.info(f"{message} - Context: {kwargs}")
     else:
         logger.info(message)
+
 
 def log_warning(logger: logging.Logger, message: str, **kwargs: Any) -> None:
     """Log a warning message with optional extra context.
@@ -259,9 +263,7 @@ def log_warning(logger: logging.Logger, message: str, **kwargs: Any) -> None:
         logger.warning(message)
 
 
-def log_error(
-    logger: logging.Logger, message: str, **kwargs: Any
-) -> None:
+def log_error(logger: logging.Logger, message: str, **kwargs: Any) -> None:
     """Log an error message with optional exception info.
 
     Args:
@@ -274,4 +276,3 @@ def log_error(
         logger.debug(f"{message} - Context: {kwargs}")
     else:
         logger.debug(message)
-

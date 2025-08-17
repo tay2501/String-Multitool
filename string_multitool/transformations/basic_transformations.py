@@ -17,7 +17,7 @@ class UnderbarToHyphenTransformation(TransformationBase):
 
     def __init__(self, config: ConfigDict | None = None) -> None:
         """初期化
-        
+
         Args:
             config: 変換設定辞書（オプション）
         """
@@ -28,13 +28,13 @@ class UnderbarToHyphenTransformation(TransformationBase):
 
     def transform(self, text: str) -> str:
         """アンダーバーをハイフンに変換
-        
+
         Args:
             text: 変換対象のテキスト
-            
+
         Returns:
             変換されたテキスト
-            
+
         Raises:
             TransformationError: 変換処理に失敗した場合
         """
@@ -43,19 +43,20 @@ class UnderbarToHyphenTransformation(TransformationBase):
             self._output_text = text.replace("_", "-")
             return self._output_text
         except Exception as e:
-            self.set_error_context({
-                "rule": self._rule,
-                "input_length": len(text) if isinstance(text, str) else 0,
-                "error_type": type(e).__name__
-            })
+            self.set_error_context(
+                {
+                    "rule": self._rule,
+                    "input_length": len(text) if isinstance(text, str) else 0,
+                    "error_type": type(e).__name__,
+                }
+            )
             raise TransformationError(
-                f"アンダーバー→ハイフン変換に失敗: {e}",
-                self.get_error_context()
+                f"アンダーバー→ハイフン変換に失敗: {e}", self.get_error_context()
             ) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得
-        
+
         Returns:
             変換ルール文字列
         """
@@ -63,7 +64,7 @@ class UnderbarToHyphenTransformation(TransformationBase):
 
     def get_input_text(self) -> str:
         """変換前の文字列を取得
-        
+
         Returns:
             変換前の文字列
         """
@@ -71,7 +72,7 @@ class UnderbarToHyphenTransformation(TransformationBase):
 
     def get_output_text(self) -> str:
         """変換後の文字列を取得
-        
+
         Returns:
             変換後の文字列
         """
@@ -83,7 +84,7 @@ class HyphenToUnderbarTransformation(TransformationBase):
 
     def __init__(self, config: ConfigDict | None = None) -> None:
         """初期化
-        
+
         Args:
             config: 変換設定辞書（オプション）
         """
@@ -94,13 +95,13 @@ class HyphenToUnderbarTransformation(TransformationBase):
 
     def transform(self, text: str) -> str:
         """ハイフンをアンダーバーに変換
-        
+
         Args:
             text: 変換対象のテキスト
-            
+
         Returns:
             変換されたテキスト
-            
+
         Raises:
             TransformationError: 変換処理に失敗した場合
         """
@@ -109,19 +110,20 @@ class HyphenToUnderbarTransformation(TransformationBase):
             self._output_text = text.replace("-", "_")
             return self._output_text
         except Exception as e:
-            self.set_error_context({
-                "rule": self._rule,
-                "input_length": len(text) if isinstance(text, str) else 0,
-                "error_type": type(e).__name__
-            })
+            self.set_error_context(
+                {
+                    "rule": self._rule,
+                    "input_length": len(text) if isinstance(text, str) else 0,
+                    "error_type": type(e).__name__,
+                }
+            )
             raise TransformationError(
-                f"ハイフン→アンダーバー変換に失敗: {e}",
-                self.get_error_context()
+                f"ハイフン→アンダーバー変換に失敗: {e}", self.get_error_context()
             ) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得
-        
+
         Returns:
             変換ルール文字列
         """
@@ -129,7 +131,7 @@ class HyphenToUnderbarTransformation(TransformationBase):
 
     def get_input_text(self) -> str:
         """変換前の文字列を取得
-        
+
         Returns:
             変換前の文字列
         """
@@ -137,7 +139,7 @@ class HyphenToUnderbarTransformation(TransformationBase):
 
     def get_output_text(self) -> str:
         """変換後の文字列を取得
-        
+
         Returns:
             変換後の文字列
         """
@@ -149,7 +151,7 @@ class FullToHalfWidthTransformation(TransformationBase):
 
     def __init__(self, config: ConfigDict | None = None) -> None:
         """初期化
-        
+
         Args:
             config: 変換設定辞書（オプション）
         """
@@ -160,13 +162,13 @@ class FullToHalfWidthTransformation(TransformationBase):
 
     def transform(self, text: str) -> str:
         """全角文字を半角文字に変換
-        
+
         Args:
             text: 変換対象のテキスト
-            
+
         Returns:
             変換されたテキスト
-            
+
         Raises:
             TransformationError: 変換処理に失敗した場合
         """
@@ -175,19 +177,20 @@ class FullToHalfWidthTransformation(TransformationBase):
             self._output_text = self._full_to_half_width(text)
             return self._output_text
         except Exception as e:
-            self.set_error_context({
-                "rule": self._rule,
-                "input_length": len(text) if isinstance(text, str) else 0,
-                "error_type": type(e).__name__
-            })
+            self.set_error_context(
+                {
+                    "rule": self._rule,
+                    "input_length": len(text) if isinstance(text, str) else 0,
+                    "error_type": type(e).__name__,
+                }
+            )
             raise TransformationError(
-                f"全角→半角変換に失敗: {e}",
-                self.get_error_context()
+                f"全角→半角変換に失敗: {e}", self.get_error_context()
             ) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得
-        
+
         Returns:
             変換ルール文字列
         """
@@ -195,7 +198,7 @@ class FullToHalfWidthTransformation(TransformationBase):
 
     def get_input_text(self) -> str:
         """変換前の文字列を取得
-        
+
         Returns:
             変換前の文字列
         """
@@ -203,7 +206,7 @@ class FullToHalfWidthTransformation(TransformationBase):
 
     def get_output_text(self) -> str:
         """変換後の文字列を取得
-        
+
         Returns:
             変換後の文字列
         """
@@ -211,10 +214,10 @@ class FullToHalfWidthTransformation(TransformationBase):
 
     def _full_to_half_width(self, text: str) -> str:
         """全角文字を半角文字に変換するヘルパーメソッド
-        
+
         Args:
             text: 変換対象のテキスト
-            
+
         Returns:
             変換されたテキスト
         """
@@ -235,7 +238,7 @@ class HalfToFullWidthTransformation(TransformationBase):
 
     def __init__(self, config: ConfigDict | None = None) -> None:
         """初期化
-        
+
         Args:
             config: 変換設定辞書（オプション）
         """
@@ -246,13 +249,13 @@ class HalfToFullWidthTransformation(TransformationBase):
 
     def transform(self, text: str) -> str:
         """半角文字を全角文字に変換
-        
+
         Args:
             text: 変換対象のテキスト
-            
+
         Returns:
             変換されたテキスト
-            
+
         Raises:
             TransformationError: 変換処理に失敗した場合
         """
@@ -261,19 +264,20 @@ class HalfToFullWidthTransformation(TransformationBase):
             self._output_text = self._half_to_full_width(text)
             return self._output_text
         except Exception as e:
-            self.set_error_context({
-                "rule": self._rule,
-                "input_length": len(text) if isinstance(text, str) else 0,
-                "error_type": type(e).__name__
-            })
+            self.set_error_context(
+                {
+                    "rule": self._rule,
+                    "input_length": len(text) if isinstance(text, str) else 0,
+                    "error_type": type(e).__name__,
+                }
+            )
             raise TransformationError(
-                f"半角→全角変換に失敗: {e}",
-                self.get_error_context()
+                f"半角→全角変換に失敗: {e}", self.get_error_context()
             ) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得
-        
+
         Returns:
             変換ルール文字列
         """
@@ -281,7 +285,7 @@ class HalfToFullWidthTransformation(TransformationBase):
 
     def get_input_text(self) -> str:
         """変換前の文字列を取得
-        
+
         Returns:
             変換前の文字列
         """
@@ -289,7 +293,7 @@ class HalfToFullWidthTransformation(TransformationBase):
 
     def get_output_text(self) -> str:
         """変換後の文字列を取得
-        
+
         Returns:
             変換後の文字列
         """
@@ -297,10 +301,10 @@ class HalfToFullWidthTransformation(TransformationBase):
 
     def _half_to_full_width(self, text: str) -> str:
         """半角文字を全角文字に変換するヘルパーメソッド
-        
+
         Args:
             text: 変換対象のテキスト
-            
+
         Returns:
             変換されたテキスト
         """

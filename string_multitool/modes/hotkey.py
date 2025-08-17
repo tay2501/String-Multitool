@@ -15,6 +15,7 @@ from typing import Any, Dict, Final, Optional
 try:
     import keyboard
     import pyperclip
+
     _keyboard_available = True
 except ImportError as e:
     _keyboard_available = False

@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from .core.dependency_injection import ServiceRegistry, inject, injectable
+from .core.dependency_injection import inject, injectable
 from .core.types import (
     CommandResult,
     ConfigManagerProtocol,
@@ -36,7 +36,7 @@ from .modes.interactive import CommandProcessor, InteractiveSession
 from .modes.system_tray import SystemTrayMode
 
 # Import logging utilities
-from .utils.logger import get_logger, log_debug, log_error, log_info, log_warning
+from .utils.logger import get_logger, log_debug
 
 
 @injectable
@@ -103,7 +103,7 @@ class ApplicationInterface:
                     self.hotkey_mode = inject(HotkeyMode)
                 except Exception:
                     self.hotkey_mode = None
-                
+
                 # Initialize system tray mode (optional)
                 try:
                     self.system_tray_mode = SystemTrayMode(
@@ -507,15 +507,15 @@ class ApplicationInterface:
                             if self.daemon_mode:
                                 self.daemon_mode.set_preset(preset_name)
                             else:
-                                self._logger.error(
-                                    "[ERROR] Daemon mode not available"
-                                )
+                                self._logger.error("[ERROR] Daemon mode not available")
                         except (ValidationError, ConfigurationError) as e:
                             self._logger.error(f"[ERROR] {e}")
 
                     elif command == "rules":
                         if len(parts) < 2:
-                            self._logger.info("Usage: rules <rule_string>, Example: rules /t/l")
+                            self._logger.info(
+                                "Usage: rules <rule_string>, Example: rules /t/l"
+                            )
                             continue
 
                         rule_string: str = " ".join(parts[1:])
@@ -530,7 +530,9 @@ class ApplicationInterface:
                                     daemon_rule_list
                                 )
                             else:
-                                self._logger.warning("[WARNING] Daemon mode not available")
+                                self._logger.warning(
+                                    "[WARNING] Daemon mode not available"
+                                )
                         except Exception as e:
                             raise ValidationError(
                                 f"Invalid daemon custom rule string: {e}",
@@ -540,7 +542,9 @@ class ApplicationInterface:
                     elif command == "start":
                         try:
                             if not self.daemon_mode:
-                                self._logger.warning("[WARNING] Daemon mode not available")
+                                self._logger.warning(
+                                    "[WARNING] Daemon mode not available"
+                                )
                             elif self.daemon_mode.is_running:
                                 self._logger.info("[DAEMON] Already running")
                             else:
@@ -559,7 +563,9 @@ class ApplicationInterface:
                     elif command == "stop":
                         try:
                             if not self.daemon_mode:
-                                self._logger.warning("[WARNING] Daemon mode not available")
+                                self._logger.warning(
+                                    "[WARNING] Daemon mode not available"
+                                )
                             else:
                                 self.daemon_mode.stop()
                         except TransformationError as e:
@@ -607,7 +613,9 @@ class ApplicationInterface:
 
                     elif command == "help":
                         self._logger.info("Daemon Mode Commands:")
-                        self._logger.info("  preset <n>     - Set transformation preset")
+                        self._logger.info(
+                            "  preset <n>     - Set transformation preset"
+                        )
                         self._logger.info(
                             "  rules <rules>     - Set custom transformation rules",
                         )
@@ -617,7 +625,9 @@ class ApplicationInterface:
                         self._logger.info(
                             "  start             - Start daemon monitoring"
                         )
-                        self._logger.info("  stop              - Stop daemon monitoring")
+                        self._logger.info(
+                            "  stop              - Stop daemon monitoring"
+                        )
                         self._logger.info("  status            - Show daemon status")
                         self._logger.info(
                             "  interactive       - Switch to interactive mode"
@@ -795,7 +805,9 @@ class ApplicationInterface:
                     and arg != "--help"
                 ):
                     self._logger.warning(f"[WARNING] Unknown option: {sys.argv[1]}")
-                    self._logger.info("Available options: --daemon, --hotkey, --tray, --help")
+                    self._logger.info(
+                        "Available options: --daemon, --hotkey, --tray, --help"
+                    )
                     self._logger.info(
                         "Or use transformation rules starting with '/' (e.g., /t/l)",
                     )
@@ -831,7 +843,7 @@ class ApplicationInterface:
 def main() -> None:
     """Application entry point with Typer integration."""
     logger = get_logger(__name__)
-    log_debug(logger, f"Starting Application entry point with Typer integration...")
+    log_debug(logger, "Starting Application entry point with Typer integration...")
     try:
         # Check for modern CLI usage (subcommands)
         if len(sys.argv) > 1 and sys.argv[1] in [
@@ -847,6 +859,7 @@ def main() -> None:
         ]:
             # Use new Typer CLI
             from .cli import run_cli
+
             run_cli()
         else:
             # Use legacy CLI for backward compatibility
@@ -859,6 +872,7 @@ def main() -> None:
             f"Fatal main execution error: {e}",
             {"error_type": type(e).__name__},
         ) from e
+
 
 if __name__ == "__main__":
     main()
