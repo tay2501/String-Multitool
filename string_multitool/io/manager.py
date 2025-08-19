@@ -65,49 +65,156 @@ class InputOutputManager:
             ) from e
 
     def get_clipboard_text(self) -> str:
-        """Get text from clipboard.
+        """Get text from clipboard with multiple fallback methods.
 
         Returns:
             Current clipboard content
 
         Raises:
-            ClipboardError: If clipboard access fails
+            ClipboardError: If all clipboard access methods fail
         """
         if not CLIPBOARD_AVAILABLE:
             raise ClipboardError("Clipboard functionality not available")
 
-        try:
-            content = pyperclip.paste()
-            return content if content is not None else ""
+        # Method 1: pyperclip with retry mechanism
+        for attempt in range(3):
+            try:
+                content = pyperclip.paste()
+                return content if content is not None else ""
+            except Exception as e:
+                if attempt < 2:  # Don't sleep on last attempt
+                    import time
+                    time.sleep(0.1 * (attempt + 1))  # Progressive delay
+                last_error = e
 
-        except Exception as e:
-            raise ClipboardError(
-                f"Failed to read from clipboard: {e}", {"error_type": type(e).__name__}
-            ) from e
+        # Method 2: tkinter fallback
+        try:
+            import tkinter as tk
+            root = tk.Tk()
+            root.withdraw()  # Hide window
+            content = root.clipboard_get()
+            root.destroy()
+            return content if content is not None else ""
+        except Exception:
+            pass
+
+        # Method 3: PowerShell fallback (Windows)
+        try:
+            import subprocess
+            import sys
+            if sys.platform == "win32":
+                result = subprocess.run(
+                    ["powershell", "-Command", "Get-Clipboard"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    return result.stdout.strip()
+        except Exception:
+            pass
+
+        # Method 4: Windows clip command fallback
+        try:
+            import subprocess
+            import sys
+            if sys.platform == "win32":
+                # Use echo to get clipboard content via pipeline
+                result = subprocess.run(
+                    ["cmd", "/c", "echo off && powershell Get-Clipboard"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    return result.stdout.strip()
+        except Exception:
+            pass
+
+        raise ClipboardError(
+            f"Failed to read from clipboard after trying all methods: {last_error}",
+            {"error_type": type(last_error).__name__, "methods_tried": 4}
+        ) from last_error
 
     @staticmethod
     def set_output_text(text: str) -> None:
-        """Set output text to clipboard.
+        """Set output text to clipboard with multiple fallback methods.
 
         Args:
             text: Text to copy to clipboard
 
         Raises:
-            ClipboardError: If clipboard operation fails
+            ClipboardError: If all clipboard copy methods fail
         """
         if not CLIPBOARD_AVAILABLE:
             raise ClipboardError("Clipboard functionality not available")
 
-        try:
-            pyperclip.copy(text)
-            logger = get_logger(__name__)
-            log_debug(logger, "[SUCCESS] Text copied to clipboard")
+        logger = get_logger(__name__)
+        
+        # Method 1: pyperclip with retry mechanism
+        for attempt in range(3):
+            try:
+                pyperclip.copy(text)
+                log_debug(logger, "[SUCCESS] Text copied to clipboard via pyperclip")
+                return
+            except Exception as e:
+                if attempt < 2:  # Don't sleep on last attempt
+                    import time
+                    time.sleep(0.1 * (attempt + 1))  # Progressive delay
+                last_error = e
 
-        except Exception as e:
-            raise ClipboardError(
-                f"Error copying to clipboard: {e}",
-                {"text_length": len(text), "error_type": type(e).__name__},
-            ) from e
+        # Method 2: tkinter fallback
+        try:
+            import tkinter as tk
+            root = tk.Tk()
+            root.withdraw()  # Hide window
+            root.clipboard_clear()
+            root.clipboard_append(text)
+            root.update()  # Required to finalize clipboard operation
+            root.destroy()
+            log_debug(logger, "[SUCCESS] Text copied to clipboard via tkinter")
+            return
+        except Exception:
+            pass
+
+        # Method 3: PowerShell fallback (Windows)
+        try:
+            import subprocess
+            import sys
+            if sys.platform == "win32":
+                result = subprocess.run(
+                    ["powershell", "-Command", f"Set-Clipboard -Value '{text}'"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    log_debug(logger, "[SUCCESS] Text copied to clipboard via PowerShell")
+                    return
+        except Exception:
+            pass
+
+        # Method 4: Windows clip command fallback
+        try:
+            import subprocess
+            import sys
+            if sys.platform == "win32":
+                result = subprocess.run(
+                    ["cmd", "/c", "clip"],
+                    input=text,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    log_debug(logger, "[SUCCESS] Text copied to clipboard via clip command")
+                    return
+        except Exception:
+            pass
+
+        raise ClipboardError(
+            f"Failed to copy to clipboard after trying all methods: {last_error}",
+            {"text_length": len(text), "error_type": type(last_error).__name__, "methods_tried": 4}
+        ) from last_error
 
     def get_pipe_input(self) -> str | None:
         """Get input from pipe if available.
