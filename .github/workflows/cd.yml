@@ -163,6 +163,16 @@ jobs:
         $content = $content -replace 'Version: [\d.-]+', "Version: $version"
         $content | Out-File -FilePath String_Multitool.py -Encoding UTF8
     
+    - name: Set up Python for tests
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install test dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-cov
+    
     - name: Run pre-deployment tests
       run: |
         Write-Host "🧪 Running pre-deployment tests..." -ForegroundColor Cyan
