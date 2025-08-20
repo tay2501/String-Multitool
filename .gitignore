@@ -1,6 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[cod]
+*.py[codz]
 *$py.class
 
 # C extensions
@@ -455,6 +455,18 @@ test-reports/
 llm_cache/
 model_cache/
 ai_logs/
+
+# Streamlit secrets (2025+)
+.streamlit/secrets.toml
+
+# Marimo static files (2025+)
+.marimo.cache/
+
+# PyType static type checker (2025+)
+.pytype/
+
+# Abstra framework (2025+)
+.abstra/
 
 # Modern editor/IDE files (2025)
 .cursor/

@@ -1,0 +1,22 @@
+{
+  "database_url": "sqlite:///data/tsv_converter.db",
+  "tsv_directory": "config/tsv_rules",
+  "enable_file_watching": true,
+  "debug": false,
+  "security": {
+    "enable_encryption": true,
+    "key_derivation_iterations": 100000,
+    "encryption_algorithm": "AES-256-GCM"
+  },
+  "performance": {
+    "connection_pool_size": 5,
+    "query_timeout": 30,
+    "sync_batch_size": 1000
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "logs/tsv_converter.log",
+    "max_size_mb": 10,
+    "backup_count": 5
+  }
+}
