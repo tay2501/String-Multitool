@@ -125,6 +125,12 @@
       "description": "Replace all substring occurrences with replacement", 
       "example": "/r 'old' 'new' -> old text -> new text",
       "default_args": [""]
+    },
+    "convertbytsv": {
+      "name": "Convert by TSV",
+      "description": "Convert text using TSV file rules",
+      "example": "/convertbytsv technical_terms.tsv -> API -> Application Programming Interface",
+      "requires_args": true
     }
   }
 }

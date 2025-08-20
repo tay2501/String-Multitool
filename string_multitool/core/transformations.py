@@ -11,6 +11,7 @@ import base64
 import hashlib
 import json
 import re
+from pathlib import Path
 from typing import Any
 
 from ..exceptions import TransformationError, ValidationError
@@ -23,6 +24,188 @@ from .types import (
     TransformationRule,
     TransformationRuleType,
 )
+
+
+class TSVTransformation(TransformationBase):
+    """TSVファイルを使用したテキスト変換クラス
+    
+    疎結合設計により、TSV変換ルールを独立して管理し、
+    高いパフォーマンスと拡張性を提供します。
+    """
+
+    def __init__(self, tsv_file_path: str, config: dict[str, Any] | None = None) -> None:
+        """TSV変換インスタンスを初期化
+        
+        Args:
+            tsv_file_path: TSVファイルのパス
+            config: 変換設定辞書（オプション）
+            
+        Raises:
+            ValidationError: TSVファイルパスが無効な場合
+            TransformationError: 初期化に失敗した場合
+        """
+        super().__init__(config)
+        
+        # 型アノテーション（PEP 526準拠）
+        self._tsv_file_path: Path = Path(tsv_file_path)
+        self._conversion_dict: dict[str, str] = {}
+        self._input_text: str = ""
+        self._output_text: str = ""
+        self._transformation_rule: str = f"convertbytsv {tsv_file_path}"
+        
+        # TSVファイルの妥当性検証とロード
+        self._load_tsv_rules()
+
+    def transform(self, text: str) -> str:
+        """テキスト変換を実行
+        
+        Args:
+            text: 変換対象のテキスト
+            
+        Returns:
+            変換されたテキスト
+            
+        Raises:
+            TransformationError: 変換処理に失敗した場合
+        """
+        import csv
+        
+        try:
+            # 入力検証
+            if not self.validate_input(text):
+                raise ValidationError(
+                    f"無効な入力タイプ: {type(text).__name__}",
+                    {"input_type": type(text).__name__}
+                )
+            
+            # 入力テキストを記録
+            self._input_text = text
+            
+            # 高速変換処理（EAFPスタイル）
+            result = self._perform_conversion(text)
+            
+            # 出力テキストを記録
+            self._output_text = result
+            
+            return result
+            
+        except (ValidationError, TransformationError):
+            raise
+        except Exception as e:
+            self.set_error_context({
+                "text_length": len(text) if isinstance(text, str) else 0,
+                "tsv_file": str(self._tsv_file_path),
+                "error_type": type(e).__name__
+            })
+            raise TransformationError(
+                f"TSV変換処理に失敗: {e}",
+                self.get_error_context()
+            ) from e
+
+    def get_transformation_rule(self) -> str:
+        """適用される変換ルールを取得
+        
+        Returns:
+            変換ルール文字列
+        """
+        return self._transformation_rule
+
+    def get_input_text(self) -> str:
+        """変換前の文字列を取得
+        
+        Returns:
+            変換前の文字列
+        """
+        return self._input_text
+
+    def get_output_text(self) -> str:
+        """変換後の文字列を取得
+        
+        Returns:
+            変換後の文字列
+        """
+        return self._output_text
+
+    def _load_tsv_rules(self) -> None:
+        """TSVファイルから変換ルールをロード
+        
+        Raises:
+            ValidationError: TSVファイルが見つからない、または無効な場合
+            TransformationError: TSVファイルの読み込みに失敗した場合
+        """
+        import csv
+        
+        try:
+            # ファイル存在確認（EAFPスタイル）
+            if not self._tsv_file_path.exists():
+                raise ValidationError(
+                    f"TSVファイルが見つかりません: {self._tsv_file_path}",
+                    {"file_path": str(self._tsv_file_path)}
+                )
+            
+            # TSVファイル読み込み
+            with self._tsv_file_path.open('r', encoding='utf-8') as file:
+                csv_reader = csv.reader(file, delimiter='\t')
+                
+                for line_num, row in enumerate(csv_reader, 1):
+                    # 空行をスキップ
+                    if not row or len(row) < 2:
+                        continue
+                    
+                    # キーと値を抽出（最初の2列のみ使用）
+                    key = row[0].strip()
+                    value = row[1].strip()
+                    
+                    if key:  # 空キーは無視
+                        self._conversion_dict[key] = value
+            
+            # 変換辞書が空の場合は警告
+            if not self._conversion_dict:
+                self.set_error_context({
+                    "file_path": str(self._tsv_file_path),
+                    "rules_count": 0
+                })
+                # 空でも処理を続行（変換は行われない）
+                
+        except ValidationError:
+            raise
+        except Exception as e:
+            self.set_error_context({
+                "file_path": str(self._tsv_file_path),
+                "error_type": type(e).__name__
+            })
+            raise TransformationError(
+                f"TSVファイルの読み込みに失敗: {e}",
+                self.get_error_context()
+            ) from e
+
+    def _perform_conversion(self, text: str) -> str:
+        """高速変換処理を実行
+        
+        Args:
+            text: 変換対象のテキスト
+            
+        Returns:
+            変換されたテキスト
+        """
+        if not self._conversion_dict:
+            return text  # 変換ルールがない場合はそのまま返す
+        
+        result = text
+        
+        # パフォーマンス重視：最長マッチ優先でソート
+        sorted_keys = sorted(
+            self._conversion_dict.keys(),
+            key=len,
+            reverse=True
+        )
+        
+        # 効率的な文字列置換
+        for key in sorted_keys:
+            if key in result:
+                result = result.replace(key, self._conversion_dict[key])
+        
+        return result
 
 
 class TextTransformationEngine(
@@ -372,6 +555,8 @@ class TextTransformationEngine(
                 # Convert to lowercase, replace non-alphanumeric with separator
                 result = re.sub(r"[^a-zA-Z0-9]+", separator, text.lower())
                 return result.strip(separator)
+            elif rule_name == "convertbytsv":  # TSV Conversion
+                return self._apply_tsv_conversion(text, args)
             else:
                 raise TransformationError(
                     f"Unknown rule with arguments: {rule_name}",
@@ -656,6 +841,14 @@ class TextTransformationEngine(
                     default_args=["-"],
                     rule_type=TransformationRuleType.ADVANCED,
                 ),
+                "convertbytsv": TransformationRule(
+                    name="Convert by TSV",
+                    description="Convert text using TSV file rules",
+                    example="/convertbytsv technical_terms.tsv → API → Application Programming Interface",
+                    function=lambda text: text,  # Handled specially
+                    requires_args=True,
+                    rule_type=TransformationRuleType.ADVANCED,
+                ),
             }
         )
 
@@ -848,6 +1041,52 @@ class TextTransformationEngine(
         except Exception:
             # その他のエラー時はデフォルトメッセージ
             return "Help information is not available at this time."
+
+    def _apply_tsv_conversion(self, text: str, args: list[str]) -> str:
+        """TSVファイルを使用した変換を実行
+        
+        Args:
+            text: 変換対象のテキスト
+            args: TSVファイルパスを含む引数リスト
+            
+        Returns:
+            変換されたテキスト
+            
+        Raises:
+            TransformationError: TSV変換に失敗した場合
+        """
+        try:
+            if not args:
+                raise TransformationError(
+                    "convertbytsv rule requires TSV file path",
+                    {"rule_name": "convertbytsv", "args_count": len(args)}
+                )
+            
+            # TSVファイルパスを取得（config/tsv_rules/を基準とする）
+            tsv_file_name = args[0]
+            if not tsv_file_name.endswith('.tsv'):
+                tsv_file_name += '.tsv'
+            
+            # プロジェクトルートからの正確な相対パス
+            base_path = Path(__file__).parent.parent.parent
+            tsv_file_path = base_path / "config" / "tsv_rules" / tsv_file_name
+            
+            # TSVTransformationインスタンスを作成して変換実行
+            tsv_transformer = TSVTransformation(str(tsv_file_path))
+            return tsv_transformer.transform(text)
+            
+        except TransformationError:
+            raise
+        except Exception as e:
+            self.set_error_context({
+                "rule_name": "convertbytsv",
+                "args": args,
+                "error_type": type(e).__name__
+            })
+            raise TransformationError(
+                f"TSV conversion failed: {e}",
+                self.get_error_context()
+            ) from e
 
     # TransformationBaseの抽象メソッドの実装
     def get_input_text(self) -> str:
