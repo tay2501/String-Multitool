@@ -37,6 +37,15 @@ from .modes.system_tray import SystemTrayMode
 
 # Import logging utilities
 from .utils.logger import get_logger, log_debug
+from .utils.lifecycle_manager import (
+    ExitReason,
+    get_lifecycle_manager,
+    log_application_end,
+    log_application_start,
+    set_application_mode,
+    set_component_status,
+    add_performance_metric,
+)
 
 
 @injectable
@@ -120,9 +129,22 @@ class ApplicationInterface:
                 {"error_type": type(e).__name__},
             ) from e
         
+        # Initialize lifecycle management and log application startup
+        self._lifecycle_manager = get_lifecycle_manager()
+        session_id = log_application_start()
+        
+        # Set component status for lifecycle tracking
+        set_component_status("config_manager", type(self.config_manager).__name__)
+        set_component_status("transformation_engine", type(self.transformation_engine).__name__)
+        set_component_status("io_manager", type(self.io_manager).__name__)
+        set_component_status("crypto_available", self.crypto_manager is not None)
+        set_component_status("daemon_available", self.daemon_mode is not None)
+        set_component_status("hotkey_available", self.hotkey_mode is not None)
+        set_component_status("system_tray_available", self.system_tray_mode is not None)
+        
         # Log application startup
         self._logger.info("String_Multitool application initialized successfully")
-        log_debug(self._logger, "Application startup complete", components={
+        log_debug(self._logger, "Application startup complete", session_id=session_id, components={
             "config_manager": type(self.config_manager).__name__,
             "transformation_engine": type(self.transformation_engine).__name__,
             "io_manager": type(self.io_manager).__name__,
@@ -142,6 +164,10 @@ class ApplicationInterface:
             StringMultitoolError: If interactive mode fails
         """
         try:
+            # Set mode for lifecycle tracking
+            set_application_mode("interactive")
+            add_performance_metric("initial_text_length", len(input_text))
+            
             self._logger.info("Starting interactive mode")
             log_debug(self._logger, "Interactive mode configuration", 
                      initial_text_length=len(input_text),
@@ -348,10 +374,14 @@ class ApplicationInterface:
                         {"error_type": type(e).__name__},
                     ) from e
 
-            # Cleanup
+            # Cleanup and track performance
+            transformations_applied = getattr(session, 'transformations_applied', 0)
+            add_performance_metric("transformations_applied", transformations_applied)
+            
             self._logger.info("Interactive mode ending - cleaning up session")
             session.cleanup()
-            log_debug(self._logger, "Interactive mode cleanup completed")
+            log_debug(self._logger, "Interactive mode cleanup completed", 
+                     transformations_applied=transformations_applied)
 
         except Exception as e:
             self._logger.error(f"Interactive mode failed with error: {e}")
@@ -369,8 +399,13 @@ class ApplicationInterface:
             StringMultitoolError: If command mode fails
         """
         try:
+            # Set mode for lifecycle tracking
+            set_application_mode("command")
+            add_performance_metric("rule_string", rule_string)
+            
             # Get input text
             input_text: str = self.io_manager.get_input_text()
+            add_performance_metric("input_text_length", len(input_text))
 
             # Apply transformations
             result: str = self.transformation_engine.apply_transformations(
@@ -379,6 +414,7 @@ class ApplicationInterface:
 
             # Output result
             self.io_manager.set_output_text(result)
+            add_performance_metric("output_text_length", len(result))
 
             # Display applied rules and result for user feedback
             display_result: str = result[:100] + "..." if len(result) > 100 else result
@@ -461,6 +497,9 @@ class ApplicationInterface:
             StringMultitoolError: If daemon mode fails
         """
         try:
+            # Set mode for lifecycle tracking
+            set_application_mode("daemon")
+            
             self._logger.info("String_Multitool - Daemon Mode")
 
             # Show available presets
@@ -875,17 +914,38 @@ class ApplicationInterface:
             sys.exit(1)
         except KeyboardInterrupt:
             self._logger.info("\nApplication interrupted by user - Goodbye!")
-            log_debug(self._logger, "Application terminated via KeyboardInterrupt")
+            log_application_end(ExitReason.USER_INTERRUPT, 0)
             sys.exit(0)
+        except (
+            ConfigurationError,
+            ValidationError,
+            TransformationError,
+            CryptographyError,
+        ) as e:
+            self._logger.error(str(e))
+            # Map exception types to exit reasons
+            exit_reason_map = {
+                ConfigurationError: ExitReason.CONFIGURATION_ERROR,
+                ValidationError: ExitReason.VALIDATION_ERROR,
+                TransformationError: ExitReason.TRANSFORMATION_ERROR,
+                CryptographyError: ExitReason.CRYPTOGRAPHY_ERROR,
+            }
+            exit_reason = exit_reason_map.get(type(e), ExitReason.UNKNOWN_ERROR)
+            log_application_end(exit_reason, 1, e)
+            sys.exit(1)
         except Exception as e:
             self._logger.error(f"Application run failed with error: {e}")
             log_debug(self._logger, "Application fatal error", 
                      error_type=type(e).__name__, 
                      error_message=str(e))
+            log_application_end(ExitReason.FATAL_ERROR, 1, e)
             raise StringMultitoolError(
                 f"Application run failed: {e}",
                 {"error_type": type(e).__name__},
             ) from e
+        else:
+            # Normal completion
+            log_application_end(ExitReason.NORMAL_COMPLETION, 0)
         finally:
             self._logger.info("String_Multitool application shutdown")
             log_debug(self._logger, "Application run() method completed")
