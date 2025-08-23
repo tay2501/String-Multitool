@@ -77,15 +77,16 @@ class InputOutputManager:
             raise ClipboardError("Clipboard functionality not available")
 
         # Method 1: pyperclip with retry mechanism
+        last_error: Exception | None = None
         for attempt in range(3):
             try:
                 content = pyperclip.paste()
                 return content if content is not None else ""
             except Exception as e:
+                last_error = e
                 if attempt < 2:  # Don't sleep on last attempt
                     import time
                     time.sleep(0.1 * (attempt + 1))  # Progressive delay
-                last_error = e
 
         # Method 2: tkinter fallback
         try:
@@ -133,7 +134,7 @@ class InputOutputManager:
 
         raise ClipboardError(
             f"Failed to read from clipboard after trying all methods: {last_error}",
-            {"error_type": type(last_error).__name__, "methods_tried": 4}
+            {"error_type": type(last_error).__name__ if last_error else "Unknown", "methods_tried": 4}
         ) from last_error
 
     @staticmethod
@@ -152,16 +153,17 @@ class InputOutputManager:
         logger = get_logger(__name__)
         
         # Method 1: pyperclip with retry mechanism
+        last_error: Exception | None = None
         for attempt in range(3):
             try:
                 pyperclip.copy(text)
                 log_debug(logger, "[SUCCESS] Text copied to clipboard via pyperclip")
                 return
             except Exception as e:
+                last_error = e
                 if attempt < 2:  # Don't sleep on last attempt
                     import time
                     time.sleep(0.1 * (attempt + 1))  # Progressive delay
-                last_error = e
 
         # Method 2: tkinter fallback
         try:
@@ -213,7 +215,7 @@ class InputOutputManager:
 
         raise ClipboardError(
             f"Failed to copy to clipboard after trying all methods: {last_error}",
-            {"text_length": len(text), "error_type": type(last_error).__name__, "methods_tried": 4}
+            {"text_length": len(text), "error_type": type(last_error).__name__ if last_error else "Unknown", "methods_tried": 4}
         ) from last_error
 
     def get_pipe_input(self) -> str | None:
