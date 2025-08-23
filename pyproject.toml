@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "string-multitool"
-version = "2.2.0"
+version = "2.6.0"
 authors = [
     {name = "String_Multitool Development Team"},
 ]
-description = "Advanced text transformation tool with modular architecture and RSA encryption"
+description = "Advanced text transformation tool with POSIX-compliant CLI, case-insensitive TSV conversion, and enterprise-grade architecture"
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
@@ -20,12 +20,13 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Text Processing",
     "Topic :: Utilities",
     "Topic :: Security :: Cryptography",
 ]
-keywords = ["text", "transformation", "clipboard", "encryption", "rsa", "unicode"]
+keywords = ["text", "transformation", "clipboard", "encryption", "rsa", "unicode", "tsv", "case-insensitive", "posix", "cli", "enterprise", "strategy-pattern"]
 dependencies = [
     "pyperclip>=1.8.0",
     "pynput>=1.7.0",

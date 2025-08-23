@@ -119,6 +119,18 @@ class ApplicationInterface:
                 f"Failed to initialize application: {e}",
                 {"error_type": type(e).__name__},
             ) from e
+        
+        # Log application startup
+        self._logger.info("String_Multitool application initialized successfully")
+        log_debug(self._logger, "Application startup complete", components={
+            "config_manager": type(self.config_manager).__name__,
+            "transformation_engine": type(self.transformation_engine).__name__,
+            "io_manager": type(self.io_manager).__name__,
+            "crypto_available": self.crypto_manager is not None,
+            "daemon_available": self.daemon_mode is not None,
+            "hotkey_available": self.hotkey_mode is not None,
+            "system_tray_available": self.system_tray_mode is not None
+        })
 
     def run_interactive_mode(self, input_text: str) -> None:
         """Run application in interactive mode.
@@ -130,6 +142,11 @@ class ApplicationInterface:
             StringMultitoolError: If interactive mode fails
         """
         try:
+            self._logger.info("Starting interactive mode")
+            log_debug(self._logger, "Interactive mode configuration", 
+                     initial_text_length=len(input_text),
+                     has_stdin_tty=sys.stdin.isatty())
+            
             # Create interactive session (injected)
             session: InteractiveSession = inject(InteractiveSession)
             command_processor: CommandProcessor = inject(CommandProcessor)
@@ -160,58 +177,77 @@ class ApplicationInterface:
                             .replace("\t", "\\t")
                         )
 
-                    # Get user input
+                    # Get user input with robust input handling
                     try:
-                        # Check if this is pipe input and no more data available
-                        if text_source == "pipe" and not sys.stdin.isatty():
-                            # For pipe input, try to read from stdin, but if EOF immediately,
-                            # switch to terminal input for interactive mode
+                        # Check if running in non-interactive environment (like IDE or script)
+                        import os
+                        
+                        # First try standard input with immediate error handling
+                        if sys.stdin.isatty():
                             try:
-                                user_input: str = input("Rules: ").strip()
-                            except EOFError:
-                                self._logger.info(
-                                    "\n[INFO] Pipe input received. Switching to interactive mode..."
-                                )
-                                self._logger.info(
-                                    "You can now enter transformation rules (e.g., /u for uppercase) or commands."
-                                )
-                                self._logger.info(
-                                    "Type 'help' for available rules, 'status' to see current text, or 'quit' to exit."
-                                )
-
-                                # Switch to terminal input by reopening stdin
-                                import os
-
+                                # Use more robust input method for Windows
+                                if os.name == "nt":
+                                    # For Windows, try multiple input methods
+                                    try:
+                                        user_input: str = input("Rules: ").strip()
+                                    except EOFError:
+                                        # If EOFError immediately, try reopening stdin
+                                        self._logger.info("Input stream closed. Attempting to reopen...")
+                                        try:
+                                            sys.stdin.close()
+                                            sys.stdin = open("CON", "r", encoding="utf-8")
+                                            user_input: str = input("Rules: ").strip()
+                                        except (OSError, EOFError):
+                                            self._logger.warning("Unable to open interactive input. Use --daemon mode or provide command-line rules.")
+                                            self._logger.info("Example: python String_Multitool.py /t/l")
+                                            break
+                                else:
+                                    # Unix-like systems
+                                    try:
+                                        user_input: str = input("Rules: ").strip()
+                                    except EOFError:
+                                        # Try reopening stdin for Unix systems
+                                        try:
+                                            sys.stdin.close()
+                                            sys.stdin = open("/dev/tty", "r", encoding="utf-8")
+                                            user_input: str = input("Rules: ").strip()
+                                        except (OSError, EOFError):
+                                            self._logger.warning("Unable to open interactive input. Use --daemon mode or provide command-line rules.")
+                                            break
+                            except KeyboardInterrupt:
+                                self._logger.info("\nInterrupted by user. Goodbye!")
+                                break
+                        else:
+                            # Handle pipe input case
+                            self._logger.info("Pipe input detected. Switching to interactive mode...")
+                            self._logger.info("Enter transformation rules (e.g., /u for uppercase) or 'help'/'quit'")
+                            
+                            try:
                                 if os.name == "nt":  # Windows
-                                    try:
-                                        sys.stdin.close()
-                                        sys.stdin = open("CON", "r")
-                                    except:
-                                        # Fallback: continue with current stdin
-                                        pass
+                                    sys.stdin.close()
+                                    sys.stdin = open("CON", "r", encoding="utf-8")
                                 else:  # Unix-like systems
-                                    try:
-                                        sys.stdin.close()
-                                        sys.stdin = open("/dev/tty", "r")
-                                    except:
-                                        # Fallback: continue with current stdin
-                                        pass
-
+                                    sys.stdin.close()
+                                    sys.stdin = open("/dev/tty", "r", encoding="utf-8")
+                                
                                 # Update text_source to indicate we're now interactive
                                 text_source = "clipboard"
-
+                                self._logger.info("Successfully switched to interactive terminal input")
+                                
                                 # Try to get input from terminal
-                                try:
-                                    user_input: str = input("Rules: ").strip()
-                                except EOFError:
-                                    self._logger.error(
-                                        "Unable to switch to interactive input. Exiting..."
-                                    )
-                                    break
-                        else:
-                            user_input: str = input("Rules: ").strip()
+                                user_input: str = input("Rules: ").strip()
+                                
+                            except (OSError, IOError, EOFError) as e:
+                                self._logger.error(f"Failed to switch to interactive input: {e}")
+                                self._logger.info("Interactive mode not available. Use command-line mode instead:")
+                                self._logger.info("Example: python String_Multitool.py /t/l")
+                                break
+                                
                     except EOFError:
-                        self._logger.info("\nGoodbye!")
+                        self._logger.info("End of input detected. Goodbye!")
+                        break
+                    except KeyboardInterrupt:
+                        self._logger.info("\nInterrupted by user. Goodbye!")
                         break
 
                     if not user_input:
@@ -313,9 +349,12 @@ class ApplicationInterface:
                     ) from e
 
             # Cleanup
+            self._logger.info("Interactive mode ending - cleaning up session")
             session.cleanup()
+            log_debug(self._logger, "Interactive mode cleanup completed")
 
         except Exception as e:
+            self._logger.error(f"Interactive mode failed with error: {e}")
             raise StringMultitoolError(
                 f"Interactive mode failed: {e}", {"error_type": type(e).__name__}
             ) from e
@@ -775,6 +814,10 @@ class ApplicationInterface:
             StringMultitoolError: If application execution fails
         """
         try:
+            self._logger.info("String_Multitool application starting")
+            log_debug(self._logger, "Application run() method invoked", 
+                     command_args=sys.argv[1:] if len(sys.argv) > 1 else [])
+            
             # Parse command line arguments
             if len(sys.argv) > 1:
                 arg = sys.argv[1].lower()
@@ -831,13 +874,21 @@ class ApplicationInterface:
             self._logger.error(str(e))
             sys.exit(1)
         except KeyboardInterrupt:
-            self._logger.info("\nGoodbye!")
+            self._logger.info("\nApplication interrupted by user - Goodbye!")
+            log_debug(self._logger, "Application terminated via KeyboardInterrupt")
             sys.exit(0)
         except Exception as e:
+            self._logger.error(f"Application run failed with error: {e}")
+            log_debug(self._logger, "Application fatal error", 
+                     error_type=type(e).__name__, 
+                     error_message=str(e))
             raise StringMultitoolError(
                 f"Application run failed: {e}",
                 {"error_type": type(e).__name__},
             ) from e
+        finally:
+            self._logger.info("String_Multitool application shutdown")
+            log_debug(self._logger, "Application run() method completed")
 
 
 def main() -> None:

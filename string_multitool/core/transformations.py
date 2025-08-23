@@ -29,15 +29,26 @@ from .types import (
 class TSVTransformation(TransformationBase):
     """TSVファイルを使用したテキスト変換クラス
     
-    疎結合設計により、TSV変換ルールを独立して管理し、
-    高いパフォーマンスと拡張性を提供します。
+    Enterprise-grade疎結合設計により、TSV変換ルールを独立して管理し、
+    Strategy Patternを活用した高いパフォーマンスと拡張性を提供します。
+    
+    主要な設計パターン:
+    - Strategy Pattern: 変換アルゴリズムの動的選択
+    - Factory Pattern: 戦略インスタンスの生成
+    - Template Method Pattern: 共通処理フローの定義
     """
 
-    def __init__(self, tsv_file_path: str, config: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self, 
+        tsv_file_path: str, 
+        options: "TSVConversionOptions | None" = None,
+        config: dict[str, Any] | None = None
+    ) -> None:
         """TSV変換インスタンスを初期化
         
         Args:
             tsv_file_path: TSVファイルのパス
+            options: TSV変換オプション（デフォルト設定を使用）
             config: 変換設定辞書（オプション）
             
         Raises:
@@ -51,13 +62,57 @@ class TSVTransformation(TransformationBase):
         self._conversion_dict: dict[str, str] = {}
         self._input_text: str = ""
         self._output_text: str = ""
-        self._transformation_rule: str = f"convertbytsv {tsv_file_path}"
+        
+        # オプションの検証と設定
+        if options is None:
+            self._options: "TSVConversionOptions" = self._create_default_options()
+        else:
+            from .types import TSVConversionOptions
+            if not isinstance(options, TSVConversionOptions):
+                raise ValidationError(
+                    f"Invalid options type: {type(options).__name__}. Expected TSVConversionOptions.",
+                    {"provided_type": type(options).__name__}
+                )
+            self._options = options
+        
+        self._transformation_rule: str = self._build_transformation_rule()
+        
+        # Strategy Pattern: 変換戦略を動的に選択
+        from .tsv_conversion_strategies import TSVConversionStrategyFactory
+        self._conversion_strategy = TSVConversionStrategyFactory.create_strategy(self._options)
         
         # TSVファイルの妥当性検証とロード
         self._load_tsv_rules()
+    
+    def _create_default_options(self) -> "TSVConversionOptions":
+        """デフォルトのTSV変換オプションを作成
+        
+        Returns:
+            デフォルト設定のTSVConversionOptionsインスタンス
+        """
+        from .types import TSVConversionOptions
+        return TSVConversionOptions()
+    
+    def _build_transformation_rule(self) -> str:
+        """変換ルール文字列を構築
+        
+        Returns:
+            オプションを含む変換ルール文字列
+        """
+        base_rule = f"convertbytsv {self._tsv_file_path}"
+        
+        if self._options.case_insensitive:
+            base_rule += " --case-insensitive"
+        
+        if not self._options.preserve_original_case:
+            base_rule += " --no-preserve-case"
+            
+        return base_rule
 
     def transform(self, text: str) -> str:
         """テキスト変換を実行
+        
+        Strategy Patternを使用して、設定に応じた適切な変換アルゴリズムを適用します。
         
         Args:
             text: 変換対象のテキスト
@@ -68,8 +123,6 @@ class TSVTransformation(TransformationBase):
         Raises:
             TransformationError: 変換処理に失敗した場合
         """
-        import csv
-        
         try:
             # 入力検証
             if not self.validate_input(text):
@@ -81,8 +134,12 @@ class TSVTransformation(TransformationBase):
             # 入力テキストを記録
             self._input_text = text
             
-            # 高速変換処理（EAFPスタイル）
-            result = self._perform_conversion(text)
+            # Strategy Patternによる高度な変換処理
+            result = self._conversion_strategy.convert_text(
+                text, 
+                self._conversion_dict, 
+                self._options
+            )
             
             # 出力テキストを記録
             self._output_text = result
@@ -95,6 +152,11 @@ class TSVTransformation(TransformationBase):
             self.set_error_context({
                 "text_length": len(text) if isinstance(text, str) else 0,
                 "tsv_file": str(self._tsv_file_path),
+                "strategy": self._conversion_strategy.__class__.__name__,
+                "options": {
+                    "case_insensitive": self._options.case_insensitive,
+                    "preserve_original_case": self._options.preserve_original_case
+                },
                 "error_type": type(e).__name__
             })
             raise TransformationError(
@@ -179,33 +241,43 @@ class TSVTransformation(TransformationBase):
                 self.get_error_context()
             ) from e
 
-    def _perform_conversion(self, text: str) -> str:
-        """高速変換処理を実行
+    def update_options(self, new_options: "TSVConversionOptions") -> None:
+        """TSV変換オプションを更新し、戦略を再選択
         
         Args:
-            text: 変換対象のテキスト
+            new_options: 新しいTSV変換オプション
             
-        Returns:
-            変換されたテキスト
+        Raises:
+            TransformationError: オプション更新に失敗した場合
         """
-        if not self._conversion_dict:
-            return text  # 変換ルールがない場合はそのまま返す
+        try:
+            from .tsv_conversion_strategies import TSVConversionStrategyFactory
+            
+            # オプションの妥当性を検証
+            if not TSVConversionStrategyFactory.validate_options(new_options):
+                raise ValidationError(
+                    "無効なTSV変換オプション",
+                    {"options": str(new_options)}
+                )
+            
+            # オプションと戦略を更新
+            self._options = new_options
+            self._conversion_strategy = TSVConversionStrategyFactory.create_strategy(new_options)
+            self._transformation_rule = self._build_transformation_rule()
+            
+        except Exception as e:
+            raise TransformationError(
+                f"TSV変換オプションの更新に失敗: {e}",
+                {"error_type": type(e).__name__}
+            ) from e
+    
+    def get_current_options(self) -> "TSVConversionOptions":
+        """現在のTSV変換オプションを取得
         
-        result = text
-        
-        # パフォーマンス重視：最長マッチ優先でソート
-        sorted_keys = sorted(
-            self._conversion_dict.keys(),
-            key=len,
-            reverse=True
-        )
-        
-        # 効率的な文字列置換
-        for key in sorted_keys:
-            if key in result:
-                result = result.replace(key, self._conversion_dict[key])
-        
-        return result
+        Returns:
+            現在のTSV変換オプション
+        """
+        return self._options
 
 
 class TextTransformationEngine(
@@ -576,7 +648,11 @@ class TextTransformationEngine(
             ) from e
 
     def _parse_with_quotes(self, text: str) -> list[str]:
-        """Parse text respecting quoted strings.
+        """Parse text respecting quoted strings and space-separated arguments.
+        
+        Enhanced to handle space-separated arguments for POSIX-compliant parsing:
+        - /convertbytsv --case-insensitive technical_terms.tsv
+        - /r 'old text' 'new text'
 
         Args:
             text: Text to parse
@@ -600,14 +676,19 @@ class TextTransformationEngine(
                         in_quotes = True
                         quote_char = char
                     elif char == "/":
+                        # 新しいルールの開始
                         if current_part:
                             parts.append(current_part)
                             current_part = ""
                         current_part = "/"
                     elif char == " ":
+                        # 空白で区切られた引数
                         if current_part:
                             parts.append(current_part)
                             current_part = ""
+                        # 連続する空白をスキップ
+                        while i + 1 < len(text) and text[i + 1] == " ":
+                            i += 1
                     else:
                         current_part += char
                 else:
@@ -1045,9 +1126,12 @@ class TextTransformationEngine(
     def _apply_tsv_conversion(self, text: str, args: list[str]) -> str:
         """TSVファイルを使用した変換を実行
         
+        Enterprise-grade拡張により、--case-insensitiveなどの
+        高度なオプションをサポートします。
+        
         Args:
             text: 変換対象のテキスト
-            args: TSVファイルパスを含む引数リスト
+            args: TSVファイルパスとオプションを含む引数リスト
             
         Returns:
             変換されたテキスト
@@ -1062,8 +1146,12 @@ class TextTransformationEngine(
                     {"rule_name": "convertbytsv", "args_count": len(args)}
                 )
             
-            # TSVファイルパスを取得（config/tsv_rules/を基準とする）
-            tsv_file_name = args[0]
+            # 引数を解析（ファイルパスとオプションを分離）
+            parsed_args = self._parse_tsv_conversion_args(args)
+            tsv_file_name = parsed_args["file_path"]
+            options = parsed_args["options"]
+            
+            # TSVファイルパスを正規化
             if not tsv_file_name.endswith('.tsv'):
                 tsv_file_name += '.tsv'
             
@@ -1072,7 +1160,7 @@ class TextTransformationEngine(
             tsv_file_path = base_path / "config" / "tsv_rules" / tsv_file_name
             
             # TSVTransformationインスタンスを作成して変換実行
-            tsv_transformer = TSVTransformation(str(tsv_file_path))
+            tsv_transformer = TSVTransformation(str(tsv_file_path), options)
             return tsv_transformer.transform(text)
             
         except TransformationError:
@@ -1086,6 +1174,103 @@ class TextTransformationEngine(
             raise TransformationError(
                 f"TSV conversion failed: {e}",
                 self.get_error_context()
+            ) from e
+    
+    def _parse_tsv_conversion_args(self, args: list[str]) -> dict[str, Any]:
+        """TSV変換の引数を解析（POSIX準拠：オプション優先パターン）
+        
+        POSIX標準に従い、オプションが引数より前に配置される形式を採用:
+        /convertbytsv --case-insensitive technical_terms.tsv
+        
+        Args:
+            args: 引数リスト
+            
+        Returns:
+            解析済み引数辞書
+            {
+                "file_path": str,
+                "options": TSVConversionOptions
+            }
+            
+        Raises:
+            ValidationError: 引数が無効な場合
+        """
+        from .types import TSVConversionOptions
+        
+        try:
+            if not args:
+                raise ValidationError(
+                    "TSV file path is required",
+                    {"args_provided": 0}
+                )
+            
+            # デフォルトオプション
+            case_insensitive = False
+            preserve_original_case = True
+            file_path = None
+            
+            # POSIX準拠：オプションを先頭から処理、非オプションが見つかったら終了
+            i = 0
+            while i < len(args):
+                arg = args[i]
+                arg_lower = arg.lower()
+                
+                # オプション判定（--で始まるか-で始まる）
+                if arg.startswith("--") or (arg.startswith("-") and len(arg) > 1):
+                    if arg_lower in ["--case-insensitive", "--caseinsensitive"]:
+                        case_insensitive = True
+                    elif arg_lower == "-i":
+                        case_insensitive = True
+                    elif arg_lower in ["--no-preserve-case", "--no-preserve-original-case"]:
+                        preserve_original_case = False
+                    elif arg_lower in ["--preserve-case", "--preserve-original-case"]:
+                        preserve_original_case = True
+                    else:
+                        # 未知のオプションは警告として記録
+                        self.set_error_context({
+                            "unknown_option": arg,
+                            "valid_options": [
+                                "--case-insensitive", "--caseinsensitive", "-i",
+                                "--no-preserve-case", "--preserve-case"
+                            ]
+                        })
+                else:
+                    # 非オプション引数（ファイルパス）が見つかった
+                    file_path = arg
+                    break
+                
+                i += 1
+            
+            # ファイルパスが見つからない場合
+            if file_path is None:
+                raise ValidationError(
+                    "TSV file path is required after options",
+                    {
+                        "args_provided": args,
+                        "parsed_options": {
+                            "case_insensitive": case_insensitive,
+                            "preserve_original_case": preserve_original_case
+                        }
+                    }
+                )
+            
+            # TSVConversionOptionsを作成
+            options = TSVConversionOptions(
+                case_insensitive=case_insensitive,
+                preserve_original_case=preserve_original_case
+            )
+            
+            return {
+                "file_path": file_path,
+                "options": options
+            }
+            
+        except ValidationError:
+            raise
+        except Exception as e:
+            raise ValidationError(
+                f"Failed to parse TSV conversion arguments: {e}",
+                {"args": args, "error_type": type(e).__name__}
             ) from e
 
     # TransformationBaseの抽象メソッドの実装

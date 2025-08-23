@@ -33,17 +33,63 @@ String_Multitool follows a modular, enterprise-grade architecture designed for m
 **Purpose**: Main application entry point and user interaction handler
 
 **Responsibilities**:
-- Command-line argument parsing
+- POSIX-compliant command-line argument parsing
 - Interactive mode management
 - Help system display
 - Error handling and user feedback
 - Coordination between other components
 
 **Key Methods**:
-- `run()`: Main application entry point
+- `run()`: Main application entry point with POSIX argument handling
 - `run_interactive_mode()`: Interactive user interface
 - `run_command_mode()`: Command-line rule execution
 - `display_help()`: Comprehensive help display
+
+**Recent Enhancements (v2.6.0)**:
+- POSIX-compliant argument parsing for options-before-arguments pattern
+- Enhanced rule string parsing for space-separated arguments
+- Support for complex TSV conversion options
+
+### 1.1 Enterprise TSV Conversion System (New in v2.6.0)
+
+**Purpose**: Advanced text conversion using TSV dictionaries with case-insensitive support
+
+**Architecture Pattern**: Strategy + Factory + Template Method
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                TSVTransformation                            │
+│  (Main TSV transformation coordinator)                     │
+└─────────────────┬───────────────────────────────────────────┘
+                  │
+    ┌─────────────┼─────────────┐
+    │             │             │
+    ▼             ▼             ▼
+┌─────────────────┐ ┌──────────────────┐ ┌─────────────────────┐
+│TSVConversionOptions│ │StrategyFactory  │ │ConversionStrategies │
+│  (Data Class)    │ │  (Dynamic       │ │ (Algorithm          │
+│                 │ │  Selection)     │ │  Implementations)   │
+└─────────────────┘ └──────────────────┘ └─────────────────────┘
+                                                  │
+                                    ┌─────────────┼─────────────┐
+                                    ▼             ▼             ▼
+                            ┌───────────────┐ ┌──────────────────┐
+                            │CaseSensitive  │ │CaseInsensitive   │
+                            │Strategy       │ │Strategy          │
+                            └───────────────┘ └──────────────────┘
+```
+
+**Key Components**:
+- **TSVConversionOptions**: Immutable configuration data class
+- **TSVConversionStrategyFactory**: Dynamic strategy instantiation
+- **AbstractTSVConversionStrategy**: Template method base class
+- **CaseSensitiveConversionStrategy**: Traditional exact matching
+- **CaseInsensitiveConversionStrategy**: Advanced case-agnostic matching
+
+**Performance Features**:
+- Strategy-level caching for preprocessing optimization
+- Longest-match-first sorting for optimal replacement order
+- Intelligent case pattern preservation algorithms
 
 ### 2. ConfigurationManager
 **Purpose**: Manages application configuration from JSON files

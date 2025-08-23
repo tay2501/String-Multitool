@@ -128,9 +128,21 @@
     },
     "convertbytsv": {
       "name": "Convert by TSV",
-      "description": "Convert text using TSV file rules",
-      "example": "/convertbytsv technical_terms.tsv -> API -> Application Programming Interface",
-      "requires_args": true
+      "description": "Convert text using TSV file rules with advanced options",
+      "example": "/convertbytsv technical_terms.tsv --case-insensitive -> API/Api/api -> Application Programming Interface",
+      "requires_args": true,
+      "supported_options": [
+        "--case-insensitive",
+        "--caseinsensitive", 
+        "-i",
+        "--preserve-case",
+        "--no-preserve-case"
+      ],
+      "option_descriptions": {
+        "--case-insensitive": "Ignore case when matching keys (API, Api, api all match)",
+        "--preserve-case": "Preserve original text case pattern when case-insensitive (default)",
+        "--no-preserve-case": "Use replacement text as-is when case-insensitive"
+      }
     }
   }
 }

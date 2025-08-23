@@ -269,10 +269,9 @@ def log_error(logger: logging.Logger, message: str, **kwargs: Any) -> None:
     Args:
         logger: Logger instance
         message: Error message
-        exc_info: Include exception traceback
         **kwargs: Additional context data
     """
     if kwargs:
-        logger.debug(f"{message} - Context: {kwargs}")
+        logger.error(f"{message} - Context: {kwargs}")
     else:
-        logger.debug(message)
+        logger.error(message)

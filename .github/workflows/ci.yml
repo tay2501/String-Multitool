@@ -161,7 +161,7 @@ jobs:
     
     - name: Run tests
       run: |
-        python -m pytest test_transform.py test_system_integration.py test_readme_examples.py --cov=string_multitool --cov-report=xml --cov-report=term-missing --junit-xml=test-results-${{ matrix.python-version }}.xml --timeout=300 -v
+        python -m pytest test_transform.py test_system_integration.py test_readme_examples.py test_tsv_case_insensitive.py --cov=string_multitool --cov-report=xml --cov-report=term-missing --junit-xml=test-results-${{ matrix.python-version }}.xml --timeout=300 -v
     
     - name: Run hotkey tests (environment permitting)
       run: |
@@ -230,6 +230,11 @@ jobs:
         # Test basic transformations
         echo "hello world" | python String_Multitool.py /u | findstr "HELLO WORLD"
         echo "  TRIM ME  " | python String_Multitool.py /t/l | findstr "trim me"
+        
+        # Test TSV case-insensitive conversion (new feature)
+        echo "api" | python String_Multitool.py "/convertbytsv --case-insensitive technical_terms.tsv" | findstr "Application Programming Interface"
+        echo "Api" | python String_Multitool.py "/convertbytsv --case-insensitive technical_terms.tsv" | findstr "Application Programming Interface"
+        echo "API and sql" | python String_Multitool.py "/convertbytsv --case-insensitive technical_terms.tsv" | findstr "Application Programming Interface.*Structured Query Language"
         
         # Test help command
         python String_Multitool.py help | findstr "String_Multitool"
