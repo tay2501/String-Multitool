@@ -15,7 +15,7 @@ watchdog==3.0.0
 cryptography==42.0.5
 
 # Modern CLI interface
-typer==0.16.0
+typer==0.16.1
 rich==14.1.0
 
 # Type checking and annotations (Python 3.10+ compatibility)
