@@ -52,8 +52,38 @@ class InputOutputManager:
         """
         try:
             if not sys.stdin.isatty():
-                # Input is piped
-                return sys.stdin.read().strip()
+                # Input is piped - ensure UTF-8 encoding
+                try:
+                    # First try to read with current encoding
+                    raw_input = sys.stdin.read()
+                    
+                    # If the input contains decode errors, try to fix them
+                    if isinstance(raw_input, str) and '\udcef' in raw_input:
+                        # Raw bytes were decoded incorrectly, need to handle encoding
+                        # Read the buffer content directly as bytes and decode properly
+                        import codecs
+                        # Try to decode with UTF-8 error handling
+                        try:
+                            # Encode back to bytes using latin-1 to preserve raw bytes
+                            raw_bytes = raw_input.encode('latin-1', errors='ignore')
+                            # Decode as UTF-8 with error handling
+                            corrected_input = raw_bytes.decode('utf-8', errors='replace')
+                            return corrected_input.strip()
+                        except (UnicodeDecodeError, UnicodeEncodeError):
+                            # Fallback to original input with replacement chars removed
+                            return raw_input.replace('\udcef', '').replace('\udc94', '').replace('\udc80', '').strip()
+                    
+                    return raw_input.strip()
+                    
+                except (UnicodeDecodeError, UnicodeEncodeError) as encoding_error:
+                    # If encoding fails, try reading with explicit UTF-8
+                    try:
+                        import io
+                        utf8_stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8', errors='replace')
+                        return utf8_stdin.read().strip()
+                    except Exception:
+                        # Final fallback - return with replacement characters
+                        return str(encoding_error).strip()
             else:
                 # No pipe input, use clipboard
                 return self.get_clipboard_text()
@@ -226,8 +256,35 @@ class InputOutputManager:
         """
         try:
             if not sys.stdin.isatty():
-                # Input is piped
-                return sys.stdin.read().strip()
+                # Input is piped - ensure UTF-8 encoding
+                try:
+                    # First try to read with current encoding
+                    raw_input = sys.stdin.read()
+                    
+                    # If the input contains decode errors, try to fix them
+                    if isinstance(raw_input, str) and '\udcef' in raw_input:
+                        # Raw bytes were decoded incorrectly, need to handle encoding
+                        try:
+                            # Encode back to bytes using latin-1 to preserve raw bytes
+                            raw_bytes = raw_input.encode('latin-1', errors='ignore')
+                            # Decode as UTF-8 with error handling
+                            corrected_input = raw_bytes.decode('utf-8', errors='replace')
+                            return corrected_input.strip()
+                        except (UnicodeDecodeError, UnicodeEncodeError):
+                            # Fallback to original input with replacement chars removed
+                            return raw_input.replace('\udcef', '').replace('\udc94', '').replace('\udc80', '').strip()
+                    
+                    return raw_input.strip()
+                    
+                except (UnicodeDecodeError, UnicodeEncodeError):
+                    # If encoding fails, try reading with explicit UTF-8
+                    try:
+                        import io
+                        utf8_stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8', errors='replace')
+                        return utf8_stdin.read().strip()
+                    except Exception:
+                        # Final fallback - return None
+                        return None
             else:
                 # No pipe input available
                 return None

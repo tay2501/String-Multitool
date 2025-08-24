@@ -1,0 +1,103 @@
+name: Security Report
+description: Report a security vulnerability (PRIVATE ISSUE)
+title: "[SECURITY]: "
+labels: ["security", "critical"]
+assignees:
+  - tay2501
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+          **IMPORTANT**: If this is a serious security vulnerability, please consider using private vulnerability reporting instead of a public issue.
+        
+        For critical security issues, please email: [your-email@example.com]
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity Level
+      description: How severe is this security issue?
+      options:
+        - Low - Minor security concern
+        - Medium - Moderate security risk
+        - High - Significant security vulnerability
+        - Critical - Immediate security threat
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      description: Which part of the application is affected?
+      options:
+        - Cryptography module (RSA/AES)
+        - File handling
+        - Clipboard operations
+        - Configuration management
+        - Input validation
+        - Daemon mode
+        - Build/distribution
+        - Dependencies
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Vulnerability Description
+      description: Detailed description of the security issue
+      placeholder: "The vulnerability allows..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Potential Impact
+      description: What could an attacker do with this vulnerability?
+      placeholder: |
+        - Data exposure
+        - Unauthorized access
+        - Code execution
+        - Denial of service
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: How to reproduce this security issue (if safe to share)
+      placeholder: |
+        1. Configure application with...
+        2. Execute command...
+        3. Observe security issue...
+
+  - type: textarea
+    id: mitigation
+    attributes:
+      label: Suggested Mitigation
+      description: If you have suggestions for fixing this issue, please share them
+      placeholder: "This could be mitigated by..."
+
+  - type: input
+    id: cve
+    attributes:
+      label: CVE/Advisory Reference
+      description: If this relates to a known CVE or security advisory, please provide the reference
+      placeholder: "CVE-2024-XXXX"
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Security Checklist
+      options:
+        - label: I have not included sensitive information in this report
+          required: true
+        - label: I understand this is a public issue and will be visible to everyone
+          required: true
+        - label: I have considered the impact of public disclosure
+          required: true

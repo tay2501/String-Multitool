@@ -126,11 +126,16 @@
       "example": "/r 'old' 'new' -> old text -> new text",
       "default_args": [""]
     },
-    "convertbytsv": {
-      "name": "Convert by TSV",
-      "description": "Convert text using TSV file rules with advanced options",
-      "example": "/convertbytsv technical_terms.tsv --case-insensitive -> API/Api/api -> Application Programming Interface",
+    "tsv": {
+      "name": "TSV Operations",
+      "description": "Perform TSV-based operations: convert text, list database rules, or access SQLite database",
+      "example": "/tsv list -> Show database rules | /tsv sqlite3 -> Access database | /tsv file.tsv -> Convert text",
       "requires_args": true,
+      "supported_commands": [
+        "list",
+        "sqlite3",
+        "<filename.tsv>"
+      ],
       "supported_options": [
         "--case-insensitive",
         "--caseinsensitive", 
@@ -138,6 +143,11 @@
         "--preserve-case",
         "--no-preserve-case"
       ],
+      "command_descriptions": {
+        "list": "Display all TSV rule sets stored in the database with detailed information",
+        "sqlite3": "Open SQLite database connection information and access instructions",
+        "<filename.tsv>": "Convert text using specified TSV rule file with optional case-insensitive matching"
+      },
       "option_descriptions": {
         "--case-insensitive": "Ignore case when matching keys (API, Api, api all match)",
         "--preserve-case": "Preserve original text case pattern when case-insensitive (default)",

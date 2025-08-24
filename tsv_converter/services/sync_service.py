@@ -230,12 +230,16 @@ class SyncService(BaseService, SyncServiceInterface):
             rule_set.file_hash = file_hash
             rule_set.rule_count = len(conversion_rules)
             
-            # Add conversion rules
+            # Extract TSV filename for traceability
+            tsv_file_name = Path(file_path).name
+            
+            # Add conversion rules with TSV file name
             for source_text, target_text in conversion_rules:
                 rule = ConversionRule(
                     rule_set_id=rule_set.id,
                     source_text=source_text,
-                    target_text=target_text
+                    target_text=target_text,
+                    tsv_file_name=tsv_file_name
                 )
                 self._db_session.add(rule)
             
