@@ -23,6 +23,7 @@ from .types import (
     TransformationEngineProtocol,
     TransformationRule,
     TransformationRuleType,
+    TSVConversionOptions,
 )
 
 
@@ -41,7 +42,7 @@ class TSVTransformation(TransformationBase):
     def __init__(
         self, 
         tsv_file_path: str, 
-        options: "TSVConversionOptions | None" = None,
+        options: TSVConversionOptions | None = None,
         config: dict[str, Any] | None = None
     ) -> None:
         """TSV変換インスタンスを初期化
@@ -65,9 +66,8 @@ class TSVTransformation(TransformationBase):
         
         # オプションの検証と設定
         if options is None:
-            self._options: "TSVConversionOptions" = self._create_default_options()
+            self._options: TSVConversionOptions = self._create_default_options()
         else:
-            from .types import TSVConversionOptions
             if not isinstance(options, TSVConversionOptions):
                 raise ValidationError(
                     f"Invalid options type: {type(options).__name__}. Expected TSVConversionOptions.",
@@ -84,13 +84,12 @@ class TSVTransformation(TransformationBase):
         # TSVファイルの妥当性検証とロード
         self._load_tsv_rules()
     
-    def _create_default_options(self) -> "TSVConversionOptions":
+    def _create_default_options(self) -> TSVConversionOptions:
         """デフォルトのTSV変換オプションを作成
         
         Returns:
             デフォルト設定のTSVConversionOptionsインスタンス
         """
-        from .types import TSVConversionOptions
         return TSVConversionOptions()
     
     def _build_transformation_rule(self) -> str:
@@ -241,7 +240,7 @@ class TSVTransformation(TransformationBase):
                 self.get_error_context()
             ) from e
 
-    def update_options(self, new_options: "TSVConversionOptions") -> None:
+    def update_options(self, new_options: TSVConversionOptions) -> None:
         """TSV変換オプションを更新し、戦略を再選択
         
         Args:
@@ -271,7 +270,7 @@ class TSVTransformation(TransformationBase):
                 {"error_type": type(e).__name__}
             ) from e
     
-    def get_current_options(self) -> "TSVConversionOptions":
+    def get_current_options(self) -> TSVConversionOptions:
         """現在のTSV変換オプションを取得
         
         Returns:
@@ -1195,8 +1194,6 @@ class TextTransformationEngine(
         Raises:
             ValidationError: 引数が無効な場合
         """
-        from .types import TSVConversionOptions
-        
         try:
             if not args:
                 raise ValidationError(
