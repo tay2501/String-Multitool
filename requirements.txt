@@ -31,7 +31,7 @@ pystray==0.19.5
 pillow==10.4.0
 
 # Build dependencies
-pyinstaller==6.12.0
+pyinstaller==6.15.0
 
 # System and process monitoring (for lifecycle management)
 psutil==6.1.1
