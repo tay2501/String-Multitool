@@ -28,7 +28,7 @@ pytest-mock==3.14.1
 
 # System tray support (optional)
 pystray==0.19.5
-pillow==10.4.0
+pillow==11.3.0
 
 # Build dependencies
 pyinstaller==6.12.0
