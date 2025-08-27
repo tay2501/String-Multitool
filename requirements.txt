@@ -12,7 +12,7 @@ keyboard==0.13.5
 watchdog==3.0.0
 
 # RSA encryption/decryption support
-cryptography==42.0.5
+cryptography==45.0.6
 
 # Modern CLI interface
 typer==0.16.0
