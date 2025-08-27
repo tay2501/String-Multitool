@@ -34,7 +34,7 @@ pillow==10.4.0
 pyinstaller==6.12.0
 
 # System and process monitoring (for lifecycle management)
-psutil==6.1.1
+psutil==7.0.0
 
 # JSON logging formatter (for structured lifecycle logging)
 python-json-logger==2.0.7
