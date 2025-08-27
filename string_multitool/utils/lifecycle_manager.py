@@ -379,7 +379,7 @@ class ApplicationLifecycleManager:
             # Try to get resource module metrics if available
             if RESOURCE_AVAILABLE:
                 try:
-                    ru = resource.getrusage(resource.RUSAGE_SELF)
+                    ru = resource.getrusage(resource.RUSAGE_SELF)  # type: ignore[attr-defined]
                     user_time = ru.ru_utime
                     system_time = ru.ru_stime
                     peak_memory = ru.ru_maxrss / 1024  # Convert to MB (Linux reports in KB)

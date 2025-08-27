@@ -63,17 +63,79 @@ py-modules = ["String_Multitool"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "-ra -q --strict-markers --strict-config"
+addopts = [
+    "-ra",                    # show extra test summary info for all except passed
+    "-q",                     # quiet mode
+    "--strict-markers",       # treat undefined markers as errors
+    "--strict-config",        # treat config issues as errors
+    "--tb=short",            # short traceback format
+    "--disable-warnings",    # disable pytest warnings for cleaner output
+    "--color=yes",           # force color output
+    "--durations=10",        # show 10 slowest tests
+    "--maxfail=5",           # stop after 5 failures
+]
 testpaths = [
     "test_transform.py",
+    "test_tsv_case_insensitive.py", 
+    "test_system_integration.py",
+    "test_hotkey.py",
+    "test_tsv_operations.py",
+    "test_readme_examples.py",
+    "test_unicode.py",
+    "test_simple.py",
 ]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+# Modern pytest markers for comprehensive test categorization
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "system: marks tests as system-level tests",
+    "performance: marks tests that measure performance",
+    "security: marks tests that check security features",
+    "ui: marks tests for user interface components",
+    "network: marks tests that require network access",
+    "crypto: marks tests that use cryptographic features",
+    "clipboard: marks tests that use clipboard functionality",
+    "tsv: marks tests for TSV conversion functionality",
+    "config: marks tests for configuration management",
+    "transforms: marks tests for text transformations",
+    "io: marks tests for input/output operations",
+    "hotkey: marks tests for hotkey functionality",
+    "daemon: marks tests for daemon mode",
+    "interactive: marks tests for interactive mode",
 ]
+# Filter out specific warnings
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning", 
+    "ignore:.*unclosed.*:ResourceWarning",
+]
+# Test discovery configuration  
+norecursedirs = [
+    "*.egg", 
+    ".git", 
+    ".mypy_cache", 
+    ".pytest_cache",
+    "__pycache__", 
+    "docs", 
+    "build", 
+    "dist",
+    ".venv",
+    "venv",
+]
+# Timeout configuration for hanging tests
+timeout = 300
+timeout_method = "thread"
+# Console output configuration
+console_output_style = "progress"
+# Log configuration for debugging
+log_cli = false
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 
 [tool.coverage.run]
 source = ["String_Multitool"]

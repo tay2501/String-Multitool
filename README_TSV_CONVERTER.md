@@ -30,16 +30,16 @@ mkdir -p data logs config/tsv_rules
 
 ```bash
 # List available rule sets
-python convertbytsv.py ls
+python usetsvr.py ls
 
 # Convert clipboard text using a rule set
-python convertbytsv.py japanese_english
+python usetsvr.py japanese_english
 
 # Sync TSV files with database
-python convertbytsv.py sync config/tsv_rules
+python usetsvr.py sync config/tsv_rules
 
 # Get detailed information about a rule set
-python convertbytsv.py info japanese_english
+python usetsvr.py info japanese_english
 ```
 
 ## 📁 Project Structure
@@ -220,7 +220,7 @@ Enable tab completion for rule set names:
 pip install argcomplete
 
 # Enable completion
-eval "$(register-python-argcomplete convertbytsv.py)"
+eval "$(register-python-argcomplete usetsvr.py)"
 ```
 
 ### File Watching

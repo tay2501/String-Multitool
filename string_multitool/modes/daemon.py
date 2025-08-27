@@ -7,6 +7,8 @@ specialized components following the Single Responsibility Principle.
 
 from __future__ import annotations
 
+import signal
+import threading
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, Final
@@ -86,6 +88,10 @@ class DaemonMode:
         # State tracking
         self._active_preset: str | None = None
         self._start_time: datetime | None = None
+        
+        # Graceful shutdown handling
+        self._shutdown_event = threading.Event()
+        self._setup_signal_handlers()
 
     @property
     def is_running(self) -> bool:
@@ -139,7 +145,16 @@ class DaemonMode:
             ):
                 self._hotkey_manager.start_sequence_monitoring()
                 print("[DAEMON] Hotkey sequence monitoring started")
+            
+            # Wait for shutdown signal
+            print("[DAEMON] Daemon monitoring active. Press Ctrl+C to stop.")
+            self._wait_for_shutdown()
 
+        except KeyboardInterrupt:
+            print("\n[DAEMON] Startup interrupted by user")
+            self._shutdown_event.set()
+            self._stop_all_monitoring()
+            raise
         except Exception as e:
             # Clean up on failure
             self._stop_all_monitoring()
@@ -304,3 +319,44 @@ class DaemonMode:
         print(
             f"[DAEMON] Sequences detected: {hotkey_stats.get('sequences_detected', 0)}"
         )
+    
+    def _setup_signal_handlers(self) -> None:
+        """Set up signal handlers for graceful shutdown."""
+        def signal_handler(signum: int, frame) -> None:
+            print(f"\n[DAEMON] Received signal {signum}, shutting down gracefully...")
+            self._shutdown_event.set()
+            # Force interrupt the main thread if needed
+            import os
+            if signum == signal.SIGINT:
+                # Give a moment for graceful shutdown, then force exit if needed
+                threading.Timer(2.0, lambda: os._exit(0)).start()
+        
+        # Handle SIGINT (Ctrl+C) and SIGTERM for graceful shutdown
+        try:
+            signal.signal(signal.SIGINT, signal_handler)
+            if hasattr(signal, 'SIGTERM'):  # SIGTERM may not be available on Windows
+                signal.signal(signal.SIGTERM, signal_handler)
+        except (OSError, ValueError) as e:
+            # Signal handling may fail on some platforms
+            print(f"[DAEMON] Warning: Could not set up signal handlers: {e}")
+    
+    def _wait_for_shutdown(self) -> None:
+        """Wait for shutdown signal and perform cleanup."""
+        try:
+            # Wait indefinitely for shutdown signal with longer timeout for better responsiveness
+            while not self._shutdown_event.is_set():
+                # Use interruptible wait - this allows KeyboardInterrupt to be caught
+                try:
+                    self._shutdown_event.wait(timeout=1.0)  # Increased timeout
+                except KeyboardInterrupt:
+                    print("\n[DAEMON] Keyboard interrupt received, shutting down...")
+                    self._shutdown_event.set()
+                    break
+        except KeyboardInterrupt:
+            # Fallback KeyboardInterrupt handler
+            print("\n[DAEMON] Keyboard interrupt received, shutting down...")
+            self._shutdown_event.set()
+        finally:
+            # Ensure cleanup is performed
+            self._stop_all_monitoring()
+            self._display_stop_statistics()

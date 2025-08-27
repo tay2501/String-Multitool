@@ -16,7 +16,7 @@ Get started in under 5 minutes:
 
 ```bash
 # Install
-git clone https://github.com/yourusername/String-Multitool.git
+git clone https://github.com/[your-username]/String-Multitool.git
 cd String-Multitool
 python -m venv .venv && .venv\Scripts\activate
 pip install -r requirements.txt
@@ -38,6 +38,7 @@ python String_Multitool.py
 - **Interactive Mode**: Real-time clipboard monitoring with auto-detection
 - **Cross-Platform**: Windows, macOS, Linux support
 - **Unicode Support**: Full-width ↔ half-width conversion
+- **TSV Conversion**: Dictionary-based text transformation with case-insensitive matching
 
 ### 🏢 Enterprise Features  
 - **Modular Architecture**: Clean separation of concerns
@@ -84,6 +85,7 @@ Master these 5 rules for 90% of use cases:
 | `/r 'old' 'new'` | Replace | `/r 'old' 'new'` → `old text` → `new text` |
 | `/S '+'` | Slugify | `/S '+'` → `http://foo.bar` → `http+foo+bar` |
 | `/convertbytsv file.tsv --case-insensitive` | TSV Convert | `API` → `Application Programming Interface` |
+| `/tsv file.tsv` | TSV Database Sync | Sync TSV files to database for fast lookups |
 | `/enc` | RSA Encrypt | `Secret message` → `Base64 encrypted text` |
 | `/dec` | RSA Decrypt | `Base64 encrypted text` → `Secret message` |
 
@@ -141,10 +143,16 @@ python String_Multitool.py --hotkey
 ```bash
 # Create conversion dictionary
 echo -e "API\tApplication Programming Interface" > terms.tsv
+echo -e "SQL\tStructured Query Language" >> terms.tsv
 
 # Convert abbreviations (case-insensitive)
-echo "Use api and SQL" | python String_Multitool.py "/convertbytsv --case-insensitive terms.tsv"
+echo "Use api and SQL" | python String_Multitool.py /convertbytsv terms.tsv --case-insensitive
 # → "Use Application Programming Interface and Structured Query Language"
+
+# TSV Database System (Advanced)
+python usetsvr.py sync config/tsv_rules    # Sync TSV files to database
+python usetsvr.py japanese_english          # Convert using rule set
+python usetsvr.py ls                        # List available rule sets
 ```
 
 ## 🔒 Security Features
@@ -173,7 +181,7 @@ python String_Multitool.py /dec
 ### Installation
 ```bash
 # Clone and setup
-git clone https://github.com/yourusername/String-Multitool.git
+git clone https://github.com/[your-username]/String-Multitool.git
 cd String-Multitool
 
 # Virtual environment (.venv必須)
@@ -190,10 +198,12 @@ python String_Multitool.py help
 
 ### Dependencies
 ```
-pyperclip>=1.8.0      # Clipboard operations
-pynput>=1.7.0         # Hotkey support
-watchdog>=3.0.0       # File monitoring
-cryptography>=41.0.0  # RSA + AES encryption
+pyperclip==1.9.0      # Clipboard operations
+keyboard==0.13.5      # Global hotkey support
+watchdog==3.0.0       # File monitoring
+cryptography==42.0.5  # RSA + AES encryption
+typer==0.16.0         # Modern CLI interface
+rich==14.1.0          # Rich text and formatting
 ```
 
 ## 🔧 Development Commands
@@ -201,7 +211,7 @@ cryptography>=41.0.0  # RSA + AES encryption
 ```bash
 # Run Application
 python String_Multitool.py                    # Interactive mode
-python String_Multitool.py /t/l               # Apply rules directly
+python String_Multitool.py /t/l"              # Apply rules directly
 
 # Testing
 python -m pytest test_transform.py test_tsv_case_insensitive.py -v
@@ -266,7 +276,7 @@ ApplicationInterface (Main UI & Coordination)
 
 ### Getting Help
 - **Built-in help**: `python String_Multitool.py help`
-- **Test rules**: `echo "test" | python String_Multitool.py /rule`
+- **Test rules**: `echo "test" | python String_Multitool.py /rule"`
 - **Interactive commands**: `status`, `refresh`, `help`, `quit`
 
 ## 📄 License
@@ -298,6 +308,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 **Ready to transform your text processing workflow?**
 
-[Get Started](docs/user-guide/getting-started.md) | [View Documentation](docs/) | [Report Issues](https://github.com/yourusername/String-Multitool/issues)
+[Get Started](docs/user-guide/getting-started.md) | [View Documentation](docs/) | [Report Issues](https://github.com/[your-username]/String-Multitool/issues)
 
 </div>

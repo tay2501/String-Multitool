@@ -58,11 +58,14 @@ class SystemTrayMode:
 
         self._logger = get_logger(__name__)
 
-        # Use dependency injection
+        # Use dependency injection - cast to correct types
+        from ..core.transformations import TextTransformationEngine
+        from ..core.config import ConfigurationManager
+        
         self.transformation_engine = transformation_engine or inject(
-            TransformationEngineProtocol
+            TextTransformationEngine
         )
-        self.config_manager = config_manager or inject(ConfigManagerProtocol)
+        self.config_manager = config_manager or inject(ConfigurationManager)
         self.io_manager = io_manager or inject(InputOutputManager)
 
         # Initialize daemon mode for background processing
@@ -85,7 +88,7 @@ class SystemTrayMode:
             # Try to load custom icon, fallback to default
             icon_path = Path("resources/icon.png")
             if icon_path.exists():
-                image = Image.open(icon_path)
+                image: Any = Image.open(icon_path)
             else:
                 # Create default icon (16x16 blue square)
                 image = Image.new("RGB", (16, 16), color="blue")

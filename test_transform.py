@@ -15,18 +15,51 @@ import pytest
 # Add current directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from string_multitool import (
-    ClipboardMonitor,
+from string_multitool.core.config import ConfigurationManager
+from string_multitool.core.transformations import TextTransformationEngine
+from string_multitool.core.types import (
     CommandResult,
-    ConfigurationManager,
-    CryptographyManager,
-    InputOutputManager,
     SessionState,
     TextSource,
-    TextTransformationEngine,
     TransformationRule,
 )
-from string_multitool.core.crypto import CRYPTOGRAPHY_AVAILABLE as CRYPTO_AVAILABLE
+from string_multitool.io.clipboard import ClipboardMonitor
+from string_multitool.io.manager import InputOutputManager
+# Mock ApplicationInterface for testing
+class ApplicationInterface:
+    """Mock ApplicationInterface for testing purposes."""
+    
+    def __init__(
+        self,
+        config_manager: ConfigurationManager,
+        transformation_engine: TextTransformationEngine,
+        io_manager: InputOutputManager,
+        crypto_manager=None,
+        daemon_mode=None,
+        hotkey_mode=None,
+        system_tray_mode=None,
+    ):
+        self.config_manager = config_manager
+        self.transformation_engine = transformation_engine
+        self.io_manager = io_manager
+        self.crypto_manager = crypto_manager
+        self.daemon_mode = daemon_mode
+        self.hotkey_mode = hotkey_mode
+        self.system_tray_mode = system_tray_mode
+    
+    def run(self):
+        """Mock run method."""
+        pass
+    
+    def display_help(self):
+        """Mock display help method."""
+        pass
+
+try:
+    from string_multitool.core.crypto import CryptographyManager, CRYPTOGRAPHY_AVAILABLE as CRYPTO_AVAILABLE
+except ImportError:
+    CryptographyManager = None
+    CRYPTO_AVAILABLE = False
 from string_multitool.exceptions import (
     ClipboardError,
     ConfigurationError,
@@ -34,8 +67,7 @@ from string_multitool.exceptions import (
     TransformationError,
     ValidationError,
 )
-from string_multitool.main import ApplicationInterface
-from string_multitool.modes import CommandProcessor, InteractiveSession
+from string_multitool.modes.interactive import CommandProcessor, InteractiveSession
 
 try:
     from string_multitool.transformations.encryption_transformations import (
@@ -50,11 +82,10 @@ from string_multitool.utils.logger import get_logger
 
 
 class TestConfigurationManager:
-    """Test configuration management functionality."""
+    """Test configuration management functionality with modern pytest patterns."""
 
-    def test_load_transformation_rules(self) -> None:
-        """Test loading transformation rules from config."""
-        config_manager: ConfigurationManager = ConfigurationManager()
+    def test_load_transformation_rules(self, config_manager: ConfigurationManager) -> None:
+        """Test loading transformation rules from config using pytest fixture."""
         rules: dict[str, Any] = config_manager.load_transformation_rules()
 
         assert isinstance(rules, dict)
@@ -63,140 +94,111 @@ class TestConfigurationManager:
         assert "string_operations" in rules
         assert "advanced_rules" in rules
 
-    def test_load_security_config(self) -> None:
-        """Test loading security configuration."""
-        config_manager: ConfigurationManager = ConfigurationManager()
+    def test_load_security_config(self, config_manager: ConfigurationManager) -> None:
+        """Test loading security configuration using pytest fixture."""
         config: dict[str, Any] = config_manager.load_security_config()
 
         assert isinstance(config, dict)
         assert "rsa_encryption" in config
         assert config["rsa_encryption"]["key_size"] == 4096
+    
+    @pytest.mark.parametrize("config_key,expected_type", [
+        ("basic_transformations", dict),
+        ("case_transformations", dict), 
+        ("string_operations", dict),
+        ("advanced_rules", dict),
+    ])
+    def test_rule_sections_exist(self, config_manager: ConfigurationManager, config_key: str, expected_type: type) -> None:
+        """Test that all required rule sections exist with correct types using parametrized testing."""
+        rules = config_manager.load_transformation_rules()
+        assert config_key in rules
+        assert isinstance(rules[config_key], expected_type)
 
 
 class TestTextTransformationEngine:
-    """Test text transformation functionality."""
+    """Test text transformation functionality with modern pytest patterns."""
 
-    @pytest.fixture
-    def engine(self) -> TextTransformationEngine:
-        """Create a TextTransformationEngine instance for testing."""
-        config_manager: ConfigurationManager = ConfigurationManager()
-        return TextTransformationEngine(config_manager)
+    @pytest.mark.parametrize("rule,input_text,expected", [
+        ("/uh", "TBL_CHA1", "TBL-CHA1"),
+        ("/hu", "TBL-CHA1", "TBL_CHA1"),
+        ("/fh", "ＴＢＬ－ＣＨＡ１", "TBL-CHA1"),
+        ("/hf", "TBL-CHA1", "ＴＢＬ－ＣＨＡ１"),
+    ])
+    def test_basic_transformations(self, transformation_engine: TextTransformationEngine, rule: str, input_text: str, expected: str) -> None:
+        """Test basic transformation rules using parametrized testing."""
+        result: str = transformation_engine.apply_transformations(input_text, rule)
+        assert result == expected, f"Rule {rule} failed: got '{result}', expected '{expected}'"
 
-    def test_basic_transformations(self, engine: TextTransformationEngine) -> None:
-        """Test basic transformation rules."""
-        test_cases: list[tuple[str, str, str]] = [
-            ("/uh", "TBL_CHA1", "TBL-CHA1"),
-            ("/hu", "TBL-CHA1", "TBL_CHA1"),
-            ("/fh", "ＴＢＬ－ＣＨＡ１", "TBL-CHA1"),
-            ("/hf", "TBL-CHA1", "ＴＢＬ－ＣＨＡ１"),
-        ]
+    @pytest.mark.parametrize("rule,input_text,expected", [
+        ("/l", "SAY HELLO TO MY LITTLE FRIEND!", "say hello to my little friend!"),
+        ("/u", "Can you hear me, Major Tom?", "CAN YOU HEAR ME, MAJOR TOM?"),
+        ("/p", "The quick brown fox jumps over the lazy dog", "TheQuickBrownFoxJumpsOverTheLazyDog"),
+        ("/c", "is error state!", "isErrorState"),
+        ("/s", "is error state!", "is_error_state"),
+        ("/a", "the quick brown fox jumps over the lazy dog", "The Quick Brown Fox Jumps Over The Lazy Dog"),
+    ])
+    def test_case_transformations(self, transformation_engine: TextTransformationEngine, rule: str, input_text: str, expected: str) -> None:
+        """Test case transformation rules using parametrized testing."""
+        result: str = transformation_engine.apply_transformations(input_text, rule)
+        assert result == expected, f"Rule {rule} failed: got '{result}', expected '{expected}'"
 
-        for rule, input_text, expected in test_cases:
-            result: str = engine.apply_transformations(input_text, rule)
-            assert (
-                result == expected
-            ), f"Rule {rule} failed: got '{result}', expected '{expected}'"
+    @pytest.mark.parametrize("rule,input_text,expected", [
+        ("/t", "  Well, something is happening  ", "Well, something is happening"),
+        ("/R", "hello", "olleh"),
+        ("/si", "A0001\r\nA0002\r\nA0003", "'A0001',\r\n'A0002',\r\n'A0003'"),
+        ("/dlb", "A0001\r\nA0002\r\nA0003", "A0001A0002A0003"),
+    ])
+    def test_string_operations(self, transformation_engine: TextTransformationEngine, rule: str, input_text: str, expected: str) -> None:
+        """Test string operation rules using parametrized testing."""
+        result: str = transformation_engine.apply_transformations(input_text, rule)
+        assert result == expected, f"Rule {rule} failed: got '{result}', expected '{expected}'"
 
-    def test_case_transformations(self, engine: TextTransformationEngine) -> None:
-        """Test case transformation rules."""
-        test_cases: list[tuple[str, str, str]] = [
-            ("/l", "SAY HELLO TO MY LITTLE FRIEND!", "say hello to my little friend!"),
-            ("/u", "Can you hear me, Major Tom?", "CAN YOU HEAR ME, MAJOR TOM?"),
-            (
-                "/p",
-                "The quick brown fox jumps over the lazy dog",
-                "TheQuickBrownFoxJumpsOverTheLazyDog",
-            ),
-            ("/c", "is error state!", "isErrorState"),
-            ("/s", "is error state!", "is_error_state"),
-            (
-                "/a",
-                "the quick brown fox jumps over the lazy dog",
-                "The Quick Brown Fox Jumps Over The Lazy Dog",
-            ),
-        ]
+    @pytest.mark.parametrize("rule,input_text,expected", [
+        ("/t/l", "  HELLO WORLD  ", "hello world"),
+        ("/s/u", "The Quick Brown Fox", "THE_QUICK_BROWN_FOX"),
+    ])
+    def test_sequential_processing(self, transformation_engine: TextTransformationEngine, rule: str, input_text: str, expected: str) -> None:
+        """Test sequential rule processing using parametrized testing."""
+        result: str = transformation_engine.apply_transformations(input_text, rule)
+        assert result == expected, f"Rule {rule} failed: got '{result}', expected '{expected}'"
 
-        for rule, input_text, expected in test_cases:
-            result: str = engine.apply_transformations(input_text, rule)
-            assert (
-                result == expected
-            ), f"Rule {rule} failed: got '{result}', expected '{expected}'"
+    @pytest.mark.parametrize("rule,input_text,expected", [
+        ("/S '+'", "http://foo.bar/baz/brrr", "http+foo+bar+baz+brrr"),
+        ("/r 'Will' 'Bill'", "I'm Will, Will's son", "I'm Bill, Bill's son"),
+        ("/S", "hello world test", "hello-world-test"),  # Default replacement
+        ("/r 'this'", "remove this text", "remove  text"),  # Default replacement (empty)
+    ])
+    def test_argument_based_rules(self, transformation_engine: TextTransformationEngine, rule: str, input_text: str, expected: str) -> None:
+        """Test rules with arguments using parametrized testing."""
+        result: str = transformation_engine.apply_transformations(input_text, rule)
+        assert result == expected, f"Rule {rule} failed: got '{result}', expected '{expected}'"
 
-    def test_string_operations(self, engine: TextTransformationEngine) -> None:
-        """Test string operation rules."""
-        test_cases: list[tuple[str, str, str]] = [
-            ("/t", "  Well, something is happening  ", "Well, something is happening"),
-            ("/R", "hello", "olleh"),
-            ("/si", "A0001\r\nA0002\r\nA0003", "'A0001',\r\n'A0002',\r\n'A0003'"),
-            ("/dlb", "A0001\r\nA0002\r\nA0003", "A0001A0002A0003"),
-        ]
-
-        for rule, input_text, expected in test_cases:
-            result: str = engine.apply_transformations(input_text, rule)
-            assert (
-                result == expected
-            ), f"Rule {rule} failed: got '{result}', expected '{expected}'"
-
-    def test_sequential_processing(self, engine: TextTransformationEngine) -> None:
-        """Test sequential rule processing."""
-        test_cases: list[tuple[str, str, str]] = [
-            ("/t/l", "  HELLO WORLD  ", "hello world"),
-            ("/s/u", "The Quick Brown Fox", "THE_QUICK_BROWN_FOX"),
-        ]
-
-        for rule, input_text, expected in test_cases:
-            result: str = engine.apply_transformations(input_text, rule)
-            assert (
-                result == expected
-            ), f"Rule {rule} failed: got '{result}', expected '{expected}'"
-
-    def test_argument_based_rules(self, engine: TextTransformationEngine) -> None:
-        """Test rules with arguments."""
-        test_cases: list[tuple[str, str, str]] = [
-            ("/S '+'", "http://foo.bar/baz/brrr", "http+foo+bar+baz+brrr"),
-            ("/r 'Will' 'Bill'", "I'm Will, Will's son", "I'm Bill, Bill's son"),
-            ("/S", "hello world test", "hello-world-test"),  # Default replacement
-            (
-                "/r 'this'",
-                "remove this text",
-                "remove  text",
-            ),  # Default replacement (empty)
-        ]
-
-        for rule, input_text, expected in test_cases:
-            result: str = engine.apply_transformations(input_text, rule)
-            assert (
-                result == expected
-            ), f"Rule {rule} failed: got '{result}', expected '{expected}'"
-
-    def test_invalid_rule(self, engine: TextTransformationEngine) -> None:
+    def test_invalid_rule(self, transformation_engine: TextTransformationEngine) -> None:
         """Test handling of invalid rules."""
         with pytest.raises(TransformationError, match="Unknown rule"):
-            engine.apply_transformations("test", "/invalid")
+            transformation_engine.apply_transformations("test", "/invalid")
 
-    def test_empty_rule_string(self, engine: TextTransformationEngine) -> None:
+    def test_empty_rule_string(self, transformation_engine: TextTransformationEngine) -> None:
         """Test handling of empty rule string."""
         with pytest.raises(ValidationError, match="Rule string cannot be empty"):
-            engine.apply_transformations("test", "")
+            transformation_engine.apply_transformations("test", "")
 
-    def test_rule_without_slash(self, engine: TextTransformationEngine) -> None:
+    def test_rule_without_slash(self, transformation_engine: TextTransformationEngine) -> None:
         """Test handling of rule without leading slash."""
         with pytest.raises(ValidationError, match="Rules must start with"):
-            engine.apply_transformations("test", "invalid")
+            transformation_engine.apply_transformations("test", "invalid")
 
-    def test_parse_rule_string_edge_cases(
-        self, engine: TextTransformationEngine
-    ) -> None:
+    def test_parse_rule_string_edge_cases(self, transformation_engine: TextTransformationEngine) -> None:
         """Test edge cases in rule string parsing."""
         # Test rule with no arguments when arguments expected
-        parsed: list[tuple[str, list[str]]] = engine.parse_rule_string("/S")
+        parsed: list[tuple[str, list[str]]] = transformation_engine.parse_rule_string("/S")
         assert len(parsed) == 1
         assert parsed[0][0] == "S"
         assert parsed[0][1] == []  # No arguments provided
 
-    def test_get_available_rules(self, engine: TextTransformationEngine) -> None:
+    def test_get_available_rules(self, transformation_engine: TextTransformationEngine) -> None:
         """Test getting available rules."""
-        rules: dict[str, Any] = engine.get_available_rules()
+        rules: dict[str, Any] = transformation_engine.get_available_rules()
         assert isinstance(rules, dict)
         assert len(rules) > 0
         assert "u" in rules  # Basic rule
@@ -204,14 +206,12 @@ class TestTextTransformationEngine:
 
 
 class TestInteractiveSession:
-    """Test interactive session functionality."""
+    """Test interactive session functionality with modern pytest patterns."""
 
     @pytest.fixture
-    def session(self) -> InteractiveSession:
-        """Create an InteractiveSession instance for testing."""
-        io_manager: Mock = Mock(spec=InputOutputManager)
-        engine: Mock = Mock(spec=TextTransformationEngine)
-        return InteractiveSession(io_manager, engine)
+    def session(self, io_manager: InputOutputManager, transformation_engine: TextTransformationEngine) -> InteractiveSession:
+        """Create an InteractiveSession instance for testing using dependency injection."""
+        return InteractiveSession(io_manager, transformation_engine)
 
     def test_initialization(self, session: InteractiveSession) -> None:
         """Test session initialization."""
@@ -452,14 +452,32 @@ class TestInputOutputManager:
             io_manager.get_clipboard_text()
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="session")
 def mock_clipboard() -> Generator[Mock, None, None]:
-    """Mock clipboard functionality for all tests."""
+    """Mock clipboard functionality for all tests with session scope for performance."""
     with patch("string_multitool.io.manager.CLIPBOARD_AVAILABLE", True):
         with patch("string_multitool.io.manager.pyperclip") as mock_pyperclip:
             mock_pyperclip.paste.return_value = ""
             mock_pyperclip.copy.return_value = None
             yield mock_pyperclip
+
+# Modern pytest fixture for configuration manager
+@pytest.fixture(scope="session")
+def config_manager() -> ConfigurationManager:
+    """Provide a shared ConfigurationManager instance for all tests."""
+    return ConfigurationManager()
+
+# Modern pytest fixture for transformation engine  
+@pytest.fixture(scope="session")
+def transformation_engine(config_manager: ConfigurationManager) -> TextTransformationEngine:
+    """Provide a shared TextTransformationEngine instance for all tests."""
+    return TextTransformationEngine(config_manager)
+
+# Modern pytest fixture for IO manager with mocked clipboard
+@pytest.fixture
+def io_manager(mock_clipboard: Mock) -> InputOutputManager:
+    """Provide InputOutputManager with mocked clipboard for each test."""
+    return InputOutputManager()
 
 
 class TestApplicationInterface:

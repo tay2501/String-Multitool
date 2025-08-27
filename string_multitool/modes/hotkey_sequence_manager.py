@@ -111,7 +111,7 @@ class HotkeySequenceManager:
         self._last_key_time: datetime | None = None
 
         # Statistics
-        self._stats = {
+        self._stats: dict[str, int | str | None] = {
             "sequences_detected": 0,
             "transformations_applied": 0,
             "last_sequence": None,
@@ -361,7 +361,9 @@ class HotkeySequenceManager:
                 continue
 
             if self._sequences_match(current_seq, expected_sequence):
-                self._stats["sequences_detected"] += 1
+                sequences_count = self._stats["sequences_detected"]
+                if isinstance(sequences_count, int):
+                    self._stats["sequences_detected"] = sequences_count + 1
                 self._stats["last_sequence"] = rule
                 self._apply_sequence_rule(rule)
                 self._key_sequence.clear()
@@ -402,7 +404,9 @@ class HotkeySequenceManager:
                 io_manager.set_output_text(result)
 
                 # Update statistics
-                self._stats["transformations_applied"] += 1
+                transformations_count = self._stats["transformations_applied"]
+                if isinstance(transformations_count, int):
+                    self._stats["transformations_applied"] = transformations_count + 1
 
                 # Notify callbacks
                 for callback in self._sequence_callbacks:

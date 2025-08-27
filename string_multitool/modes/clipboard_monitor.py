@@ -78,7 +78,7 @@ class ClipboardMonitor:
         self._active_rules: list[str] = []
 
         # Statistics
-        self._stats = {
+        self._stats: dict[str, int | datetime | None] = {
             "transformations_applied": 0,
             "start_time": None,
             "last_transformation": None,
@@ -201,6 +201,8 @@ class ClipboardMonitor:
                     time.sleep(self.SLEEP_RESOLUTION)
 
             except KeyboardInterrupt:
+                print("\r[CLIPBOARD_MONITOR] Keyboard interrupt received, stopping...")
+                self._is_running = False
                 break
             except Exception as e:
                 print(f"\\r[CLIPBOARD_MONITOR] Error: {e}", flush=True)
@@ -268,7 +270,9 @@ class ClipboardMonitor:
                 pass  # Silently fail if clipboard update fails
 
             # Update statistics and state
-            self._stats["transformations_applied"] += 1
+            transformations_count = self._stats["transformations_applied"]
+            if isinstance(transformations_count, int):
+                self._stats["transformations_applied"] = transformations_count + 1
             self._stats["last_transformation"] = datetime.now()
             self._last_clipboard_content = result
 

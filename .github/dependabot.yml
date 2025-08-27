@@ -7,7 +7,8 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 10
+      timezone: "UTC"
+    open-pull-requests-limit: 5
     reviewers:
       - "tay2501"
     assignees:
@@ -18,6 +19,34 @@ updates:
     labels:
       - "dependencies"
       - "python"
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+    groups:
+      security-updates:
+        patterns:
+          - "cryptography"
+          - "pyopenssl"
+          - "urllib3"
+          - "requests"
+        update-types:
+          - "security-update"
+      testing-dependencies:
+        patterns:
+          - "pytest*"
+          - "*test*"
+        update-types:
+          - "minor"
+          - "patch"
+      development-tools:
+        patterns:
+          - "black"
+          - "isort"
+          - "mypy"
+          - "flake8"
+        update-types:
+          - "minor"
+          - "patch"
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
@@ -25,8 +54,9 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday" 
-      time: "09:00"
-    open-pull-requests-limit: 5
+      time: "10:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 3
     reviewers:
       - "tay2501"
     assignees:
@@ -37,3 +67,10 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"

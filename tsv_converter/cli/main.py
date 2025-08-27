@@ -22,16 +22,16 @@ def create_parser() -> argparse.ArgumentParser:
     proper argument groups, and intuitive command structure.
     """
     parser = argparse.ArgumentParser(
-        prog="convertbytsv",
+        prog="usetsvr",
         description="Convert clipboard text using TSV-defined rules",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  convertbytsv japanese_to_english    # Convert using specific rule set
-  convertbytsv ls                     # List available rule sets
-  convertbytsv rm old_rules           # Remove rule set from database
-  convertbytsv sync ~/rules           # Sync directory with database
-  convertbytsv info japanese_rules    # Show rule set information
+  usetsvr japanese_to_english    # Convert using specific rule set
+  usetsvr ls                     # List available rule sets
+  usetsvr rm old_rules           # Remove rule set from database
+  usetsvr sync ~/rules           # Sync directory with database
+  usetsvr info japanese_rules    # Show rule set information
         """
     )
     

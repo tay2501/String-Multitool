@@ -15,7 +15,16 @@ from pathlib import Path
 from typing import Any
 
 from ..exceptions import TransformationError, ValidationError
+from .argument_parser import ArgumentParsingError, default_parser
 from .transformation_base import TransformationBase
+from .constants import (
+    CRYPTO_CONSTANTS,
+    ERROR_CONTEXT_KEYS,
+    TRANSFORM_CONSTANTS,
+    VALIDATION_CONSTANTS,
+    RuleNames,
+    TSVOptionNames,
+)
 from .types import (
     ConfigManagerProtocol,
     ConfigurableComponent,
@@ -98,7 +107,7 @@ class TSVTransformation(TransformationBase):
         Returns:
             オプションを含む変換ルール文字列
         """
-        base_rule = f"convertbytsv {self._tsv_file_path}"
+        base_rule = f"{RuleNames.USE_TSV_RULES.value} {self._tsv_file_path}"
         
         if self._options.case_insensitive:
             base_rule += " --case-insensitive"
@@ -127,7 +136,7 @@ class TSVTransformation(TransformationBase):
             if not self.validate_input(text):
                 raise ValidationError(
                     f"無効な入力タイプ: {type(text).__name__}",
-                    {"input_type": type(text).__name__}
+                    {ERROR_CONTEXT_KEYS.TEXT_LENGTH: type(text).__name__}
                 )
             
             # 入力テキストを記録
@@ -149,14 +158,14 @@ class TSVTransformation(TransformationBase):
             raise
         except Exception as e:
             self.set_error_context({
-                "text_length": len(text) if isinstance(text, str) else 0,
-                "tsv_file": str(self._tsv_file_path),
+                ERROR_CONTEXT_KEYS.TEXT_LENGTH: len(text) if isinstance(text, str) else 0,
+                ERROR_CONTEXT_KEYS.TSV_FILE: str(self._tsv_file_path),
                 "strategy": self._conversion_strategy.__class__.__name__,
                 "options": {
                     "case_insensitive": self._options.case_insensitive,
                     "preserve_original_case": self._options.preserve_original_case
                 },
-                "error_type": type(e).__name__
+                ERROR_CONTEXT_KEYS.ERROR_TYPE: type(e).__name__
             })
             raise TransformationError(
                 f"TSV変換処理に失敗: {e}",
@@ -201,7 +210,7 @@ class TSVTransformation(TransformationBase):
             if not self._tsv_file_path.exists():
                 raise ValidationError(
                     f"TSVファイルが見つかりません: {self._tsv_file_path}",
-                    {"file_path": str(self._tsv_file_path)}
+                    {ERROR_CONTEXT_KEYS.FILE_PATH: str(self._tsv_file_path)}
                 )
             
             # TSVファイル読み込み
@@ -289,28 +298,62 @@ class TextTransformationEngine(
     """
 
     def __init__(self, config_manager: ConfigManagerProtocol) -> None:
-        """Initialize transformation engine.
+        """Initialize transformation engine with EAFP pattern.
+
+        Uses Easier to Ask for Forgiveness than Permission approach
+        for robust initialization with comprehensive error handling.
 
         Args:
-            config_manager: Configuration manager instance
+            config_manager: Configuration manager protocol instance
 
         Raises:
             TransformationError: If initialization fails
+            ValidationError: If config_manager is invalid
         """
+        # Validate required parameters first
+        if config_manager is None:
+            raise ValidationError(
+                "Configuration manager cannot be None",
+                {"parameter": "config_manager"}
+            )
+        
+        # Instance variable annotations following PEP 526
+        self.config_manager: ConfigManagerProtocol = config_manager
+        self.crypto_manager: CryptoManagerProtocol | None = None
+        self._available_rules: dict[str, TransformationRule] | None = None
+        
         try:
+            # EAFP: Try to load configuration and initialize
             transformation_config = config_manager.load_transformation_rules()
-            ConfigurableComponent.__init__(self, transformation_config)
-            TransformationBase.__init__(self, transformation_config)
+            
+            # Initialize parent classes with proper error handling
+            try:
+                ConfigurableComponent.__init__(self, transformation_config)
+            except Exception as e:
+                raise TransformationError(
+                    f"Failed to initialize configurable component: {e}",
+                    {"config_keys": list(transformation_config.keys()) if isinstance(transformation_config, dict) else None}
+                ) from e
+            
+            try:
+                TransformationBase.__init__(self, transformation_config)
+            except Exception as e:
+                raise TransformationError(
+                    f"Failed to initialize transformation base: {e}",
+                    {"config_type": type(transformation_config).__name__}
+                ) from e
 
-            # Instance variable annotations following PEP 526
-            self.config_manager: ConfigManagerProtocol = config_manager
-            self.crypto_manager: CryptoManagerProtocol | None = None
-            self._available_rules: dict[str, TransformationRule] | None = None
-
+        except (ValidationError, TransformationError):
+            # Re-raise expected exceptions
+            raise
         except Exception as e:
+            # Handle unexpected errors with context
             raise TransformationError(
-                f"Failed to initialize transformation engine: {e}",
-                {"error_type": type(e).__name__},
+                f"Unexpected error during transformation engine initialization: {e}",
+                {
+                    "error_type": type(e).__name__,
+                    "config_manager_type": type(config_manager).__name__,
+                }
             ) from e
 
     def set_crypto_manager(self, crypto_manager: CryptoManagerProtocol) -> None:
@@ -352,22 +395,22 @@ class TextTransformationEngine(
             # 基本的な入力検証
             if not self.validate_input(text):
                 raise ValidationError(
-                    f"Text must be a string, got {type(text).__name__}",
+                    VALIDATION_CONSTANTS.INVALID_INPUT_TYPE_MSG.format(type_name=type(text).__name__),
                     {"text_type": type(text).__name__},
                 )
 
             if not isinstance(rule_string, str):
                 raise ValidationError(
-                    f"Rule string must be a string, got {type(rule_string).__name__}",
+                    VALIDATION_CONSTANTS.INVALID_RULE_TYPE_MSG.format(type_name=type(rule_string).__name__),
                     {"rule_type": type(rule_string).__name__},
                 )
 
             if not rule_string.strip():
-                raise ValidationError("Rule string cannot be empty")
+                raise ValidationError(VALIDATION_CONSTANTS.EMPTY_RULE_MSG)
 
-            if not rule_string.startswith("/"):
+            if not rule_string.startswith(VALIDATION_CONSTANTS.RULE_PREFIX):
                 raise ValidationError(
-                    "Rules must start with '/'", {"rule_string": rule_string}
+                    VALIDATION_CONSTANTS.RULE_PREFIX_MSG, {ERROR_CONTEXT_KEYS.RULE_STRING: rule_string}
                 )
 
             # Parse and apply rules sequentially
@@ -385,9 +428,9 @@ class TextTransformationEngine(
             # エラーコンテキストを設定
             self.set_error_context(
                 {
-                    "rule_string": rule_string,
-                    "text_length": len(text) if isinstance(text, str) else 0,
-                    "error_type": type(e).__name__,
+                    ERROR_CONTEXT_KEYS.RULE_STRING: rule_string,
+                    ERROR_CONTEXT_KEYS.TEXT_LENGTH: len(text) if isinstance(text, str) else 0,
+                    ERROR_CONTEXT_KEYS.ERROR_TYPE: type(e).__name__,
                 }
             )
             raise TransformationError(
@@ -396,6 +439,9 @@ class TextTransformationEngine(
 
     def parse_rule_string(self, rule_string: str) -> list[tuple[str, list[str]]]:
         """Parse rule string into list of (rule, arguments) tuples.
+
+        Uses enterprise-grade ShellStyleArgumentParser with shlex for
+        robust handling of quoted strings and escape sequences.
 
         Args:
             rule_string: Rule string to parse (e.g., '/t/l/r "old" "new"')
@@ -407,52 +453,18 @@ class TextTransformationEngine(
             ValidationError: If rule string format is invalid
         """
         try:
-            if not rule_string.startswith("/"):
-                raise ValidationError(
-                    "Rule string must start with '/'", {"rule_string": rule_string}
-                )
-
-            # Remove leading slash and split by slash
-            rules_part: str = rule_string[1:]
-            if not rules_part:
-                raise ValidationError("Empty rule string after '/'")
-
-            # Handle quoted arguments
-            parts: list[str] = self._parse_with_quotes(rules_part)
-            parsed_rules: list[tuple[str, list[str]]] = []
-            current_rule: str | None = None
-            current_args: list[str] = []
-
-            for part in parts:
-                if part.startswith("/"):
-                    # New rule found, save previous if exists
-                    if current_rule is not None:
-                        parsed_rules.append((current_rule, current_args))
-                    current_rule = part[1:]  # Remove leading slash
-                    current_args = []
-                elif current_rule is not None:
-                    # Argument for current rule
-                    current_args.append(part)
-                else:
-                    # First part should be a rule
-                    current_rule = part
-                    current_args = []
-
-            # Add the last rule
-            if current_rule is not None:
-                parsed_rules.append((current_rule, current_args))
-
-            if not parsed_rules:
-                raise ValidationError("No valid rules found in rule string")
-
-            return parsed_rules
-
-        except ValidationError:
-            raise
+            # Use enterprise-grade argument parser with shlex
+            return default_parser.parse_rule_string(rule_string)
+        except ArgumentParsingError as e:
+            # Convert to ValidationError for backward compatibility
+            raise ValidationError(
+                str(e),
+                e.context if hasattr(e, 'context') else {ERROR_CONTEXT_KEYS.RULE_STRING: rule_string}
+            ) from e
         except Exception as e:
             raise ValidationError(
                 f"Failed to parse rule string: {e}",
-                {"rule_string": rule_string, "error_type": type(e).__name__},
+                {ERROR_CONTEXT_KEYS.RULE_STRING: rule_string, ERROR_CONTEXT_KEYS.ERROR_TYPE: type(e).__name__},
             ) from e
 
     def get_available_rules(self) -> dict[str, TransformationRule]:
@@ -494,11 +506,11 @@ class TextTransformationEngine(
                 elif not args:
                     raise TransformationError(
                         f"Rule '{rule_name}' requires arguments",
-                        {"rule_name": rule_name, "required_args": True},
+                        {ERROR_CONTEXT_KEYS.RULE_NAME: rule_name, "required_args": True},
                     )
 
             # Apply the transformation
-            if rule_name in ["enc", "dec"]:
+            if rule_name in [RuleNames.ENCRYPT.value, RuleNames.DECRYPT.value]:
                 return self._apply_crypto_rule(text, rule_name)
             elif args and rule.requires_args:
                 return self._apply_rule_with_args(text, rule_name, args)
@@ -512,10 +524,10 @@ class TextTransformationEngine(
             # ルールが見つからない場合のEAFP処理
             available_rules = self.get_available_rules()
             raise TransformationError(
-                f"Unknown rule: {rule_name}",
+                VALIDATION_CONSTANTS.UNKNOWN_RULE_MSG.format(rule_name=rule_name),
                 {
-                    "rule_name": rule_name,
-                    "available_rules": list(available_rules.keys()),
+                    ERROR_CONTEXT_KEYS.RULE_NAME: rule_name,
+                    ERROR_CONTEXT_KEYS.AVAILABLE_RULES: list(available_rules.keys()),
                 },
             )
         except TransformationError:
@@ -524,10 +536,10 @@ class TextTransformationEngine(
             # エラーコンテキストを設定
             self.set_error_context(
                 {
-                    "rule_name": rule_name,
-                    "args": args,
-                    "text_length": len(text),
-                    "error_type": type(e).__name__,
+                    ERROR_CONTEXT_KEYS.RULE_NAME: rule_name,
+                    ERROR_CONTEXT_KEYS.ARGS: args,
+                    ERROR_CONTEXT_KEYS.TEXT_LENGTH: len(text),
+                    ERROR_CONTEXT_KEYS.ERROR_TYPE: type(e).__name__,
                 }
             )
             raise TransformationError(
@@ -550,7 +562,7 @@ class TextTransformationEngine(
         # EAFPスタイル：まず暗号化操作を試行
         try:
             # crypto_managerの存在を確認せずに直接使用を試みる
-            if rule_name == "enc":
+            if rule_name == RuleNames.ENCRYPT.value:
                 if self.crypto_manager is None:
                     raise TransformationError(
                         "Cryptography manager not available for encryption",
@@ -562,7 +574,7 @@ class TextTransformationEngine(
                     f"Text encrypted successfully (AES-256+RSA-4096, {len(text)} bytes)"
                 )
                 return result
-            elif rule_name == "dec":
+            elif rule_name == RuleNames.DECRYPT.value:
                 if self.crypto_manager is None:
                     raise TransformationError(
                         "Cryptography manager not available for decryption",
@@ -609,7 +621,7 @@ class TextTransformationEngine(
         """
         # EAFPスタイル：まず引数を使用し、不足時にエラー処理
         try:
-            if rule_name == "r":  # Replace
+            if rule_name == RuleNames.REPLACE.value:  # Replace
                 if len(args) >= 2:
                     return text.replace(args[0], args[1])
                 elif len(args) == 1:
@@ -618,20 +630,20 @@ class TextTransformationEngine(
                     # 引数不足の場合
                     raise TransformationError(
                         "Replace rule requires at least 1 argument",
-                        {"rule_name": rule_name, "args_count": len(args)},
+                        {ERROR_CONTEXT_KEYS.RULE_NAME: rule_name, ERROR_CONTEXT_KEYS.ARGS_COUNT: len(args)},
                     )
 
-            elif rule_name == "S":  # Slugify
-                separator = args[0] if args else "-"
+            elif rule_name == RuleNames.SLUGIFY.value:  # Slugify
+                separator = args[0] if args else TRANSFORM_CONSTANTS.DEFAULT_SLUG_SEPARATOR
                 # Convert to lowercase, replace non-alphanumeric with separator
                 result = re.sub(r"[^a-zA-Z0-9]+", separator, text.lower())
                 return result.strip(separator)
-            elif rule_name == "convertbytsv":  # TSV Conversion
+            elif rule_name == RuleNames.USE_TSV_RULES.value:  # TSV Conversion
                 return self._apply_tsv_conversion(text, args)
             else:
                 raise TransformationError(
                     f"Unknown rule with arguments: {rule_name}",
-                    {"rule_name": rule_name},
+                    {ERROR_CONTEXT_KEYS.RULE_NAME: rule_name},
                 )
 
         except TransformationError:
@@ -639,7 +651,7 @@ class TextTransformationEngine(
         except Exception as e:
             # エラーコンテキストを設定
             self.set_error_context(
-                {"rule_name": rule_name, "args": args, "error_type": type(e).__name__}
+                {ERROR_CONTEXT_KEYS.RULE_NAME: rule_name, ERROR_CONTEXT_KEYS.ARGS: args, ERROR_CONTEXT_KEYS.ERROR_TYPE: type(e).__name__}
             )
             raise TransformationError(
                 f"Failed to apply rule '{rule_name}' with arguments: {e}",
@@ -647,11 +659,19 @@ class TextTransformationEngine(
             ) from e
 
     def _parse_with_quotes(self, text: str) -> list[str]:
-        """Parse text respecting quoted strings and space-separated arguments.
+        """Legacy method - DEPRECATED.
         
-        Enhanced to handle space-separated arguments for POSIX-compliant parsing:
-        - /convertbytsv --case-insensitive technical_terms.tsv
-        - /r 'old text' 'new text'
+        This method has been replaced by the enterprise-grade ShellStyleArgumentParser
+        which uses Python's standard shlex library for robust parsing.
+        
+        The new implementation provides:
+        - Proper escape sequence handling
+        - POSIX-compliant parsing
+        - Better error handling
+        - Security improvements
+        
+        This method is kept for backward compatibility but should not be used.
+        Use parse_rule_string() which now uses the new parser internally.
 
         Args:
             text: Text to parse
@@ -659,58 +679,21 @@ class TextTransformationEngine(
         Returns:
             List of parsed parts
         """
-        parts: list[str] = []
-        current_part: str = ""
-        in_quotes: bool = False
-        quote_char: str | None = None
-        i: int = 0
-
-        # EAFPスタイル：文字アクセスを直接試行
+        # Use the new argument parser for consistency
         try:
-            while i < len(text):
-                char: str = text[i]  # IndexErrorが発生する可能性
-
-                if not in_quotes:
-                    if char in ['"', "'"]:
-                        in_quotes = True
-                        quote_char = char
-                    elif char == "/":
-                        # 新しいルールの開始
-                        if current_part:
-                            parts.append(current_part)
-                            current_part = ""
-                        current_part = "/"
-                    elif char == " ":
-                        # 空白で区切られた引数
-                        if current_part:
-                            parts.append(current_part)
-                            current_part = ""
-                        # 連続する空白をスキップ
-                        while i + 1 < len(text) and text[i + 1] == " ":
-                            i += 1
-                    else:
-                        current_part += char
-                else:
-                    if char == quote_char:
-                        in_quotes = False
-                        quote_char = None
-                    else:
-                        current_part += char
-
-                i += 1
-
-            if current_part:
-                parts.append(current_part)
-
-            return parts
-
-        except IndexError:
-            # インデックスエラー時は現在までのパーツを返す
-            if current_part:
-                parts.append(current_part)
+            # Reconstruct as rule string and parse
+            rule_string = "/" + text
+            parsed_rules = default_parser.parse_rule_string(rule_string)
+            
+            # Flatten the results to maintain compatibility
+            parts: list[str] = []
+            for rule_name, args in parsed_rules:
+                parts.append(rule_name)
+                parts.extend(args)
+            
             return parts
         except Exception:
-            # その他のエラー時は空リストを返す
+            # Fallback to empty list for safety
             return []
 
     def _build_available_rules(self) -> dict[str, TransformationRule]:

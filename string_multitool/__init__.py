@@ -7,7 +7,7 @@ pipe support, and secure RSA encryption capabilities.
 
 from __future__ import annotations
 
-from typing import Final
+from typing import Any, Final
 
 from .core.config import ConfigurationManager
 from .core.crypto import CryptographyManager
@@ -33,6 +33,13 @@ from .exceptions import (
 )
 from .io.clipboard import ClipboardMonitor
 from .io.manager import InputOutputManager
+
+# Lazy import to avoid circular import issues
+def __getattr__(name: str) -> Any:
+    if name == "ApplicationInterface":
+        from .main import ApplicationInterface
+        return ApplicationInterface
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 __version__: Final[str] = "2.1.0"
 __author__: Final[str] = "String_Multitool Development Team"
@@ -62,4 +69,6 @@ __all__ = [
     # I/O Components
     "InputOutputManager",
     "ClipboardMonitor",
+    # Main Application Interface
+    "ApplicationInterface",
 ]

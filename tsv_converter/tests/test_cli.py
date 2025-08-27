@@ -19,7 +19,7 @@ class TestCLIParsing:
         """Test parser creation and basic structure."""
         parser = create_parser()
         
-        assert parser.prog == "convertbytsv"
+        assert parser.prog == "usetsvr"
         assert "Convert clipboard text" in parser.description
     
     def test_parse_convert_command(self):
@@ -142,7 +142,7 @@ class TestCLICommands:
 class TestMainFunction:
     """Test cases for main CLI entry point."""
     
-    @patch('sys.argv', ['convertbytsv', '--help'])
+    @patch('sys.argv', ['usetsvr', '--help'])
     def test_help_display(self):
         """Test help display functionality."""
         with pytest.raises(SystemExit) as exc_info:
@@ -150,7 +150,7 @@ class TestMainFunction:
         
         assert exc_info.value.code == 0  # Help exits with 0
     
-    @patch('sys.argv', ['convertbytsv', 'health'])
+    @patch('sys.argv', ['usetsvr', 'health'])
     def test_health_command_success(self, converter_engine):
         """Test health check command."""
         with patch('tsv_converter.cli.main.TSVConverterEngine') as mock_engine:
@@ -167,7 +167,7 @@ class TestMainFunction:
                 assert result == 0
                 mock_print.assert_called()
     
-    @patch('sys.argv', ['convertbytsv', 'nonexistent_command'])
+    @patch('sys.argv', ['usetsvr', 'nonexistent_command'])
     def test_invalid_command(self):
         """Test handling of invalid commands."""
         with patch('builtins.print'):
