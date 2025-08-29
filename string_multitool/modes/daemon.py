@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import signal
 import threading
+import types
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, Final
@@ -322,7 +323,7 @@ class DaemonMode:
     
     def _setup_signal_handlers(self) -> None:
         """Set up signal handlers for graceful shutdown."""
-        def signal_handler(signum: int, frame) -> None:
+        def signal_handler(signum: int, frame: types.FrameType | None) -> None:
             print(f"\n[DAEMON] Received signal {signum}, shutting down gracefully...")
             self._shutdown_event.set()
             # Force interrupt the main thread if needed

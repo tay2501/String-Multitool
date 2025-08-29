@@ -55,7 +55,7 @@ class InputOutputManager:
                 # Input is piped - ensure UTF-8 encoding
                 try:
                     # First try to read with current encoding
-                    raw_input = sys.stdin.read()
+                    raw_input: str = sys.stdin.read()
                     
                     # If the input contains decode errors, try to fix them
                     if isinstance(raw_input, str) and '\udcef' in raw_input:
@@ -68,12 +68,12 @@ class InputOutputManager:
                             raw_bytes = raw_input.encode('latin-1', errors='ignore')
                             # Decode as UTF-8 with error handling
                             corrected_input = raw_bytes.decode('utf-8', errors='replace')
-                            return corrected_input.strip()
+                            return str(corrected_input.strip())
                         except (UnicodeDecodeError, UnicodeEncodeError):
                             # Fallback to original input with replacement chars removed
-                            return raw_input.replace('\udcef', '').replace('\udc94', '').replace('\udc80', '').strip()
+                            return str(raw_input.replace('\udcef', '').replace('\udc94', '').replace('\udc80', '').strip())
                     
-                    return raw_input.strip()
+                    return str(raw_input.strip())
                     
                 except (UnicodeDecodeError, UnicodeEncodeError) as encoding_error:
                     # If encoding fails, try reading with explicit UTF-8
@@ -259,7 +259,7 @@ class InputOutputManager:
                 # Input is piped - ensure UTF-8 encoding
                 try:
                     # First try to read with current encoding
-                    raw_input = sys.stdin.read()
+                    raw_input: str = sys.stdin.read()
                     
                     # If the input contains decode errors, try to fix them
                     if isinstance(raw_input, str) and '\udcef' in raw_input:
@@ -269,12 +269,12 @@ class InputOutputManager:
                             raw_bytes = raw_input.encode('latin-1', errors='ignore')
                             # Decode as UTF-8 with error handling
                             corrected_input = raw_bytes.decode('utf-8', errors='replace')
-                            return corrected_input.strip()
+                            return str(corrected_input.strip())
                         except (UnicodeDecodeError, UnicodeEncodeError):
                             # Fallback to original input with replacement chars removed
-                            return raw_input.replace('\udcef', '').replace('\udc94', '').replace('\udc80', '').strip()
+                            return str(raw_input.replace('\udcef', '').replace('\udc94', '').replace('\udc80', '').strip())
                     
-                    return raw_input.strip()
+                    return str(raw_input.strip())
                     
                 except (UnicodeDecodeError, UnicodeEncodeError):
                     # If encoding fails, try reading with explicit UTF-8

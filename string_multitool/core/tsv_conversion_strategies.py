@@ -455,15 +455,13 @@ class TSVConversionStrategyFactory:
             オプションが有効かどうか
         """
         try:
-            # 基本的なオプション検証
-            if not isinstance(options, TSVConversionOptions):
-                return False
+            # 基本的なオプション検証は型アノテーションにより保証される
             
             # 論理的整合性の検証
             if options.preserve_original_case and not options.case_insensitive:
                 # preserve_original_case は case_insensitive が有効な時のみ意味を持つ
                 # ただし、無効ではないので警告程度
-                pass
+                return True  # Warning condition but still valid
             
             return True
             

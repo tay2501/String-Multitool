@@ -16,7 +16,7 @@ from rich.panel import Panel
 from rich.table import Table
 from typer import Typer
 
-from .exceptions import ConfigurationError, StringMultitoolError
+from .exceptions import ConfigurationError, StringMultitoolError, ValidationError
 from .main import ApplicationInterface
 
 # Import logging utilities
@@ -152,7 +152,7 @@ def interactive_mode() -> None:
     try:
         app_instance = get_app()
         input_text = app_instance.io_manager.get_input_text()
-        app_instance.run_interactive_mode(input_text)
+        app_instance._run_interactive_mode()
     except StringMultitoolError as e:
         logger = get_logger(__name__)
         log_error(logger, f"Error: {e}")
@@ -322,7 +322,10 @@ def daemon_mode(
         log_info(logger, "Starting daemon mode...")
         log_info(logger, "Press Ctrl+C to stop")
 
-        app_instance.run_daemon_mode()
+        if app_instance.daemon_mode:
+            app_instance.daemon_mode.start_monitoring()
+        else:
+            raise StringMultitoolError("Daemon mode not configured")
 
     except StringMultitoolError as e:
         logger = get_logger(__name__)

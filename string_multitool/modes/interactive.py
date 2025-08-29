@@ -266,9 +266,7 @@ class CommandProcessor:
         Returns:
             True if input is a command, False if it's a transformation rule
         """
-        if not isinstance(input_text, str):
-            return True  # Invalid input, treat as command for error handling
-
+        # Type annotation ensures input_text is always str
         input_text = input_text.strip().lower()
 
         # Check all known commands

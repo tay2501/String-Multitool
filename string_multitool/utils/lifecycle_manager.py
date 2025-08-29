@@ -379,12 +379,15 @@ class ApplicationLifecycleManager:
             # Try to get resource module metrics if available
             if RESOURCE_AVAILABLE:
                 try:
-                    ru = resource.getrusage(resource.RUSAGE_SELF)  # type: ignore[attr-defined]
-                    user_time = ru.ru_utime
-                    system_time = ru.ru_stime
-                    peak_memory = ru.ru_maxrss / 1024  # Convert to MB (Linux reports in KB)
-                    if platform.system() == "Darwin":  # macOS reports in bytes
-                        peak_memory = ru.ru_maxrss / 1024 / 1024
+                    if hasattr(resource, 'getrusage') and hasattr(resource, 'RUSAGE_SELF'):
+                        # Type-safe access to resource constants
+                        rusage_self = getattr(resource, 'RUSAGE_SELF')
+                        ru = resource.getrusage(rusage_self)
+                        user_time = ru.ru_utime
+                        system_time = ru.ru_stime
+                        peak_memory = ru.ru_maxrss / 1024  # Convert to MB (Linux reports in KB)
+                        if platform.system() == "Darwin":  # macOS reports in bytes
+                            peak_memory = ru.ru_maxrss / 1024 / 1024
                 except (AttributeError, OSError) as e:
                     self._logger.debug(f"Error collecting resource usage: {e}")
                     peak_memory = memory_mb

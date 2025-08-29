@@ -72,7 +72,7 @@ class ClipboardMonitor:
         self._check_interval = check_interval
 
         # State management
-        self._is_running = False
+        self._is_running: bool = False
         self._monitor_thread: threading.Thread | None = None
         self._last_clipboard_content = ""
         self._active_rules: list[str] = []
@@ -184,7 +184,7 @@ class ClipboardMonitor:
 
     def _monitor_loop(self) -> None:
         """Main clipboard monitoring loop."""
-        sleep_iterations: Final[int] = int(self._check_interval / self.SLEEP_RESOLUTION)
+        sleep_iterations: Final[int] = max(1, int(self._check_interval / self.SLEEP_RESOLUTION))
 
         while self._is_running:
             try:
@@ -197,7 +197,7 @@ class ClipboardMonitor:
                 # Use shorter sleep intervals for better responsiveness
                 for _ in range(sleep_iterations):
                     if not self._is_running:
-                        break
+                        break  # type: ignore[unreachable]
                     time.sleep(self.SLEEP_RESOLUTION)
 
             except KeyboardInterrupt:

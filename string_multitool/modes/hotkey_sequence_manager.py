@@ -316,19 +316,19 @@ class HotkeySequenceManager:
         try:
             # Handle special keys
             if hasattr(key, "char") and key.char is not None:
-                return key.char.lower()
+                return str(str(key.char).lower())
 
             # For modifier combinations, use simplified approach
             current_modifiers = self._get_current_modifiers()
 
             if hasattr(key, "char") and key.char:
                 if current_modifiers:
-                    return f"{'+'.join(current_modifiers)}+{key.char.lower()}"
-                return key.char.lower()
+                    return f"{'+'.join(current_modifiers)}+{str(key.char).lower()}"
+                return str(str(key.char).lower())
             elif hasattr(key, "name"):
                 if current_modifiers:
-                    return f"{'+'.join(current_modifiers)}+{key.name.lower()}"
-                return key.name.lower()
+                    return f"{'+'.join(current_modifiers)}+{str(key.name).lower()}"
+                return str(str(key.name).lower())
         except Exception:
             pass
         return None
