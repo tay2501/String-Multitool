@@ -184,7 +184,9 @@ class ClipboardMonitor:
 
     def _monitor_loop(self) -> None:
         """Main clipboard monitoring loop."""
-        sleep_iterations: Final[int] = max(1, int(self._check_interval / self.SLEEP_RESOLUTION))
+        sleep_iterations: Final[int] = max(
+            1, int(self._check_interval / self.SLEEP_RESOLUTION)
+        )
 
         while self._is_running:
             try:

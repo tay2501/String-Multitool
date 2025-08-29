@@ -53,12 +53,14 @@ class ApplicationInterface:
             self.transformation_engine.set_crypto_manager(self.crypto_manager)
             self.logger.debug("Cryptography manager set in transformation engine")
         else:
-            self.logger.debug("No cryptography manager available - encryption/decryption will be disabled")
+            self.logger.debug(
+                "No cryptography manager available - encryption/decryption will be disabled"
+            )
 
     def run(self) -> None:
         """Main application entry point."""
         args = sys.argv[1:] if len(sys.argv) > 1 else []
-        
+
         if not args:
             self._run_interactive_mode()
         elif args[0] == "help":
@@ -69,28 +71,32 @@ class ApplicationInterface:
     def _run_interactive_mode(self) -> None:
         """Run interactive mode."""
         from .modes.interactive import InteractiveSession, CommandProcessor
-        
+
         print("Interactive mode")
-        print("Type 'help' for available transformation rules or 'commands' for interactive commands.")
-        print("Enter transformation rules (e.g. '/t/l' for trim + lowercase) or commands.")
+        print(
+            "Type 'help' for available transformation rules or 'commands' for interactive commands."
+        )
+        print(
+            "Enter transformation rules (e.g. '/t/l' for trim + lowercase) or commands."
+        )
         print("Type 'quit' or 'exit' to leave.\n")
-        
+
         # Initialize interactive session
         session = InteractiveSession(self.io_manager, self.transformation_engine)
         processor = CommandProcessor(session)
-        
+
         try:
             while True:
                 try:
                     user_input = input("> ").strip()
                     if not user_input:
                         continue
-                    
+
                     # Check if it's a command or transformation rule
                     if processor.is_command(user_input):
                         result = processor.process_command(user_input)
                         print(result.message)
-                        
+
                         if not result.should_continue:
                             if result.message == "SWITCH_TO_DAEMON":
                                 print("Switching to daemon mode...")
@@ -107,30 +113,42 @@ class ApplicationInterface:
                             # Get current clipboard text
                             input_text = self.io_manager.get_input_text()
                             if not input_text:
-                                print("[WARNING] No input text available. Try 'refresh' to load from clipboard.")
+                                print(
+                                    "[WARNING] No input text available. Try 'refresh' to load from clipboard."
+                                )
                                 continue
-                                
+
                             # Apply transformation
-                            result_text = self.transformation_engine.apply_transformations(input_text, user_input)
-                            
+                            result_text = (
+                                self.transformation_engine.apply_transformations(
+                                    input_text, user_input
+                                )
+                            )
+
                             # Copy result to clipboard
                             self.io_manager.set_output_text(result_text)
-                            
+
                             # Show result
-                            display_text = result_text[:100] + "..." if len(result_text) > 100 else result_text
-                            print(f"[SUCCESS] Result copied to clipboard: '{display_text}'")
-                            
+                            display_text = (
+                                result_text[:100] + "..."
+                                if len(result_text) > 100
+                                else result_text
+                            )
+                            print(
+                                f"[SUCCESS] Result copied to clipboard: '{display_text}'"
+                            )
+
                         except ValidationError as e:
                             print(f"[ERROR] Transformation failed: {e}")
                         except Exception as e:
                             print(f"[ERROR] Unexpected error: {e}")
-                            
+
                 except KeyboardInterrupt:
                     print("\n[INFO] Use 'quit' or 'exit' to leave interactive mode.")
                 except EOFError:
                     print("\nGoodbye!")
                     break
-                    
+
         finally:
             # Cleanup
             session.cleanup()
@@ -145,7 +163,7 @@ class ApplicationInterface:
         """Display help information."""
         print("String_Multitool Help")
         print("=" * 50)
-        
+
         # Get available transformation rules
         try:
             rules = self.transformation_engine.get_available_rules()
@@ -159,7 +177,7 @@ class ApplicationInterface:
                 print("\nNo transformation rules available.")
         except Exception as e:
             print(f"\nError loading rules: {e}")
-        
+
         print("\nUsage:")
         print("  python String_Multitool.py                 - Interactive mode")
         print("  python String_Multitool.py /rule           - Apply rule to clipboard")
@@ -170,5 +188,6 @@ class ApplicationInterface:
 def main() -> None:
     """Main entry point function."""
     from .application_factory import ApplicationFactory
+
     app = ApplicationFactory.create_application()
     app.run()

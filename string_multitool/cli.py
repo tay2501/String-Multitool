@@ -43,10 +43,10 @@ _app_instance: ApplicationInterface | None = None
 
 def get_app() -> ApplicationInterface:
     """Get or create application instance using EAFP pattern.
-    
+
     Returns:
         ApplicationInterface: Singleton application instance
-        
+
     Raises:
         ConfigurationError: If application initialization fails
     """
@@ -54,6 +54,7 @@ def get_app() -> ApplicationInterface:
     if _app_instance is None:
         try:
             from .application_factory import ApplicationFactory
+
             _app_instance = ApplicationFactory.create_application()
         except Exception as e:
             raise ConfigurationError(
@@ -65,14 +66,14 @@ def get_app() -> ApplicationInterface:
 
 def _handle_cli_error(error: Exception, operation: str, **context: Any) -> None:
     """Centralized CLI error handling with consistent logging.
-    
+
     Args:
         error: The exception that occurred
         operation: Description of the operation that failed
         **context: Additional context information
     """
     logger = get_logger(__name__)
-    
+
     if isinstance(error, StringMultitoolError):
         log_error(logger, f"Error in {operation}: {error}")
         raise typer.Exit(1)
@@ -80,52 +81,64 @@ def _handle_cli_error(error: Exception, operation: str, **context: Any) -> None:
         log_error(logger, f"Unexpected error in {operation}: {error}")
         raise ConfigurationError(
             f"{operation} failed: {error}",
-            {"error_type": type(error).__name__, **context}
+            {"error_type": type(error).__name__, **context},
         ) from error
 
 
-def _get_input_text(app_instance: ApplicationInterface, text: Optional[str], use_clipboard_fallback: bool = False) -> str:
+def _get_input_text(
+    app_instance: ApplicationInterface,
+    text: Optional[str],
+    use_clipboard_fallback: bool = False,
+) -> str:
     """Get input text from various sources using EAFP pattern.
-    
+
     Args:
         app_instance: Application instance
         text: Optional explicit text input
         use_clipboard_fallback: Whether to use clipboard as fallback
-        
+
     Returns:
         Input text string
-        
+
     Raises:
         ValidationError: If no input text is available
     """
     try:
         if text is not None:
             return text
-        
+
         if use_clipboard_fallback:
             input_text = app_instance.io_manager.get_clipboard_text()
         else:
             input_text = app_instance.io_manager.get_input_text()
-        
+
         if not input_text.strip():
             raise ValidationError(
                 "No input text available",
-                {"text_source": "clipboard" if use_clipboard_fallback else "pipe_or_clipboard"}
+                {
+                    "text_source": (
+                        "clipboard" if use_clipboard_fallback else "pipe_or_clipboard"
+                    )
+                },
             )
-            
+
         return input_text
     except Exception as e:
         if isinstance(e, ValidationError):
             raise
         raise ValidationError(
-            f"Failed to get input text: {e}",
-            {"error_type": type(e).__name__}
+            f"Failed to get input text: {e}", {"error_type": type(e).__name__}
         ) from e
 
 
-def _output_result(app_instance: ApplicationInterface, result: str, should_output: bool, success_message: str) -> None:
+def _output_result(
+    app_instance: ApplicationInterface,
+    result: str,
+    should_output: bool,
+    success_message: str,
+) -> None:
     """Output transformation result with consistent formatting.
-    
+
     Args:
         app_instance: Application instance
         result: Result text to output
@@ -135,9 +148,11 @@ def _output_result(app_instance: ApplicationInterface, result: str, should_outpu
     try:
         if should_output:
             app_instance.io_manager.set_output_text(result)
-        
+
         console.print(f"[green]{success_message}[/green]")
-        console.print(f"[cyan]Result:[/cyan] '{result[:100]}{'...' if len(result) > 100 else ''}'")
+        console.print(
+            f"[cyan]Result:[/cyan] '{result[:100]}{'...' if len(result) > 100 else ''}'"
+        )
     except Exception as e:
         logger = get_logger(__name__)
         log_warning(logger, f"Failed to output result: {e}")
@@ -196,13 +211,13 @@ def transform_text(
     try:
         app_instance = get_app()
         input_text = _get_input_text(app_instance, text)
-        
+
         result = app_instance.transformation_engine.apply_transformations(
             input_text, rules
         )
-        
+
         _output_result(app_instance, result, output, f"Transformation applied: {rules}")
-        
+
     except Exception as e:
         _handle_cli_error(e, "text transformation", rules=rules)
 
@@ -227,20 +242,20 @@ def encrypt_text(
     """
     try:
         app_instance = get_app()
-        
+
         # Validate crypto manager availability
         if app_instance.crypto_manager is None:
             raise ConfigurationError(
                 "Cryptography not available - encryption dependencies missing",
-                {"crypto_available": False}
+                {"crypto_available": False},
             )
-        
+
         input_text = _get_input_text(app_instance, text, use_clipboard_fallback=True)
         encrypted = app_instance.crypto_manager.encrypt_text(input_text)
-        
+
         _output_result(app_instance, encrypted, output, "Text encrypted successfully")
         console.print(f"[cyan]Encrypted length:[/cyan] {len(encrypted)} characters")
-        
+
     except Exception as e:
         _handle_cli_error(e, "text encryption")
 
@@ -265,19 +280,19 @@ def decrypt_text(
     """
     try:
         app_instance = get_app()
-        
-        # Validate crypto manager availability  
+
+        # Validate crypto manager availability
         if app_instance.crypto_manager is None:
             raise ConfigurationError(
                 "Cryptography not available - decryption dependencies missing",
-                {"crypto_available": False}
+                {"crypto_available": False},
             )
-        
+
         input_text = _get_input_text(app_instance, text, use_clipboard_fallback=True)
         decrypted = app_instance.crypto_manager.decrypt_text(input_text)
-        
+
         _output_result(app_instance, decrypted, output, "Text decrypted successfully")
-        
+
     except Exception as e:
         _handle_cli_error(e, "text decryption")
 
@@ -308,7 +323,7 @@ def daemon_mode(
             logger = get_logger(__name__)
             log_error(logger, "Daemon mode not available")
             raise typer.Exit(1)
-        
+
         # Add guard clause for mypy
         daemon_mode = app_instance.daemon_mode
 

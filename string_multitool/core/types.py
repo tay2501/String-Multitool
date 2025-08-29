@@ -100,20 +100,20 @@ class TransformationRule:
 @dataclass(frozen=True, kw_only=True)
 class TSVConversionOptions:
     """TSV変換オプションの型安全なデータクラス.
-    
+
     Enterprise-grade設計により、TSV変換の動作を細かく制御できます。
     不変オブジェクトとして設計され、スレッドセーフな処理を保証します。
     """
-    
+
     case_insensitive: bool = False
     """大文字小文字を区別しない変換を実行するかどうか"""
-    
-    preserve_original_case: bool = True  
+
+    preserve_original_case: bool = True
     """元のテキストの大文字小文字を保持するかどうか（case_insensitive有効時のみ）"""
-    
+
     match_whole_words_only: bool = False
     """単語境界のみでマッチングを行うかどうか（将来の拡張用）"""
-    
+
     enable_regex_patterns: bool = False
     """正規表現パターンの使用を許可するかどうか（将来の拡張用）"""
 
@@ -121,43 +121,38 @@ class TSVConversionOptions:
 @runtime_checkable
 class TSVConversionStrategyProtocol(Protocol):
     """TSV変換戦略のプロトコル定義.
-    
+
     Strategy Patternの実装により、異なる変換アルゴリズムを
     統一的なインターフェースで使用できます。
     """
-    
+
     def convert_text(
-        self, 
-        text: str, 
-        conversion_dict: dict[str, str],
-        options: TSVConversionOptions
+        self, text: str, conversion_dict: dict[str, str], options: TSVConversionOptions
     ) -> str:
         """テキスト変換を実行.
-        
+
         Args:
             text: 変換対象のテキスト
             conversion_dict: 変換辞書（キー: 変換前, 値: 変換後）
             options: 変換オプション
-            
+
         Returns:
             変換されたテキスト
-            
+
         Raises:
             TransformationError: 変換処理に失敗した場合
         """
         ...
-    
+
     def prepare_conversion_dict(
-        self,
-        raw_dict: dict[str, str], 
-        options: TSVConversionOptions
+        self, raw_dict: dict[str, str], options: TSVConversionOptions
     ) -> dict[str, str]:
         """変換辞書を前処理.
-        
+
         Args:
             raw_dict: 元の変換辞書
             options: 変換オプション
-            
+
         Returns:
             前処理済みの変換辞書
         """

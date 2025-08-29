@@ -61,7 +61,7 @@ class SystemTrayMode:
         # Use dependency injection - cast to correct types
         from ..core.transformations import TextTransformationEngine
         from ..core.config import ConfigurationManager
-        
+
         self.transformation_engine = transformation_engine or inject(
             TextTransformationEngine
         )

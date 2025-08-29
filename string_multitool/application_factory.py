@@ -20,6 +20,7 @@ from .core.types import (
 )
 from .exceptions import CryptographyError
 from .io.manager import InputOutputManager
+
 # ApplicationInterface will be imported locally to avoid circular imports
 from .modes.daemon import DaemonMode
 from .modes.hotkey import HotkeyMode
@@ -29,18 +30,18 @@ from .utils.logger import get_logger, log_warning
 
 def configure_services(container: DIContainer) -> None:
     """Configure all application services in the DI container.
-    
+
     Uses EAFP (Easier to Ask for Forgiveness than Permission) approach
     for robust service configuration with proper error handling.
-    
+
     Args:
         container: Dependency injection container instance
-        
+
     Raises:
         ConfigurationError: If service configuration fails
     """
     from .exceptions import ConfigurationError
-    
+
     # Configuration manager (singleton) - EAFP style initialization
     try:
         config_manager = ConfigurationManager()
@@ -49,7 +50,7 @@ def configure_services(container: DIContainer) -> None:
     except Exception as e:
         raise ConfigurationError(
             f"Failed to configure configuration manager: {e}",
-            {"error_type": type(e).__name__}
+            {"error_type": type(e).__name__},
         ) from e
 
     # Text transformation engine (singleton)
@@ -66,10 +67,10 @@ def configure_services(container: DIContainer) -> None:
         config_mgr: ConfigurationManager,
     ) -> CryptographyManager | None:
         """Create cryptography manager using EAFP pattern.
-        
+
         Args:
             config_mgr: Configuration manager protocol instance
-            
+
         Returns:
             CryptographyManager instance or None if unavailable
         """
@@ -83,18 +84,18 @@ def configure_services(container: DIContainer) -> None:
             logger = get_logger(__name__)
             log_warning(logger, f"Unexpected error creating crypto manager: {e}")
             return None
-    
+
     def create_crypto_manager_concrete(
         config_mgr: ConfigurationManager,
     ) -> CryptographyManager:
         """Create concrete cryptography manager with validation.
-        
+
         Args:
             config_mgr: Configuration manager protocol instance
-            
+
         Returns:
             CryptographyManager instance
-            
+
         Raises:
             CryptographyError: If manager creation fails
         """
@@ -102,7 +103,7 @@ def configure_services(container: DIContainer) -> None:
         if result is None:
             raise CryptographyError(
                 "Cryptography manager creation failed - dependencies unavailable",
-                {"config_available": config_mgr is not None}
+                {"config_available": config_mgr is not None},
             )
         return result
 
@@ -143,12 +144,12 @@ def configure_services(container: DIContainer) -> None:
         config_manager: ConfigurationManager,
     ) -> HotkeyMode | None:
         """Create hotkey mode using EAFP pattern.
-        
+
         Args:
             io_manager: Input/output manager instance
             transformation_engine: Transformation engine protocol
             config_manager: Configuration manager protocol
-            
+
         Returns:
             HotkeyMode instance or None if unavailable
         """
@@ -169,28 +170,30 @@ def configure_services(container: DIContainer) -> None:
         config_manager: ConfigurationManager,
     ) -> HotkeyMode:
         """Create concrete hotkey mode with validation.
-        
+
         Args:
             io_manager: Input/output manager instance
             transformation_engine: Transformation engine protocol
             config_manager: Configuration manager protocol
-            
+
         Returns:
             HotkeyMode instance
-            
+
         Raises:
             ConfigurationError: If hotkey mode creation fails
         """
         result = create_hotkey_mode(io_manager, transformation_engine, config_manager)
         if result is None:
             from .exceptions import ConfigurationError
+
             raise ConfigurationError(
                 "Hotkey mode creation failed - dependencies unavailable",
                 {
                     "io_manager_available": io_manager is not None,
-                    "transformation_engine_available": transformation_engine is not None,
+                    "transformation_engine_available": transformation_engine
+                    is not None,
                     "config_manager_available": config_manager is not None,
-                }
+                },
             )
         return result
 
@@ -203,13 +206,13 @@ class ApplicationFactory:
     @staticmethod
     def create_application() -> Any:  # Use Any to avoid forward reference issues
         """Create application instance with all dependencies configured.
-        
+
         Uses EAFP (Easier to Ask for Forgiveness than Permission) approach
         for robust dependency injection and error handling.
-        
+
         Returns:
             ApplicationInterface: Fully configured application instance
-            
+
         Raises:
             ConfigurationError: If application creation fails
         """
@@ -218,14 +221,14 @@ class ApplicationFactory:
         from .core.transformations import TextTransformationEngine
         from .core.crypto import CryptographyManager
         from .utils.logger import get_logger, log_warning, log_debug
-        
+
         logger = get_logger(__name__)
         log_debug(logger, "Starting application creation with dependency injection")
-        
+
         try:
             # Import ApplicationInterface locally to avoid circular imports
             from .main import ApplicationInterface
-            
+
             # Configure services - EAFP style
             ServiceRegistry.configure(configure_services)
             log_debug(logger, "Service registry configured successfully")
@@ -235,7 +238,7 @@ class ApplicationFactory:
             transformation_engine = inject(TextTransformationEngine)
             io_manager = inject(InputOutputManager)
             log_debug(logger, "Core dependencies injected successfully")
-            
+
             # Get optional crypto manager - EAFP style
             crypto_manager = None
             try:
@@ -245,7 +248,7 @@ class ApplicationFactory:
                 log_warning(logger, f"Cryptography manager unavailable: {e}")
             except Exception as e:
                 log_warning(logger, f"Unexpected error with crypto manager: {e}")
-            
+
             # Get optional daemon mode - EAFP style
             daemon_mode = None
             try:
@@ -255,7 +258,7 @@ class ApplicationFactory:
                 log_warning(logger, f"Daemon mode dependencies unavailable: {e}")
             except Exception as e:
                 log_warning(logger, f"Daemon mode creation failed: {e}")
-            
+
             # Get optional hotkey mode - EAFP style
             hotkey_mode = None
             try:
@@ -265,11 +268,12 @@ class ApplicationFactory:
                 log_warning(logger, f"Hotkey mode dependencies unavailable: {e}")
             except Exception as e:
                 log_warning(logger, f"Hotkey mode creation failed: {e}")
-            
+
             # Create optional system tray mode - EAFP style
             system_tray_mode = None
             try:
                 from .modes.system_tray import SystemTrayMode
+
                 system_tray_mode = SystemTrayMode(
                     transformation_engine=transformation_engine,
                     config_manager=config_manager,
@@ -280,7 +284,7 @@ class ApplicationFactory:
                 log_warning(logger, f"System tray dependencies unavailable: {e}")
             except Exception as e:
                 log_warning(logger, f"System tray mode creation failed: {e}")
-            
+
             # Create application interface with all dependencies
             app_interface = ApplicationInterface(
                 config_manager=config_manager,
@@ -293,7 +297,7 @@ class ApplicationFactory:
             )
             log_debug(logger, "Application interface created successfully")
             return app_interface
-            
+
         except Exception as e:
             raise ConfigurationError(
                 f"Failed to create application: {e}",
@@ -305,13 +309,13 @@ class ApplicationFactory:
         config_override: dict[str, Any] | None = None,
     ) -> Any:  # Use Any to avoid forward reference issues
         """Create application instance for testing with optional config override.
-        
+
         Args:
             config_override: Optional configuration overrides for testing
-            
+
         Returns:
             ApplicationInterface: Test-configured application instance
-            
+
         Raises:
             ConfigurationError: If test application creation fails
         """
@@ -319,13 +323,13 @@ class ApplicationFactory:
         from .core.config import ConfigurationManager
         from .core.transformations import TextTransformationEngine
         from .utils.logger import get_logger
-        
+
         logger = get_logger(__name__)
-        
+
         try:
             # Import ApplicationInterface locally to avoid circular imports
             from .main import ApplicationInterface
-            
+
             # Reset service registry for clean test state
             ServiceRegistry.reset()
 
@@ -337,12 +341,12 @@ class ApplicationFactory:
                     logger.debug(f"Applying test config overrides: {config_override}")
 
             ServiceRegistry.configure(configure_test_services)
-            
+
             # Get core dependencies via DI
             config_manager = inject(ConfigurationManager)
             transformation_engine = inject(TextTransformationEngine)
             io_manager = inject(InputOutputManager)
-            
+
             # For testing, create minimal daemon mode without optional components
             daemon_mode = None
             try:
@@ -352,7 +356,7 @@ class ApplicationFactory:
                 )
             except Exception as e:
                 logger.debug(f"Test daemon mode not available: {e}")
-            
+
             # Skip optional components for testing to avoid external dependencies
             return ApplicationInterface(
                 config_manager=config_manager,
@@ -363,7 +367,7 @@ class ApplicationFactory:
                 hotkey_mode=None,  # Skip hotkey for testing
                 system_tray_mode=None,  # Skip system tray for testing
             )
-            
+
         except Exception as e:
             raise ConfigurationError(
                 f"Failed to create test application: {e}",

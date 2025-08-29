@@ -89,7 +89,7 @@ class DaemonMode:
         # State tracking
         self._active_preset: str | None = None
         self._start_time: datetime | None = None
-        
+
         # Graceful shutdown handling
         self._shutdown_event = threading.Event()
         self._setup_signal_handlers()
@@ -146,7 +146,7 @@ class DaemonMode:
             ):
                 self._hotkey_manager.start_sequence_monitoring()
                 print("[DAEMON] Hotkey sequence monitoring started")
-            
+
             # Wait for shutdown signal
             print("[DAEMON] Daemon monitoring active. Press Ctrl+C to stop.")
             self._wait_for_shutdown()
@@ -320,27 +320,29 @@ class DaemonMode:
         print(
             f"[DAEMON] Sequences detected: {hotkey_stats.get('sequences_detected', 0)}"
         )
-    
+
     def _setup_signal_handlers(self) -> None:
         """Set up signal handlers for graceful shutdown."""
+
         def signal_handler(signum: int, frame: types.FrameType | None) -> None:
             print(f"\n[DAEMON] Received signal {signum}, shutting down gracefully...")
             self._shutdown_event.set()
             # Force interrupt the main thread if needed
             import os
+
             if signum == signal.SIGINT:
                 # Give a moment for graceful shutdown, then force exit if needed
                 threading.Timer(2.0, lambda: os._exit(0)).start()
-        
+
         # Handle SIGINT (Ctrl+C) and SIGTERM for graceful shutdown
         try:
             signal.signal(signal.SIGINT, signal_handler)
-            if hasattr(signal, 'SIGTERM'):  # SIGTERM may not be available on Windows
+            if hasattr(signal, "SIGTERM"):  # SIGTERM may not be available on Windows
                 signal.signal(signal.SIGTERM, signal_handler)
         except (OSError, ValueError) as e:
             # Signal handling may fail on some platforms
             print(f"[DAEMON] Warning: Could not set up signal handlers: {e}")
-    
+
     def _wait_for_shutdown(self) -> None:
         """Wait for shutdown signal and perform cleanup."""
         try:

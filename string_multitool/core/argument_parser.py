@@ -16,10 +16,10 @@ from ..exceptions import ValidationError
 
 class ArgumentParsingError(ValidationError):
     """Specialized exception for argument parsing errors."""
-    
+
     def __init__(self, message: str, context: dict[str, Any] | None = None) -> None:
         """Initialize with enhanced context for debugging.
-        
+
         Args:
             message: Error message describing the parsing failure
             context: Additional context information for debugging
@@ -29,20 +29,20 @@ class ArgumentParsingError(ValidationError):
 
 class ShellStyleArgumentParser:
     """Enterprise-grade shell-style argument parser.
-    
+
     Uses Python's standard library `shlex` module for POSIX-compliant
     argument parsing with proper handling of:
     - Quoted strings with escape sequences
     - Backslash escaping
     - Space-separated arguments
     - Special characters in arguments
-    
+
     Design Principles:
     - Single Responsibility: Only handles argument parsing
     - Open/Closed: Extensible through inheritance
     - Dependency Inversion: Uses standard library abstractions
     - Interface Segregation: Minimal, focused interface
-    
+
     Example:
         parser = ShellStyleArgumentParser()
         result = parser.parse_rule_string("/r 'old text' 'new text'")
@@ -51,7 +51,7 @@ class ShellStyleArgumentParser:
 
     def __init__(self, posix: bool = False) -> None:
         """Initialize the parser with POSIX compliance setting.
-        
+
         Args:
             posix: Whether to use POSIX-compliant parsing (default: False for Windows compatibility)
         """
@@ -59,19 +59,19 @@ class ShellStyleArgumentParser:
 
     def parse_rule_string(self, rule_string: str) -> list[tuple[str, list[str]]]:
         """Parse rule string into structured format.
-        
+
         Uses shlex for robust parsing of shell-style command syntax.
         Handles complex cases like:
         - /r '/' '\'
         - /r "path with spaces" "new path"
         - /convertbytsv --case-insensitive file.tsv
-        
+
         Args:
             rule_string: Rule string to parse (e.g., "/r 'old' 'new'")
-            
+
         Returns:
             List of (rule_name, arguments) tuples
-            
+
         Raises:
             ArgumentParsingError: If parsing fails or rule format is invalid
         """
@@ -80,7 +80,7 @@ class ShellStyleArgumentParser:
             if not isinstance(rule_string, str):
                 raise ArgumentParsingError(
                     f"Rule string must be a string, got {type(rule_string).__name__}",
-                    {"input_type": type(rule_string).__name__}
+                    {"input_type": type(rule_string).__name__},
                 )
 
             if not rule_string.strip():
@@ -88,8 +88,7 @@ class ShellStyleArgumentParser:
 
             if not rule_string.startswith("/"):
                 raise ArgumentParsingError(
-                    "Rule string must start with '/'",
-                    {"rule_string": rule_string}
+                    "Rule string must start with '/'", {"rule_string": rule_string}
                 )
 
             # Remove leading slash and parse using shlex
@@ -104,10 +103,7 @@ class ShellStyleArgumentParser:
                 # shlex raises ValueError for unclosed quotes, etc.
                 raise ArgumentParsingError(
                     f"Invalid quote or escape sequence: {e}",
-                    {
-                        "rule_string": rule_string,
-                        "shlex_error": str(e)
-                    }
+                    {"rule_string": rule_string, "shlex_error": str(e)},
                 ) from e
 
             if not tokens:
@@ -123,13 +119,13 @@ class ShellStyleArgumentParser:
                     # New rule found, save previous if exists
                     if current_rule is not None:
                         parsed_rules.append((current_rule, current_args))
-                    
+
                     rule_part = token[1:]  # Remove leading slash
-                    
+
                     # Check if this is a sequential rule chain (contains '/')
-                    if '/' in rule_part:
+                    if "/" in rule_part:
                         # Handle sequential rules like 't/u' or 't/r'
-                        sequential_rules = rule_part.split('/')
+                        sequential_rules = rule_part.split("/")
                         for i, seq_rule in enumerate(sequential_rules):
                             if seq_rule:  # Skip empty parts
                                 if i == len(sequential_rules) - 1:
@@ -152,11 +148,11 @@ class ShellStyleArgumentParser:
                 else:
                     # First token should be a rule (no leading slash in this context)
                     rule_part = token
-                    
+
                     # Check if this is a sequential rule chain
-                    if '/' in rule_part:
+                    if "/" in rule_part:
                         # Handle sequential rules
-                        sequential_rules = rule_part.split('/')
+                        sequential_rules = rule_part.split("/")
                         for i, seq_rule in enumerate(sequential_rules):
                             if seq_rule:  # Skip empty parts
                                 if i == len(sequential_rules) - 1:
@@ -190,19 +186,19 @@ class ShellStyleArgumentParser:
                 {
                     "rule_string": rule_string,
                     "error_type": type(e).__name__,
-                    "posix_mode": self._posix
-                }
+                    "posix_mode": self._posix,
+                },
             ) from e
 
     def escape_argument(self, arg: str) -> str:
         """Escape argument for shell safety.
-        
+
         Args:
             arg: Argument string to escape
-            
+
         Returns:
             Shell-safe escaped argument
-            
+
         Raises:
             ArgumentParsingError: If escaping fails
         """
@@ -211,18 +207,18 @@ class ShellStyleArgumentParser:
         except Exception as e:
             raise ArgumentParsingError(
                 f"Failed to escape argument: {e}",
-                {"argument": arg, "error_type": type(e).__name__}
+                {"argument": arg, "error_type": type(e).__name__},
             ) from e
 
     def join_arguments(self, args: list[str]) -> str:
         """Join arguments into a shell-safe command string.
-        
+
         Args:
             args: List of arguments to join
-            
+
         Returns:
             Shell-safe command string
-            
+
         Raises:
             ArgumentParsingError: If joining fails
         """
@@ -231,15 +227,15 @@ class ShellStyleArgumentParser:
         except Exception as e:
             raise ArgumentParsingError(
                 f"Failed to join arguments: {e}",
-                {"arguments": args, "error_type": type(e).__name__}
+                {"arguments": args, "error_type": type(e).__name__},
             ) from e
 
     def validate_rule_format(self, rule_string: str) -> tuple[bool, str | None]:
         """Validate rule string format without full parsing.
-        
+
         Args:
             rule_string: Rule string to validate
-            
+
         Returns:
             Tuple of (is_valid, error_message)
         """
@@ -253,23 +249,24 @@ class ShellStyleArgumentParser:
 
     def _remove_surrounding_quotes(self, text: str) -> str:
         """Remove surrounding quotes from a string if present.
-        
+
         Args:
             text: Text that may have surrounding quotes
-            
+
         Returns:
             Text with surrounding quotes removed if they were present
         """
         if len(text) >= 2:
-            if (text.startswith('"') and text.endswith('"')) or \
-               (text.startswith("'") and text.endswith("'")):
+            if (text.startswith('"') and text.endswith('"')) or (
+                text.startswith("'") and text.endswith("'")
+            ):
                 return text[1:-1]
         return text
 
 
 class ArgumentParserFactory:
     """Factory for creating argument parsers with different configurations.
-    
+
     Implements Factory pattern for flexible parser creation and configuration.
     Supports dependency injection and extensibility.
     """
@@ -277,10 +274,10 @@ class ArgumentParserFactory:
     @staticmethod
     def create_shell_parser(posix: bool = False) -> ShellStyleArgumentParser:
         """Create a shell-style argument parser.
-        
+
         Args:
             posix: Whether to use POSIX-compliant parsing (default: False for Windows compatibility)
-            
+
         Returns:
             Configured ShellStyleArgumentParser instance
         """
@@ -289,7 +286,7 @@ class ArgumentParserFactory:
     @staticmethod
     def create_windows_parser() -> ShellStyleArgumentParser:
         """Create a Windows-compatible argument parser.
-        
+
         Returns:
             Parser configured for Windows command-line compatibility
         """
@@ -298,7 +295,7 @@ class ArgumentParserFactory:
     @staticmethod
     def create_strict_parser() -> ShellStyleArgumentParser:
         """Create a strict POSIX-compliant parser.
-        
+
         Returns:
             Parser with strict POSIX compliance for maximum compatibility
         """

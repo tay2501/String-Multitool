@@ -34,12 +34,15 @@ from .exceptions import (
 from .io.clipboard import ClipboardMonitor
 from .io.manager import InputOutputManager
 
+
 # Lazy import to avoid circular import issues
 def __getattr__(name: str) -> Any:
     if name == "ApplicationInterface":
         from .main import ApplicationInterface
+
         return ApplicationInterface
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
 
 __version__: Final[str] = "2.1.0"
 __author__: Final[str] = "String_Multitool Development Team"

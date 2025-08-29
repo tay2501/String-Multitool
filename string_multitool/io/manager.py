@@ -56,30 +56,41 @@ class InputOutputManager:
                 try:
                     # First try to read with current encoding
                     raw_input: str = sys.stdin.read()
-                    
+
                     # If the input contains decode errors, try to fix them
-                    if isinstance(raw_input, str) and '\udcef' in raw_input:
+                    if isinstance(raw_input, str) and "\udcef" in raw_input:
                         # Raw bytes were decoded incorrectly, need to handle encoding
                         # Read the buffer content directly as bytes and decode properly
                         import codecs
+
                         # Try to decode with UTF-8 error handling
                         try:
                             # Encode back to bytes using latin-1 to preserve raw bytes
-                            raw_bytes = raw_input.encode('latin-1', errors='ignore')
+                            raw_bytes = raw_input.encode("latin-1", errors="ignore")
                             # Decode as UTF-8 with error handling
-                            corrected_input = raw_bytes.decode('utf-8', errors='replace')
+                            corrected_input = raw_bytes.decode(
+                                "utf-8", errors="replace"
+                            )
                             return str(corrected_input.strip())
                         except (UnicodeDecodeError, UnicodeEncodeError):
                             # Fallback to original input with replacement chars removed
-                            return str(raw_input.replace('\udcef', '').replace('\udc94', '').replace('\udc80', '').strip())
-                    
+                            return str(
+                                raw_input.replace("\udcef", "")
+                                .replace("\udc94", "")
+                                .replace("\udc80", "")
+                                .strip()
+                            )
+
                     return str(raw_input.strip())
-                    
+
                 except (UnicodeDecodeError, UnicodeEncodeError) as encoding_error:
                     # If encoding fails, try reading with explicit UTF-8
                     try:
                         import io
-                        utf8_stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8', errors='replace')
+
+                        utf8_stdin = io.TextIOWrapper(
+                            sys.stdin.buffer, encoding="utf-8", errors="replace"
+                        )
                         return utf8_stdin.read().strip()
                     except Exception:
                         # Final fallback - return with replacement characters
@@ -116,11 +127,13 @@ class InputOutputManager:
                 last_error = e
                 if attempt < 2:  # Don't sleep on last attempt
                     import time
+
                     time.sleep(0.1 * (attempt + 1))  # Progressive delay
 
         # Method 2: tkinter fallback
         try:
             import tkinter as tk
+
             root = tk.Tk()
             root.withdraw()  # Hide window
             content = root.clipboard_get()
@@ -133,12 +146,13 @@ class InputOutputManager:
         try:
             import subprocess
             import sys
+
             if sys.platform == "win32":
                 result = subprocess.run(
                     ["powershell", "-Command", "Get-Clipboard"],
                     capture_output=True,
                     text=True,
-                    timeout=5
+                    timeout=5,
                 )
                 if result.returncode == 0:
                     return result.stdout.strip()
@@ -149,13 +163,14 @@ class InputOutputManager:
         try:
             import subprocess
             import sys
+
             if sys.platform == "win32":
                 # Use echo to get clipboard content via pipeline
                 result = subprocess.run(
                     ["cmd", "/c", "echo off && powershell Get-Clipboard"],
                     capture_output=True,
                     text=True,
-                    timeout=5
+                    timeout=5,
                 )
                 if result.returncode == 0:
                     return result.stdout.strip()
@@ -164,7 +179,10 @@ class InputOutputManager:
 
         raise ClipboardError(
             f"Failed to read from clipboard after trying all methods: {last_error}",
-            {"error_type": type(last_error).__name__ if last_error else "Unknown", "methods_tried": 4}
+            {
+                "error_type": type(last_error).__name__ if last_error else "Unknown",
+                "methods_tried": 4,
+            },
         ) from last_error
 
     @staticmethod
@@ -181,7 +199,7 @@ class InputOutputManager:
             raise ClipboardError("Clipboard functionality not available")
 
         logger = get_logger(__name__)
-        
+
         # Method 1: pyperclip with retry mechanism
         last_error: Exception | None = None
         for attempt in range(3):
@@ -193,11 +211,13 @@ class InputOutputManager:
                 last_error = e
                 if attempt < 2:  # Don't sleep on last attempt
                     import time
+
                     time.sleep(0.1 * (attempt + 1))  # Progressive delay
 
         # Method 2: tkinter fallback
         try:
             import tkinter as tk
+
             root = tk.Tk()
             root.withdraw()  # Hide window
             root.clipboard_clear()
@@ -213,15 +233,18 @@ class InputOutputManager:
         try:
             import subprocess
             import sys
+
             if sys.platform == "win32":
                 result = subprocess.run(
                     ["powershell", "-Command", f"Set-Clipboard -Value '{text}'"],
                     capture_output=True,
                     text=True,
-                    timeout=5
+                    timeout=5,
                 )
                 if result.returncode == 0:
-                    log_debug(logger, "[SUCCESS] Text copied to clipboard via PowerShell")
+                    log_debug(
+                        logger, "[SUCCESS] Text copied to clipboard via PowerShell"
+                    )
                     return
         except Exception:
             pass
@@ -230,22 +253,26 @@ class InputOutputManager:
         try:
             import subprocess
             import sys
+
             if sys.platform == "win32":
                 result = subprocess.run(
-                    ["cmd", "/c", "clip"],
-                    input=text,
-                    text=True,
-                    timeout=5
+                    ["cmd", "/c", "clip"], input=text, text=True, timeout=5
                 )
                 if result.returncode == 0:
-                    log_debug(logger, "[SUCCESS] Text copied to clipboard via clip command")
+                    log_debug(
+                        logger, "[SUCCESS] Text copied to clipboard via clip command"
+                    )
                     return
         except Exception:
             pass
 
         raise ClipboardError(
             f"Failed to copy to clipboard after trying all methods: {last_error}",
-            {"text_length": len(text), "error_type": type(last_error).__name__ if last_error else "Unknown", "methods_tried": 4}
+            {
+                "text_length": len(text),
+                "error_type": type(last_error).__name__ if last_error else "Unknown",
+                "methods_tried": 4,
+            },
         ) from last_error
 
     def get_pipe_input(self) -> str | None:
@@ -260,27 +287,37 @@ class InputOutputManager:
                 try:
                     # First try to read with current encoding
                     raw_input: str = sys.stdin.read()
-                    
+
                     # If the input contains decode errors, try to fix them
-                    if isinstance(raw_input, str) and '\udcef' in raw_input:
+                    if isinstance(raw_input, str) and "\udcef" in raw_input:
                         # Raw bytes were decoded incorrectly, need to handle encoding
                         try:
                             # Encode back to bytes using latin-1 to preserve raw bytes
-                            raw_bytes = raw_input.encode('latin-1', errors='ignore')
+                            raw_bytes = raw_input.encode("latin-1", errors="ignore")
                             # Decode as UTF-8 with error handling
-                            corrected_input = raw_bytes.decode('utf-8', errors='replace')
+                            corrected_input = raw_bytes.decode(
+                                "utf-8", errors="replace"
+                            )
                             return str(corrected_input.strip())
                         except (UnicodeDecodeError, UnicodeEncodeError):
                             # Fallback to original input with replacement chars removed
-                            return str(raw_input.replace('\udcef', '').replace('\udc94', '').replace('\udc80', '').strip())
-                    
+                            return str(
+                                raw_input.replace("\udcef", "")
+                                .replace("\udc94", "")
+                                .replace("\udc80", "")
+                                .strip()
+                            )
+
                     return str(raw_input.strip())
-                    
+
                 except (UnicodeDecodeError, UnicodeEncodeError):
                     # If encoding fails, try reading with explicit UTF-8
                     try:
                         import io
-                        utf8_stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8', errors='replace')
+
+                        utf8_stdin = io.TextIOWrapper(
+                            sys.stdin.buffer, encoding="utf-8", errors="replace"
+                        )
                         return utf8_stdin.read().strip()
                     except Exception:
                         # Final fallback - return None
