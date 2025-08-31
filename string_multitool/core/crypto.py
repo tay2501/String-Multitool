@@ -217,7 +217,7 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
 
             # Generate new key pair
             logger = get_logger(__name__)
-            log_info(logger, "Generating new RSA key pair...")
+            logger.info("Generating new RSA key pair...")
             return self._generate_key_pair()
 
         except Exception as e:
@@ -292,9 +292,9 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
                 pass
 
             logger = get_logger(__name__)
-            log_info(logger, f"RSA key pair saved securely:")
-            log_info(logger, f"   Private key: {self.private_key_path}")
-            log_info(logger, f"   Public key:  {self.public_key_path}")
+            logger.info("RSA key pair saved securely:",
+                       private_key_path=str(self.private_key_path),
+                       public_key_path=str(self.public_key_path))
 
         except Exception as e:
             raise CryptographyError(

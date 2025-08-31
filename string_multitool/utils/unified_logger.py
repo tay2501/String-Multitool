@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, List, Union
+from structlog.types import Processor
 
 import structlog
 from structlog import stdlib
@@ -50,7 +51,7 @@ def configure_logging(level: str = "INFO", json_output: bool = False) -> None:
     )
     
     # Configure structlog processors
-    processors = [
+    processors: List[Processor] = [
         stdlib.filter_by_level,
         stdlib.add_logger_name,
         stdlib.add_log_level,
@@ -84,7 +85,7 @@ def get_logger(name: str) -> structlog.stdlib.BoundLogger:
     Returns:
         Structured logger instance
     """
-    return structlog.get_logger(name)
+    return structlog.get_logger(name)  # type: ignore[no-any-return]
 
 
 def log_with_context(

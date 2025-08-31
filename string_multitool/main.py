@@ -39,6 +39,7 @@ class ApplicationInterface:
         self.transformation_engine = transformation_engine
         self.io_manager = io_manager
         self.crypto_manager = crypto_manager
+        self.daemon_mode = None  # Daemon mode not available in current implementation
 
         self.logger = get_logger(__name__)
 

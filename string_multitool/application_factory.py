@@ -76,7 +76,7 @@ def configure_services(container: DIContainer) -> None:
             return CryptographyManager(config_mgr)
         except CryptographyError as e:
             logger = get_logger(__name__)
-            log_warning(logger, f"Cryptography manager not available: {e}")
+            logger.warning("Cryptography manager not available", error=str(e))
             return None
         except Exception as e:
             logger = get_logger(__name__)
@@ -174,7 +174,7 @@ class ApplicationFactory:
             except (CryptographyError, ImportError, OSError) as e:
                 log_with_context(logger, "warning", "Cryptography manager unavailable", error=str(e))
             except Exception as e:
-                log_warning(logger, f"Unexpected error with crypto manager: {e}")
+                logger.warning("Unexpected error with crypto manager", error=str(e))
 
             # Create application interface with core dependencies
             app_interface = ApplicationInterface(
