@@ -14,8 +14,8 @@ from typing import TYPE_CHECKING, Any, Final
 
 from ..exceptions import ConfigurationError, CryptographyError
 
-# Import logging utilities
-from ..utils.logger import get_logger, log_debug, log_error, log_info, log_warning
+# Import logging utilities  
+from ..utils.unified_logger import get_logger, log_with_context
 from .types import ConfigManagerProtocol, ConfigurableComponent, CryptoManagerProtocol
 
 try:
@@ -208,13 +208,12 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
         try:
             self._ensure_key_directory()
 
-            # Check if keys exist and are valid
-            if self.private_key_path.exists() and self.public_key_path.exists():
-                try:
-                    return self._load_key_pair()
-                except Exception:
-                    # Keys are corrupted, regenerate
-                    pass
+            # EAFP: Try to load existing keys directly
+            try:
+                return self._load_key_pair()
+            except (FileNotFoundError, OSError, ValueError, TypeError):
+                # Keys don't exist or are corrupted, regenerate
+                pass
 
             # Generate new key pair
             logger = get_logger(__name__)
@@ -356,9 +355,8 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
             True if keys loaded successfully, False otherwise
         """
         try:
-            if self.private_key_path.exists() and self.public_key_path.exists():
-                self._load_key_pair()
-                return True
-            return False
-        except Exception:
+            # EAFP: Try to load keys directly
+            self._load_key_pair()
+            return True
+        except (FileNotFoundError, OSError, ValueError, TypeError):
             return False

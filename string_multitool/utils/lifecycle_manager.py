@@ -41,7 +41,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Protocol, TypedDict, Union
 from uuid import uuid4
 
-from .logger import get_logger
+from .unified_logger import get_logger
 
 # Optional dependencies with graceful fallbacks
 try:

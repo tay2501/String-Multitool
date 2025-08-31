@@ -1,14 +1,10 @@
 """
-Mode components for String_Multitool.
+Mode components for String_Multitool (CUI-only version).
 """
 
-from .daemon import DaemonMode
-from .hotkey import HotkeyMode
 from .interactive import CommandProcessor, InteractiveSession
 
 __all__ = [
     "InteractiveSession",
     "CommandProcessor",
-    "DaemonMode",
-    "HotkeyMode",
 ]

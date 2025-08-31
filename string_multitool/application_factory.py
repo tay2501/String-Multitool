@@ -22,10 +22,8 @@ from .exceptions import CryptographyError
 from .io.manager import InputOutputManager
 
 # ApplicationInterface will be imported locally to avoid circular imports
-from .modes.daemon import DaemonMode
-from .modes.hotkey import HotkeyMode
 from .modes.interactive import CommandProcessor, InteractiveSession
-from .utils.logger import get_logger, log_warning
+from .utils.unified_logger import get_logger, log_with_context
 
 
 def configure_services(container: DIContainer) -> None:
@@ -82,7 +80,7 @@ def configure_services(container: DIContainer) -> None:
             return None
         except Exception as e:
             logger = get_logger(__name__)
-            log_warning(logger, f"Unexpected error creating crypto manager: {e}")
+            log_with_context(logger, "warning", "Unexpected error creating crypto manager", error=str(e))
             return None
 
     def create_crypto_manager_concrete(
@@ -113,15 +111,6 @@ def configure_services(container: DIContainer) -> None:
     # I/O manager (transient)
     container.register_transient(InputOutputManager, InputOutputManager)
 
-    # Daemon mode (transient with dependencies)
-    def create_daemon_mode(
-        transformation_engine: TextTransformationEngine,
-        config_manager: ConfigurationManager,
-    ) -> DaemonMode:
-        return DaemonMode(transformation_engine, config_manager)
-
-    container.register_factory(DaemonMode, create_daemon_mode)
-
     # Interactive session (transient with dependencies)
     def create_interactive_session(
         io_manager: InputOutputManager,
@@ -136,68 +125,6 @@ def configure_services(container: DIContainer) -> None:
         return CommandProcessor(session)
 
     container.register_factory(CommandProcessor, create_command_processor)
-
-    # Hotkey mode (transient) - EAFP style with comprehensive error handling
-    def create_hotkey_mode(
-        io_manager: InputOutputManager,
-        transformation_engine: TextTransformationEngine,
-        config_manager: ConfigurationManager,
-    ) -> HotkeyMode | None:
-        """Create hotkey mode using EAFP pattern.
-
-        Args:
-            io_manager: Input/output manager instance
-            transformation_engine: Transformation engine protocol
-            config_manager: Configuration manager protocol
-
-        Returns:
-            HotkeyMode instance or None if unavailable
-        """
-        try:
-            return HotkeyMode(io_manager, transformation_engine, config_manager)
-        except ImportError as e:
-            logger = get_logger(__name__)
-            log_warning(logger, f"Hotkey dependencies unavailable: {e}")
-            return None
-        except Exception as e:
-            logger = get_logger(__name__)
-            log_warning(logger, f"Hotkey mode creation failed: {e}")
-            return None
-
-    def create_hotkey_mode_concrete(
-        io_manager: InputOutputManager,
-        transformation_engine: TextTransformationEngine,
-        config_manager: ConfigurationManager,
-    ) -> HotkeyMode:
-        """Create concrete hotkey mode with validation.
-
-        Args:
-            io_manager: Input/output manager instance
-            transformation_engine: Transformation engine protocol
-            config_manager: Configuration manager protocol
-
-        Returns:
-            HotkeyMode instance
-
-        Raises:
-            ConfigurationError: If hotkey mode creation fails
-        """
-        result = create_hotkey_mode(io_manager, transformation_engine, config_manager)
-        if result is None:
-            from .exceptions import ConfigurationError
-
-            raise ConfigurationError(
-                "Hotkey mode creation failed - dependencies unavailable",
-                {
-                    "io_manager_available": io_manager is not None,
-                    "transformation_engine_available": transformation_engine
-                    is not None,
-                    "config_manager_available": config_manager is not None,
-                },
-            )
-        return result
-
-    container.register_factory(HotkeyMode, create_hotkey_mode_concrete)
 
 
 class ApplicationFactory:
@@ -220,10 +147,10 @@ class ApplicationFactory:
         from .core.config import ConfigurationManager
         from .core.transformations import TextTransformationEngine
         from .core.crypto import CryptographyManager
-        from .utils.logger import get_logger, log_warning, log_debug
+        from .utils.unified_logger import get_logger, log_with_context
 
         logger = get_logger(__name__)
-        log_debug(logger, "Starting application creation with dependency injection")
+        log_with_context(logger, "debug", "Starting application creation with dependency injection")
 
         try:
             # Import ApplicationInterface locally to avoid circular imports
@@ -231,71 +158,32 @@ class ApplicationFactory:
 
             # Configure services - EAFP style
             ServiceRegistry.configure(configure_services)
-            log_debug(logger, "Service registry configured successfully")
+            log_with_context(logger, "debug", "Service registry configured successfully")
 
             # Get core dependencies via DI - these are required
             config_manager = inject(ConfigurationManager)
             transformation_engine = inject(TextTransformationEngine)
             io_manager = inject(InputOutputManager)
-            log_debug(logger, "Core dependencies injected successfully")
+            log_with_context(logger, "debug", "Core dependencies injected successfully")
 
             # Get optional crypto manager - EAFP style
             crypto_manager = None
             try:
                 crypto_manager = inject(CryptographyManager)
-                log_debug(logger, "Cryptography manager available")
+                log_with_context(logger, "debug", "Cryptography manager available")
             except (CryptographyError, ImportError, OSError) as e:
-                log_warning(logger, f"Cryptography manager unavailable: {e}")
+                log_with_context(logger, "warning", "Cryptography manager unavailable", error=str(e))
             except Exception as e:
                 log_warning(logger, f"Unexpected error with crypto manager: {e}")
 
-            # Get optional daemon mode - EAFP style
-            daemon_mode = None
-            try:
-                daemon_mode = inject(DaemonMode)
-                log_debug(logger, "Daemon mode available")
-            except (ImportError, OSError) as e:
-                log_warning(logger, f"Daemon mode dependencies unavailable: {e}")
-            except Exception as e:
-                log_warning(logger, f"Daemon mode creation failed: {e}")
-
-            # Get optional hotkey mode - EAFP style
-            hotkey_mode = None
-            try:
-                hotkey_mode = inject(HotkeyMode)
-                log_debug(logger, "Hotkey mode available")
-            except (ImportError, OSError) as e:
-                log_warning(logger, f"Hotkey mode dependencies unavailable: {e}")
-            except Exception as e:
-                log_warning(logger, f"Hotkey mode creation failed: {e}")
-
-            # Create optional system tray mode - EAFP style
-            system_tray_mode = None
-            try:
-                from .modes.system_tray import SystemTrayMode
-
-                system_tray_mode = SystemTrayMode(
-                    transformation_engine=transformation_engine,
-                    config_manager=config_manager,
-                    io_manager=io_manager,
-                )
-                log_debug(logger, "System tray mode available")
-            except (ImportError, OSError) as e:
-                log_warning(logger, f"System tray dependencies unavailable: {e}")
-            except Exception as e:
-                log_warning(logger, f"System tray mode creation failed: {e}")
-
-            # Create application interface with all dependencies
+            # Create application interface with core dependencies
             app_interface = ApplicationInterface(
                 config_manager=config_manager,
                 transformation_engine=transformation_engine,
                 io_manager=io_manager,
                 crypto_manager=crypto_manager,
-                daemon_mode=daemon_mode,
-                hotkey_mode=hotkey_mode,
-                system_tray_mode=system_tray_mode,
             )
-            log_debug(logger, "Application interface created successfully")
+            log_with_context(logger, "debug", "Application interface created successfully")
             return app_interface
 
         except Exception as e:
@@ -347,25 +235,12 @@ class ApplicationFactory:
             transformation_engine = inject(TextTransformationEngine)
             io_manager = inject(InputOutputManager)
 
-            # For testing, create minimal daemon mode without optional components
-            daemon_mode = None
-            try:
-                daemon_mode = DaemonMode(
-                    transformation_engine=transformation_engine,
-                    config_manager=config_manager,
-                )
-            except Exception as e:
-                logger.debug(f"Test daemon mode not available: {e}")
-
-            # Skip optional components for testing to avoid external dependencies
+            # Create minimal application for testing
             return ApplicationInterface(
                 config_manager=config_manager,
                 transformation_engine=transformation_engine,
                 io_manager=io_manager,
                 crypto_manager=None,  # Skip crypto for testing
-                daemon_mode=daemon_mode,
-                hotkey_mode=None,  # Skip hotkey for testing
-                system_tray_mode=None,  # Skip system tray for testing
             )
 
         except Exception as e:

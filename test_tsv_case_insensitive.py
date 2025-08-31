@@ -202,70 +202,78 @@ class TestCaseInsensitiveConversionStrategy:
         result = strategy.convert_text(input_text, default_conversion_dict, options)
         assert result == expected
     
-    def test_preserve_original_case_disabled(self) -> None:
-        """元の大文字小文字パターンの保持無効をテスト."""
+    @pytest.mark.parametrize("input_text,expected", [
+        ("Use API", "Use Application Programming Interface"),
+        ("Use api", "Use Application Programming Interface"),
+        ("Use Api", "Use Application Programming Interface"),
+        ("Use aPI", "Use Application Programming Interface"),
+    ])
+    def test_preserve_original_case_disabled(
+        self,
+        strategy: CaseInsensitiveConversionStrategy,
+        default_conversion_dict: dict[str, str],
+        input_text: str,
+        expected: str
+    ) -> None:
+        """Test preservation of original case disabled using parametrized testing."""
         options = TSVConversionOptions(
             case_insensitive=True,
             preserve_original_case=False
         )
-        
-        test_cases = [
-            ("Use API", "Use Application Programming Interface"),
-            ("Use api", "Use Application Programming Interface"),
-            ("Use Api", "Use Application Programming Interface"),
-            ("Use aPI", "Use Application Programming Interface"),
-        ]
-        
-        for input_text, expected in test_cases:
-            with self.subTest(input_text=input_text):
-                result = self.strategy.convert_text(input_text, self.conversion_dict, options)
-                assert result == expected
+        result = strategy.convert_text(input_text, default_conversion_dict, options)
+        assert result == expected
     
-    def test_case_pattern_application(self) -> None:
-        """大文字小文字パターン適用の詳細テスト."""
-        # プライベートメソッドのテスト（通常は推奨されないが、重要なロジックのため）
+    @pytest.mark.parametrize("original,replacement,expected", [
+        ("API", "Application Programming Interface", "APPLICATION PROGRAMMING INTERFACE"),
+        ("api", "Application Programming Interface", "application programming interface"),
+        ("Api", "Application Programming Interface", "Application Programming Interface"),
+        ("aPI", "Application Programming Interface", "aPPlication Programming Interface"),
+        ("A", "Application Programming Interface", "Application Programming Interface"),
+    ])
+    def test_case_pattern_application(
+        self,
+        original: str,
+        replacement: str,
+        expected: str
+    ) -> None:
+        """Test case pattern application details using parametrized testing."""
         strategy = CaseInsensitiveConversionStrategy()
-        
-        test_cases = [
-            ("API", "Application Programming Interface", "APPLICATION PROGRAMMING INTERFACE"),
-            ("api", "Application Programming Interface", "application programming interface"),
-            ("Api", "Application Programming Interface", "Application Programming Interface"),
-            ("aPI", "Application Programming Interface", "aPPlication Programming Interface"),
-            ("A", "Application Programming Interface", "Application Programming Interface"),  # 短い場合
-        ]
-        
-        for original, replacement, expected in test_cases:
-            with self.subTest(original=original, replacement=replacement):
-                result = strategy._apply_case_pattern(original, replacement)
-                assert result == expected
+        result = strategy._apply_case_pattern(original, replacement)
+        assert result == expected
     
-    def test_mixed_content_conversion(self) -> None:
-        """複数の変換が混在するテキストのテスト."""
+    def test_mixed_content_conversion(
+        self,
+        strategy: CaseInsensitiveConversionStrategy,
+        default_conversion_dict: dict[str, str]
+    ) -> None:
+        """Test mixed content conversion with case preservation."""
         options = TSVConversionOptions(
             case_insensitive=True,
             preserve_original_case=True
         )
         
         text = "Use API and sql with HTTP protocol"
-        result = self.strategy.convert_text(text, self.conversion_dict, options)
+        result = strategy.convert_text(text, default_conversion_dict, options)
         expected = "Use APPLICATION PROGRAMMING INTERFACE and sql with HTTP PROTOCOL"
         assert result == expected
 
 
 class TestTSVConversionStrategyFactory:
-    """TSV変換戦略ファクトリーのテスト."""
+    """Test TSV conversion strategy factory."""
     
-    def test_create_case_sensitive_strategy(self) -> None:
-        """大文字小文字区別戦略の作成をテスト."""
-        options = TSVConversionOptions(case_insensitive=False)
+    @pytest.mark.parametrize("case_insensitive,expected_type", [
+        (False, CaseSensitiveConversionStrategy),
+        (True, CaseInsensitiveConversionStrategy),
+    ])
+    def test_create_strategy(
+        self, 
+        case_insensitive: bool, 
+        expected_type: type
+    ) -> None:
+        """Test strategy creation using parametrized testing."""
+        options = TSVConversionOptions(case_insensitive=case_insensitive)
         strategy = TSVConversionStrategyFactory.create_strategy(options)
-        assert isinstance(strategy, CaseSensitiveConversionStrategy)
-    
-    def test_create_case_insensitive_strategy(self) -> None:
-        """大文字小文字無視戦略の作成をテスト."""
-        options = TSVConversionOptions(case_insensitive=True)
-        strategy = TSVConversionStrategyFactory.create_strategy(options)
-        assert isinstance(strategy, CaseInsensitiveConversionStrategy)
+        assert isinstance(strategy, expected_type)
     
     def test_validate_options(self) -> None:
         """Test option validation functionality."""
@@ -308,56 +316,56 @@ JSON\tJavaScript Object Notation"""
         import shutil
         shutil.rmtree(temp_dir)
     
-    def test_default_case_sensitive_behavior(self) -> None:
-        """デフォルトの大文字小文字区別動作をテスト."""
-        transformer = TSVTransformation(str(self.tsv_file))
+    def test_default_case_sensitive_behavior(self, tsv_test_file: Path) -> None:
+        """Test default case-sensitive behavior."""
+        transformer = TSVTransformation(str(tsv_test_file))
         
         text = "Use API and api for development"
         result = transformer.transform(text)
         expected = "Use Application Programming Interface and api for development"
         assert result == expected
     
-    def test_case_insensitive_option(self) -> None:
-        """大文字小文字無視オプションをテスト."""
+    def test_case_insensitive_option(self, tsv_test_file: Path) -> None:
+        """Test case-insensitive option."""
         options = TSVConversionOptions(case_insensitive=True)
-        transformer = TSVTransformation(str(self.tsv_file), options)
+        transformer = TSVTransformation(str(tsv_test_file), options)
         
         text = "Use api and Api for development"
         result = transformer.transform(text)
         expected = "Use application programming interface and Application Programming Interface for development"
         assert result == expected
     
-    def test_update_options_runtime(self) -> None:
-        """実行時オプション更新をテスト."""
-        transformer = TSVTransformation(str(self.tsv_file))
+    def test_update_options_runtime(self, tsv_test_file: Path) -> None:
+        """Test runtime option updates."""
+        transformer = TSVTransformation(str(tsv_test_file))
         
-        # 初期状態（大文字小文字区別）
+        # Initial state (case-sensitive)
         text = "Use api"
         result1 = transformer.transform(text)
-        assert result1 == "Use api"  # 変換されない
+        assert result1 == "Use api"  # No conversion
         
-        # オプション更新（大文字小文字無視）
+        # Update options (case-insensitive)
         new_options = TSVConversionOptions(case_insensitive=True)
         transformer.update_options(new_options)
         
         result2 = transformer.transform(text)
         assert result2 == "Use application programming interface"
     
-    def test_get_current_options(self) -> None:
-        """現在のオプション取得をテスト."""
+    def test_get_current_options(self, tsv_test_file: Path) -> None:
+        """Test getting current options."""
         options = TSVConversionOptions(case_insensitive=True)
-        transformer = TSVTransformation(str(self.tsv_file), options)
+        transformer = TSVTransformation(str(tsv_test_file), options)
         
         current_options = transformer.get_current_options()
         assert current_options == options
     
-    def test_transformation_rule_string(self) -> None:
-        """変換ルール文字列の生成をテスト."""
+    def test_transformation_rule_string(self, tsv_test_file: Path) -> None:
+        """Test transformation rule string generation."""
         options = TSVConversionOptions(
             case_insensitive=True,
             preserve_original_case=False
         )
-        transformer = TSVTransformation(str(self.tsv_file), options)
+        transformer = TSVTransformation(str(tsv_test_file), options)
         
         rule = transformer.get_transformation_rule()
         assert "convertbytsv" in rule
@@ -365,28 +373,29 @@ JSON\tJavaScript Object Notation"""
         assert "--no-preserve-case" in rule
 
 
-class TestTextTransformationEngineIntegration():
-    """TextTransformationEngineでのTSV変換統合テスト."""
+class TestTextTransformationEngineIntegration:
+    """Test text transformation engine TSV conversion integration."""
     
-    def setUp(self) -> None:
-        """テストセットアップ."""
-        # 一時TSVファイルを作成
-        self.temp_dir = tempfile.mkdtemp()
-        self.config_dir = Path(self.temp_dir) / "config" / "tsv_rules"
-        self.config_dir.mkdir(parents=True)
+    @pytest.fixture
+    def engine_test_file(self) -> Path:
+        """Create temporary TSV file for engine testing."""
+        temp_dir = tempfile.mkdtemp()
+        config_dir = Path(temp_dir) / "config" / "tsv_rules"
+        config_dir.mkdir(parents=True)
         
-        self.tsv_file = self.config_dir / "test_terms.tsv"
+        tsv_file = config_dir / "test_terms.tsv"
         
-        # テスト用TSVデータ
+        # Test TSV data
         tsv_content = """API\tApplication Programming Interface
 REST\tRepresentational State Transfer"""
         
-        self.tsv_file.write_text(tsv_content, encoding="utf-8")
-    
-    def tearDown(self) -> None:
-        """テストクリーンアップ."""
+        tsv_file.write_text(tsv_content, encoding="utf-8")
+        
+        yield tsv_file
+        
+        # Cleanup
         import shutil
-        shutil.rmtree(self.temp_dir)
+        shutil.rmtree(temp_dir)
     
     def test_parse_tsv_conversion_args(self) -> None:
         """TSV変換引数解析をテスト（POSIX準拠：オプション優先パターン）."""
@@ -432,32 +441,32 @@ REST\tRepresentational State Transfer"""
             engine._parse_tsv_conversion_args(args6)
 
 
-class TestPerformanceAndEdgeCases():
-    """パフォーマンスとエッジケースのテスト."""
+class TestPerformanceAndEdgeCases:
+    """Test performance and edge cases."""
     
-    def setUp(self) -> None:
-        """テストセットアップ."""
-        self.temp_dir = tempfile.mkdtemp()
-        self.tsv_file = Path(self.temp_dir) / "performance_test.tsv"
+    @pytest.fixture
+    def performance_tsv_file(self) -> Path:
+        """Create large TSV file for performance testing."""
+        temp_dir = tempfile.mkdtemp()
+        tsv_file = Path(temp_dir) / "performance_test.tsv"
         
-        # 大きなTSVファイルを作成
+        # Create large TSV file
         large_content = []
         for i in range(1000):
             large_content.append(f"TERM{i:04d}\tDefinition for term {i:04d}")
         
-        self.tsv_file.write_text("\n".join(large_content), encoding="utf-8")
-    
-    def tearDown(self) -> None:
-        """テストクリーンアップ."""
-        import shutil
-        shutil.rmtree(self.temp_dir)
-    
-    def test_large_tsv_file_performance(self) -> None:
-        """大きなTSVファイルのパフォーマンステスト."""
-        import time
+        tsv_file.write_text("\n".join(large_content), encoding="utf-8")
         
+        yield tsv_file
+        
+        # Cleanup
+        import shutil
+        shutil.rmtree(temp_dir)
+    
+    def test_large_tsv_file_performance(self, performance_tsv_file: Path) -> None:
+        """Test large TSV file performance."""
         options = TSVConversionOptions(case_insensitive=True)
-        transformer = TSVTransformation(str(self.tsv_file), options)
+        transformer = TSVTransformation(str(performance_tsv_file), options)
         
         text = "Use TERM0001 and term0500 in your code"
         
@@ -465,14 +474,14 @@ class TestPerformanceAndEdgeCases():
         result = transformer.transform(text)
         end_time = time.time()
         
-        # パフォーマンス検証（1秒以内で完了することを期待）
+        # Performance verification (should complete within 1 second)
         assert end_time - start_time < 1.0
         assert "Definition for term 0001" in result
         assert "definition for term 0500" in result
     
-    def test_empty_tsv_file(self) -> None:
-        """空のTSVファイルのテスト."""
-        empty_file = Path(self.temp_dir) / "empty.tsv"
+    def test_empty_tsv_file(self, performance_tsv_file: Path) -> None:
+        """Test empty TSV file."""
+        empty_file = performance_tsv_file.parent / "empty.tsv"
         empty_file.write_text("", encoding="utf-8")
         
         transformer = TSVTransformation(str(empty_file))
@@ -480,9 +489,9 @@ class TestPerformanceAndEdgeCases():
         result = transformer.transform(text)
         assert result == text
     
-    def test_malformed_tsv_lines(self) -> None:
-        """不正な形式のTSV行のテスト."""
-        malformed_file = Path(self.temp_dir) / "malformed.tsv"
+    def test_malformed_tsv_lines(self, performance_tsv_file: Path) -> None:
+        """Test malformed TSV lines."""
+        malformed_file = performance_tsv_file.parent / "malformed.tsv"
         content = """API\tApplication Programming Interface
 \tMissing key
 Value without key
@@ -496,9 +505,9 @@ SQL\tStructured Query Language\tExtra column"""
         expected = "Use Application Programming Interface and Structured Query Language"
         assert result == expected
     
-    def test_unicode_content(self) -> None:
-        """Unicode文字のテスト."""
-        unicode_file = Path(self.temp_dir) / "unicode.tsv"
+    def test_unicode_content(self, performance_tsv_file: Path) -> None:
+        """Test Unicode content."""
+        unicode_file = performance_tsv_file.parent / "unicode.tsv"
         content = """API\tアプリケーション プログラミング インターフェース
 データベース\tDatabase
 🚀\tRocket Emoji"""
@@ -514,16 +523,16 @@ SQL\tStructured Query Language\tExtra column"""
         assert result == expected
 
 
-class TestErrorHandling():
-    """エラーハンドリングのテスト."""
+class TestErrorHandling:
+    """Test error handling."""
     
     def test_nonexistent_file(self) -> None:
-        """存在しないファイルのエラーハンドリング."""
+        """Test error handling for nonexistent file."""
         with pytest.raises(ValidationError):
             TSVTransformation("/nonexistent/path.tsv")
     
     def test_invalid_options_type(self) -> None:
-        """無効なオプション型のエラーハンドリング."""
+        """Test error handling for invalid options type."""
         temp_dir = tempfile.mkdtemp()
         tsv_file = Path(temp_dir) / "test.tsv"
         tsv_file.write_text("API\tApplication Programming Interface", encoding="utf-8")
@@ -536,15 +545,15 @@ class TestErrorHandling():
             shutil.rmtree(temp_dir)
     
     def test_strategy_error_handling(self) -> None:
-        """戦略エラーハンドリングのテスト."""
+        """Test strategy error handling."""
         strategy = CaseInsensitiveConversionStrategy()
         options = TSVConversionOptions()
         
-        # 無効な入力タイプ
+        # Invalid input type
         with pytest.raises(ValidationError):
             strategy.convert_text(123, {}, options)  # type: ignore
         
-        # 無効な変換辞書タイプ
+        # Invalid conversion dictionary type
         with pytest.raises(ValidationError):
             strategy.convert_text("text", "invalid_dict", options)  # type: ignore
 

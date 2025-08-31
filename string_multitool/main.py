@@ -14,7 +14,7 @@ from .core.config import ConfigurationManager
 from .core.transformations import TextTransformationEngine
 from .exceptions import ValidationError
 from .io.manager import InputOutputManager
-from .utils.logger import get_logger
+from .utils.unified_logger import get_logger
 
 
 class ApplicationInterface:
@@ -26,9 +26,6 @@ class ApplicationInterface:
         transformation_engine: TextTransformationEngine,
         io_manager: InputOutputManager,
         crypto_manager: Optional[Any] = None,
-        daemon_mode: Optional[Any] = None,
-        hotkey_mode: Optional[Any] = None,
-        system_tray_mode: Optional[Any] = None,
     ) -> None:
         """Initialize application interface with dependency injection."""
         if config_manager is None:
@@ -42,9 +39,6 @@ class ApplicationInterface:
         self.transformation_engine = transformation_engine
         self.io_manager = io_manager
         self.crypto_manager = crypto_manager
-        self.daemon_mode = daemon_mode
-        self.hotkey_mode = hotkey_mode
-        self.system_tray_mode = system_tray_mode
 
         self.logger = get_logger(__name__)
 
@@ -99,11 +93,7 @@ class ApplicationInterface:
 
                         if not result.should_continue:
                             if result.message == "SWITCH_TO_DAEMON":
-                                print("Switching to daemon mode...")
-                                if self.daemon_mode:
-                                    self.daemon_mode.start_monitoring()
-                                else:
-                                    print("Daemon mode not available.")
+                                print("Daemon mode is not supported in CUI-only version.")
                             break
                         elif result.message == "SHOW_HELP":
                             self.display_help()

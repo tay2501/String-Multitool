@@ -484,3 +484,67 @@ modular_architecture_notes.md
 devenv.nix
 devenv.lock
 .devenv/
+
+# Future reference folder (moved features for separate projects)
+# These files are kept for reference but not actively used in CUI-only version
+future_reference/
+!future_reference/README.md
+
+# UV package manager (Python 3.12+ modern tool)
+uv.lock
+.uv/
+
+# Modern Python 3.12+ features and tools
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Structlog and modern logging
+logs/structured/
+*.jsonl
+structlog_*.log
+
+# Simplified project structure (CUI-only)
+# Removed daemon/hotkey/tray specific ignores since they're moved to future_reference
+gui_artifacts/
+system_tray_*.ico
+hotkey_*.json.bak
+daemon_*.pid.bak
+
+# Modern type checking (Python 3.12+)
+.pyright/
+.pylsp/
+.basedpyright/
+
+# Modern development environment
+.mise/
+.proto/
+.asdf/
+
+# Modern CI/CD and security
+.github/dependabot.yml.bak
+.pre-commit-config.yaml.bak
+security/
+SECURITY.md.bak
+
+# Modern Python packaging
+pyproject.toml.bak
+setup.cfg.bak
+setup.py.bak
+MANIFEST.in.bak
+
+# CUI-specific temporary files  
+interactive_session.tmp
+pipe_input.tmp
+transformation_output.tmp

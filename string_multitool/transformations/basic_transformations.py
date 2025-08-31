@@ -1,8 +1,9 @@
 """
-基本的なテキスト変換処理を提供するモジュール
+Basic text transformation module.
 
-このモジュールは、アンダーバー・ハイフン変換、全角・半角変換などの
-基本的なテキスト変換機能を個別クラスとして実装します。
+This module provides fundamental text transformation functionality
+including underscore-to-hyphen conversion, full-width to half-width
+conversion, and other basic text operations as individual classes.
 """
 
 from __future__ import annotations
@@ -13,13 +14,13 @@ from ..exceptions import TransformationError
 
 
 class UnderbarToHyphenTransformation(TransformationBase):
-    """アンダーバーをハイフンに変換する変換クラス"""
+    """Transformation class to convert underscores to hyphens."""
 
     def __init__(self, config: ConfigDict | None = None) -> None:
-        """初期化
+        """Initialize the transformation.
 
         Args:
-            config: 変換設定辞書（オプション）
+            config: Optional transformation configuration dictionary
         """
         super().__init__(config)
         self._rule: str = "uh"
@@ -27,16 +28,16 @@ class UnderbarToHyphenTransformation(TransformationBase):
         self._output_text: str = ""
 
     def transform(self, text: str) -> str:
-        """アンダーバーをハイフンに変換
+        """Convert underscores to hyphens.
 
         Args:
-            text: 変換対象のテキスト
+            text: Text to be transformed
 
         Returns:
-            変換されたテキスト
+            Transformed text with underscores replaced by hyphens
 
         Raises:
-            TransformationError: 変換処理に失敗した場合
+            TransformationError: If transformation process fails
         """
         try:
             self._input_text = text

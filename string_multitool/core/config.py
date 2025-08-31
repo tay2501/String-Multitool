@@ -39,11 +39,14 @@ class ConfigurationManager(ConfigurableComponent[dict[str, Any]]):
         self._security_config: dict[str, Any] | None = None
         self._hotkey_config: dict[str, Any] | None = None
 
-        if not self.config_dir.exists():
+        try:
+            # EAFP: Try to access the directory instead of checking existence first
+            self.config_dir.stat()
+        except (OSError, FileNotFoundError) as e:
             raise ConfigurationError(
-                f"Configuration directory not found: {config_dir}",
-                {"config_dir": str(self.config_dir)},
-            )
+                f"Configuration directory not accessible: {config_dir}",
+                {"config_dir": str(self.config_dir), "error": str(e)},
+            ) from e
 
         super().__init__({})
 
