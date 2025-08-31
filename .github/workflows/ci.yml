@@ -25,33 +25,32 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-        cache: pip
-        cache-dependency-path: |
-          requirements.txt
-          requirements-dev.txt
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -r requirements-dev.txt
+        uv sync --all-extras --dev
 
     - name: Run type checking
       run: |
-        python -m mypy string_multitool/
+        uv run mypy string_multitool/
 
     - name: Run code formatting check
       run: |
-        python -m black --check string_multitool/
-        python -m isort --check-only string_multitool/
+        uv run black --check string_multitool/
+        uv run isort --check-only string_multitool/
 
     - name: Run tests with coverage
       run: |
-        python -m pytest test_transform.py test_tsv_case_insensitive.py --cov=string_multitool --cov-report=xml --cov-report=term-missing -v
+        uv run pytest test_transform.py test_tsv_case_insensitive.py --cov=string_multitool --cov-report=xml --cov-report=term-missing -v
 
     - name: Upload coverage reports
       if: matrix.python-version == '3.11' && matrix.os == 'ubuntu-latest'
@@ -70,28 +69,30 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
-        cache: pip
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -r requirements-dev.txt
-        pip install bandit[toml] safety
+        uv sync --all-extras --dev
+        uv add --dev bandit[toml] safety
 
     - name: Run Bandit security scan
       run: |
-        bandit -r string_multitool/ -f json -o bandit-report.json || true
-        bandit -r string_multitool/
+        uv run bandit -r string_multitool/ -f json -o bandit-report.json || true
+        uv run bandit -r string_multitool/
 
     - name: Run Safety dependency scan
       run: |
-        safety check --json --output safety-report.json || true
-        safety check
+        uv run safety check --json --output safety-report.json || true
+        uv run safety check
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
@@ -125,6 +126,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -132,20 +138,18 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -r requirements-dev.txt
-        pip install pyinstaller
+        uv sync --all-extras --dev
+        uv add --dev pyinstaller
 
     - name: Build executable (Windows)
       if: runner.os == 'Windows'
       run: |
-        pyinstaller --onefile --windowed --icon=resources/icon.png --name=String_Multitool_${{ runner.os }} String_Multitool.py
+        uv run pyinstaller --onefile --windowed --icon=resources/icon.png --name=String_Multitool_${{ runner.os }} String_Multitool.py
 
     - name: Build executable (Unix)
       if: runner.os != 'Windows'
       run: |
-        pyinstaller --onefile --icon=resources/icon.png --name=String_Multitool_${{ runner.os }} String_Multitool.py
+        uv run pyinstaller --onefile --icon=resources/icon.png --name=String_Multitool_${{ runner.os }} String_Multitool.py
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
