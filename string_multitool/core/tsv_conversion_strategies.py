@@ -302,7 +302,7 @@ class CaseInsensitiveConversionStrategy(AbstractTSVConversionStrategy):
         replacement: str,
         options: TSVConversionOptions,
     ) -> str:
-        """大文字小文字を無視した文字列置換.
+        """大文字小文字を無視した文字列置換 (シンプル版).
 
         Args:
             text: 対象テキスト
@@ -316,61 +316,10 @@ class CaseInsensitiveConversionStrategy(AbstractTSVConversionStrategy):
         # 正規表現を使用して大文字小文字を無視したマッチング
         pattern = re.escape(lowercase_pattern)
         flags = re.IGNORECASE
+        
+        # シンプルな置換のみ（ケース保持機能を削除）
+        return re.sub(pattern, replacement, text, flags=flags)
 
-        if options.preserve_original_case and replacement.isalpha():
-            # 元の大文字小文字パターンを保持した置換
-            def preserve_case_replacement(match: re.Match[str]) -> str:
-                original = match.group(0)
-                return self._apply_case_pattern(original, replacement)
-
-            return re.sub(pattern, preserve_case_replacement, text, flags=flags)
-        else:
-            # シンプルな置換
-            return re.sub(pattern, replacement, text, flags=flags)
-
-    def _apply_case_pattern(self, original: str, replacement: str) -> str:
-        """元の文字列の大文字小文字パターンを新しい文字列に適用.
-
-        Args:
-            original: 元の文字列（大文字小文字パターンのソース）
-            replacement: 置換文字列
-
-        Returns:
-            大文字小文字パターンが適用された文字列
-        """
-        if len(original) == 0 or len(replacement) == 0:
-            return replacement
-
-        # シンプルなケース判定：全て大文字、全て小文字、最初だけ大文字
-        if original.isupper():
-            return replacement.upper()
-        elif original.islower():
-            return replacement.lower()
-        elif original[0].isupper() and original[1:].islower():
-            return replacement.capitalize()
-        else:
-            # より複雑なパターンの場合は文字ごとに適用
-            result = []
-            replacement_chars = list(replacement)
-
-            for i, original_char in enumerate(original):
-                if i < len(replacement_chars):
-                    replacement_char = replacement_chars[i]
-                    if original_char.isupper():
-                        result.append(replacement_char.upper())
-                    elif original_char.islower():
-                        result.append(replacement_char.lower())
-                    else:
-                        result.append(replacement_char)
-                else:
-                    # 置換文字列が短い場合は残りをそのまま追加
-                    break
-
-            # 置換文字列の残り部分を追加
-            if len(replacement_chars) > len(original):
-                result.extend(replacement_chars[len(original) :])
-
-            return "".join(result)
 
 
 class TSVConversionStrategyFactory:

@@ -297,64 +297,11 @@ def decrypt_text(
         _handle_cli_error(e, "text decryption")
 
 
-@app.command("daemon", help="Start daemon mode for continuous clipboard monitoring")
-def daemon_mode(
-    rules: Annotated[
-        Optional[str],
-        typer.Option(
-            "--rules", "-r", help="Transformation rules to apply automatically"
-        ),
-    ] = None,
-    preset: Annotated[
-        Optional[str], typer.Option("--preset", "-p", help="Use predefined rule preset")
-    ] = None,
-) -> None:
-    """Start daemon mode for continuous clipboard monitoring.
-
-    Args:
-        rules: Optional transformation rules to apply automatically
-        preset: Optional preset name to use
-    """
-    try:
-        app_instance = get_app()
-
-        # Check if daemon mode is available
-        if app_instance.daemon_mode is None:
-            logger = get_logger(__name__)
-            logger.error("Daemon mode not available")
-            raise typer.Exit(1)
-
-        # This code is currently unreachable since daemon_mode is always None
-        # Keeping structure for future daemon mode implementation
-        daemon_mode = app_instance.daemon_mode
-        
-        # Configure daemon mode if rules or preset provided
-        if rules:
-            daemon_mode.set_transformation_rules([rules])  # type: ignore[attr-defined]
-        elif preset:
-            daemon_mode.set_preset(preset)  # type: ignore[attr-defined]
-
-        logger = get_logger(__name__)
-        logger.info("Starting daemon mode...")
-        logger.info("Press Ctrl+C to stop")
-
-        daemon_mode.start_monitoring()  # type: ignore[attr-defined]
-
-    except StringMultitoolError as e:
-        logger = get_logger(__name__)
-        log_error(logger, f"Error: {e}")
-        raise typer.Exit(1)
-    except KeyboardInterrupt:
-        logger = get_logger(__name__)
-        log_info(logger, "\nDaemon mode stopped")
-        raise typer.Exit(0)
-    except Exception as e:
-        logger = get_logger(__name__)
-        log_error(logger, f"Unexpected error in daemon mode: {e}")
-        raise ConfigurationError(
-            f"Daemon mode failed: {e}",
-            {"error_type": type(e).__name__, "rules": rules, "preset": preset},
-        )
+@app.command("daemon", help="Start daemon mode (not implemented)")
+def daemon_mode() -> None:
+    """Daemon mode is not currently implemented."""
+    typer.echo("Daemon mode is not available in this version.")
+    raise typer.Exit(1)
 
 
 @app.command("rules", help="Display available transformation rules")

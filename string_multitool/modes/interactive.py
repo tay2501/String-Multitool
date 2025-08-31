@@ -236,7 +236,6 @@ class CommandProcessor:
         "help": "Show transformation rules",
         "h": "Short alias for help",
         "?": "Short alias for help",
-        "daemon": "Switch to daemon mode",
         "quit": "Exit application",
         "q": "Short alias for quit",
         "exit": "Exit application",
@@ -330,8 +329,6 @@ class CommandProcessor:
             if command in ["commands", "cmd"]:
                 return self._handle_commands_command()
 
-            if command == "daemon":
-                return self._handle_daemon_command()
 
             # Unknown command
             return CommandResult(
@@ -474,13 +471,6 @@ class CommandProcessor:
 
         return CommandResult(success=True, message="\n".join(lines))
 
-    def _handle_daemon_command(self) -> CommandResult:
-        """Handle daemon mode switch command."""
-        return CommandResult(
-            success=True,
-            message="SWITCH_TO_DAEMON",  # Special message to trigger daemon mode switch
-            should_continue=False,  # Exit interactive mode to switch to daemon
-        )
 
     def _handle_help_command(self) -> CommandResult:
         """Handle help command - this will be handled by ApplicationInterface."""

@@ -39,7 +39,6 @@ class ApplicationInterface:
         self.transformation_engine = transformation_engine
         self.io_manager = io_manager
         self.crypto_manager = crypto_manager
-        self.daemon_mode = None  # Daemon mode not available in current implementation
 
         self.logger = get_logger(__name__)
 
@@ -93,8 +92,6 @@ class ApplicationInterface:
                         print(result.message)
 
                         if not result.should_continue:
-                            if result.message == "SWITCH_TO_DAEMON":
-                                print("Daemon mode is not supported in CUI-only version.")
                             break
                         elif result.message == "SHOW_HELP":
                             self.display_help()
