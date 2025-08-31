@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional
 from sqlalchemy.orm import Session
 
-from ..core.exceptions import TSVConverterError
+from ..core.exceptions import TSVTranslateError
 
 
 class BaseService(ABC):
@@ -33,7 +33,7 @@ class BaseService(ABC):
     def _validate_dependencies(self) -> None:
         """Validate required dependencies are properly injected."""
         if not self._db_session:
-            raise TSVConverterError("Database session is required")
+            raise TSVTranslateError("Database session is required")
     
     @abstractmethod
     def health_check(self) -> bool:

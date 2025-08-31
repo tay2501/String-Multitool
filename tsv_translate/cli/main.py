@@ -11,8 +11,8 @@ from typing import Optional, Dict, Any
 
 import pyperclip
 
-from ..core.engine import TSVConverterEngine
-from ..core.exceptions import TSVConverterError
+from ..core.engine import TSVTranslateEngine
+from ..core.exceptions import TSVTranslateError
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -22,16 +22,16 @@ def create_parser() -> argparse.ArgumentParser:
     proper argument groups, and intuitive command structure.
     """
     parser = argparse.ArgumentParser(
-        prog="usetsvr",
+        prog="tsvtr",
         description="Convert clipboard text using TSV-defined rules",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  usetsvr japanese_to_english    # Convert using specific rule set
-  usetsvr ls                     # List available rule sets
-  usetsvr rm old_rules           # Remove rule set from database
-  usetsvr sync ~/rules           # Sync directory with database
-  usetsvr info japanese_rules    # Show rule set information
+  tsvtr japanese_to_english    # Convert using specific rule set
+  tsvtr ls                     # List available rule sets
+  tsvtr rm old_rules           # Remove rule set from database
+  tsvtr sync ~/rules           # Sync directory with database
+  tsvtr info japanese_rules    # Show rule set information
         """
     )
     
@@ -39,8 +39,8 @@ Examples:
     parser.add_argument(
         "--config",
         type=Path,
-        default="config/tsv_converter.json",
-        help="Configuration file path (default: config/tsv_converter.json)"
+        default="config/tsv_translate.json",
+        help="Configuration file path (default: config/tsv_translate.json)"
     )
     
     parser.add_argument(
@@ -128,7 +128,7 @@ def load_config(config_path: Path) -> Dict[str, Any]:
     and default value management.
     """
     default_config = {
-        "database_url": "sqlite:///tsv_converter.db",
+        "database_url": "sqlite:///tsv_translate.db",
         "tsv_directory": "config/tsv_rules",
         "enable_file_watching": False,  # Disabled in CLI mode
         "debug": False
@@ -151,7 +151,7 @@ def load_config(config_path: Path) -> Dict[str, Any]:
         return default_config
 
 
-def handle_convert_command(engine: TSVConverterEngine, rule_set: str) -> int:
+def handle_convert_command(engine: TSVTranslateEngine, rule_set: str) -> int:
     """Handle text conversion command."""
     try:
         # Get text from clipboard
@@ -182,7 +182,7 @@ def handle_convert_command(engine: TSVConverterEngine, rule_set: str) -> int:
     return 0
 
 
-def handle_list_command(engine: TSVConverterEngine) -> int:
+def handle_list_command(engine: TSVTranslateEngine) -> int:
     """Handle list rule sets command."""
     try:
         rule_sets = engine.list_rule_sets()
@@ -204,7 +204,7 @@ def handle_list_command(engine: TSVConverterEngine) -> int:
     return 0
 
 
-def handle_remove_command(engine: TSVConverterEngine, rule_set: str) -> int:
+def handle_remove_command(engine: TSVTranslateEngine, rule_set: str) -> int:
     """Handle remove rule set command."""
     try:
         result = engine.remove_rule_set(rule_set)
@@ -222,7 +222,7 @@ def handle_remove_command(engine: TSVConverterEngine, rule_set: str) -> int:
     return 0
 
 
-def handle_sync_command(engine: TSVConverterEngine, directory: Path) -> int:
+def handle_sync_command(engine: TSVTranslateEngine, directory: Path) -> int:
     """Handle directory synchronization command."""
     try:
         results = engine.sync_directory(directory)
@@ -245,7 +245,7 @@ def handle_sync_command(engine: TSVConverterEngine, directory: Path) -> int:
         return 1
 
 
-def handle_info_command(engine: TSVConverterEngine, rule_set: str) -> int:
+def handle_info_command(engine: TSVTranslateEngine, rule_set: str) -> int:
     """Handle rule set information command."""
     try:
         info = engine.get_rule_set_info(rule_set)
@@ -271,7 +271,7 @@ def handle_info_command(engine: TSVConverterEngine, rule_set: str) -> int:
     return 0
 
 
-def handle_health_command(engine: TSVConverterEngine) -> int:
+def handle_health_command(engine: TSVTranslateEngine) -> int:
     """Handle system health check command."""
     try:
         health = engine.health_check()
@@ -319,7 +319,7 @@ def main() -> int:
     
     # Initialize engine
     try:
-        with TSVConverterEngine(config) as engine:
+        with TSVTranslateEngine(config) as engine:
             # Route commands
             if args.command == "convert" or (hasattr(args, 'rule_set') and not args.command):
                 return handle_convert_command(engine, args.rule_set)
@@ -337,7 +337,7 @@ def main() -> int:
                 parser.print_help()
                 return 1
                 
-    except TSVConverterError as e:
+    except TSVTranslateError as e:
         print(f"Error: {e}")
         return 1
     except KeyboardInterrupt:

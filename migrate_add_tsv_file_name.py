@@ -295,8 +295,8 @@ def main() -> int:
     parser.add_argument(
         "--database", 
         type=Path, 
-        default="data/tsv_converter.db",
-        help="Path to SQLite database file (default: data/tsv_converter.db)"
+        default="data/tsv_translate.db",
+        help="Path to SQLite database file (default: data/tsv_translate.db)"
     )
     parser.add_argument(
         "--dry-run", 

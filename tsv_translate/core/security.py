@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import base64
 
-from .exceptions import TSVConverterError
+from .exceptions import TSVTranslateError
 
 
 class SecurityManager:
@@ -56,7 +56,7 @@ class SecurityManager:
             return base_url
         
         if not base_url.startswith("sqlite:"):
-            raise TSVConverterError("Encryption currently only supported for SQLite")
+            raise TSVTranslateError("Encryption currently only supported for SQLite")
         
         # Get or create encryption key
         key = self._get_or_create_key()
@@ -105,7 +105,7 @@ class SecurityManager:
             decrypted = fernet.decrypt(encrypted_bytes)
             return decrypted.decode('utf-8')
         except Exception as e:
-            raise TSVConverterError(f"Decryption failed: {e}")
+            raise TSVTranslateError(f"Decryption failed: {e}")
     
     def _get_or_create_key(self) -> bytes:
         """Get existing encryption key or create new one.
@@ -139,12 +139,12 @@ class SecurityManager:
             
             # Verify key integrity
             if derived_key != key_hash:
-                raise TSVConverterError("Key integrity check failed")
+                raise TSVTranslateError("Key integrity check failed")
             
             return derived_key
             
         except (OSError, ValueError) as e:
-            raise TSVConverterError(f"Failed to load encryption key: {e}")
+            raise TSVTranslateError(f"Failed to load encryption key: {e}")
     
     def _create_key(self, key_file: Path) -> bytes:
         """Create new encryption key with secure storage."""
@@ -177,7 +177,7 @@ class SecurityManager:
             return derived_key
             
         except OSError as e:
-            raise TSVConverterError(f"Failed to create encryption key: {e}")
+            raise TSVTranslateError(f"Failed to create encryption key: {e}")
     
     def _get_master_password(self) -> str:
         """Get master password for key derivation.

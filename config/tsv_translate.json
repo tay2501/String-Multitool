@@ -1,5 +1,5 @@
 {
-  "database_url": "sqlite:///data/tsv_converter.db",
+  "database_url": "sqlite:///data/tsv_translate.db",
   "tsv_directory": "config/tsv_rules",
   "enable_file_watching": true,
   "debug": false,
@@ -15,7 +15,7 @@
   },
   "logging": {
     "level": "INFO",
-    "file": "logs/tsv_converter.log",
+    "file": "logs/tsv_translate.log",
     "max_size_mb": 10,
     "backup_count": 5
   }

@@ -188,7 +188,7 @@ class TestTSVOperationsIntegration(unittest.TestCase):
         # Test that project structure assumptions are valid
         current_file = Path(__file__)
         project_root = current_file.parent
-        expected_db_path = project_root / "data" / "tsv_converter.db"
+        expected_db_path = project_root / "data" / "tsv_translate.db"
         
         # Validate project structure
         self.assertTrue(project_root.exists(), "Project root should exist")

@@ -1,4 +1,4 @@
-# TSV Converter System
+# TSV Translator System
 
 A clean, educational implementation of a TSV-to-database synchronization system with string conversion capabilities.
 
@@ -30,22 +30,22 @@ mkdir -p data logs config/tsv_rules
 
 ```bash
 # List available rule sets
-python usetsvr.py ls
+python tsvtr.py ls
 
 # Convert clipboard text using a rule set
-python usetsvr.py japanese_english
+python tsvtr.py japanese_english
 
 # Sync TSV files with database
-python usetsvr.py sync config/tsv_rules
+python tsvtr.py sync config/tsv_rules
 
 # Get detailed information about a rule set
-python usetsvr.py info japanese_english
+python tsvtr.py info japanese_english
 ```
 
 ## 📁 Project Structure
 
 ```
-tsv_converter/
+tsv_translator/
 ├── models/              # SQLAlchemy data models
 │   ├── base.py         # Base model with audit fields
 │   ├── rule_set.py     # TSV file metadata
@@ -114,11 +114,11 @@ thank you	ありがとう
 
 ## 🔧 Configuration
 
-Edit `config/tsv_converter.json`:
+Edit `config/tsv_translator.json`:
 
 ```json
 {
-  "database_url": "sqlite:///data/tsv_converter.db",
+  "database_url": "sqlite:///data/tsv_translator.db",
   "tsv_directory": "config/tsv_rules",
   "enable_file_watching": true,
   "security": {
@@ -156,14 +156,14 @@ Enable database encryption in configuration:
 
 ```bash
 # Run all tests
-python -m pytest tsv_converter/tests/ -v
+python -m pytest tsv_translator/tests/ -v
 
 # Run with coverage
-python -m pytest tsv_converter/tests/ --cov=tsv_converter --cov-report=html
+python -m pytest tsv_translator/tests/ --cov=tsv_translator --cov-report=html
 
 # Run specific test categories
-python -m pytest tsv_converter/tests/test_models.py -v
-python -m pytest tsv_converter/tests/test_services.py -v
+python -m pytest tsv_translator/tests/test_models.py -v
+python -m pytest tsv_translator/tests/test_services.py -v
 ```
 
 ## 📊 Performance Characteristics
@@ -220,7 +220,7 @@ Enable tab completion for rule set names:
 pip install argcomplete
 
 # Enable completion
-eval "$(register-python-argcomplete usetsvr.py)"
+eval "$(register-python-argcomplete tsvtr.py)"
 ```
 
 ### File Watching
@@ -239,7 +239,7 @@ The system will automatically detect TSV file changes and update the database.
 
 ```bash
 # Connect to SQLite database directly
-sqlite3 data/tsv_converter.db
+sqlite3 data/tsv_translator.db
 
 # Example queries
 .schema

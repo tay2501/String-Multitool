@@ -14,7 +14,7 @@ try:
 except ImportError:
     COMPLETION_AVAILABLE = False
 
-from ..core.engine import TSVConverterEngine
+from ..core.engine import TSVTranslateEngine
 from .main import load_config
 
 
@@ -41,7 +41,7 @@ class RuleSetCompleter:
             config = load_config(self.config_path)
             
             # Quick engine initialization for completion
-            with TSVConverterEngine(config) as engine:
+            with TSVTranslateEngine(config) as engine:
                 rule_sets = engine.list_rule_sets()
                 
                 # Filter by prefix

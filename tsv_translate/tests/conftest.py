@@ -11,7 +11,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from ..models import Base
-from ..core.engine import TSVConverterEngine
+from ..core.engine import TSVTranslateEngine
 from ..services import SyncService, ConversionService
 
 
@@ -66,9 +66,9 @@ def test_config(temp_directory):
 
 
 @pytest.fixture
-def converter_engine(test_config):
-    """TSV converter engine for testing."""
-    with TSVConverterEngine(test_config) as engine:
+def translate_engine(test_config):
+    """TSV translator engine for testing."""
+    with TSVTranslateEngine(test_config) as engine:
         yield engine
 
 

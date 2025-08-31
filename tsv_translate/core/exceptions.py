@@ -1,12 +1,12 @@
-"""Exception hierarchy for TSV converter.
+"""Exception hierarchy for TSV translator.
 
 Clean exception design following Python best practices
 with specific error types for different failure scenarios.
 """
 
 
-class TSVConverterError(Exception):
-    """Base exception for all TSV converter errors.
+class TSVTranslateError(Exception):
+    """Base exception for all TSV translator errors.
     
     Provides a foundation for hierarchical exception handling
     following the principle of specific error types.
@@ -14,7 +14,7 @@ class TSVConverterError(Exception):
     pass
 
 
-class ValidationError(TSVConverterError):
+class ValidationError(TSVTranslateError):
     """Raised when data validation fails.
     
     Examples:
@@ -25,7 +25,7 @@ class ValidationError(TSVConverterError):
     pass
 
 
-class SyncError(TSVConverterError):
+class SyncError(TSVTranslateError):
     """Raised when file-database synchronization fails.
     
     Examples:
@@ -36,7 +36,7 @@ class SyncError(TSVConverterError):
     pass
 
 
-class ConversionError(TSVConverterError):
+class ConversionError(TSVTranslateError):
     """Raised when text conversion operations fail.
     
     Examples:

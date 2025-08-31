@@ -19,7 +19,7 @@ class TestCLIParsing:
         """Test parser creation and basic structure."""
         parser = create_parser()
         
-        assert parser.prog == "usetsvr"
+        assert parser.prog == "tsvtr"
         assert "Convert clipboard text" in parser.description
     
     def test_parse_convert_command(self):

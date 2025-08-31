@@ -13,10 +13,10 @@ from ..models import Base
 from ..services import SyncService, ConversionService
 from ..services.file_watcher import FileWatcher
 from ..core.types import ConversionResult, SyncResult
-from ..core.exceptions import TSVConverterError
+from ..core.exceptions import TSVTranslateError
 
 
-class TSVConverterEngine:
+class TSVTranslateEngine:
     """Main engine coordinating all TSV conversion operations.
     
     Educational patterns:
@@ -72,7 +72,7 @@ class TSVConverterEngine:
             self._is_initialized = True
             
         except Exception as e:
-            raise TSVConverterError(f"Engine initialization failed: {e}")
+            raise TSVTranslateError(f"Engine initialization failed: {e}")
     
     def convert_text(self, text: str, rule_set_name: str) -> ConversionResult:
         """Convert text using specified rule set.
@@ -163,12 +163,12 @@ class TSVConverterEngine:
     def _ensure_initialized(self) -> None:
         """Ensure engine is initialized before operations."""
         if not self._is_initialized:
-            raise TSVConverterError("Engine not initialized. Call initialize() first.")
+            raise TSVTranslateError("Engine not initialized. Call initialize() first.")
     
     def _create_session(self) -> Session:
         """Create database session for service operations."""
         if not self._session_factory:
-            raise TSVConverterError("Session factory not available")
+            raise TSVTranslateError("Session factory not available")
         return self._session_factory()
     
     def _setup_file_watcher(self) -> None:
