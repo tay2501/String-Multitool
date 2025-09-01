@@ -213,7 +213,7 @@ class TSVTranslateEngine:
         
         self._is_initialized = False
     
-    def __enter__(self) -> "TSVConverterEngine":
+    def __enter__(self) -> "TSVTranslateEngine":
         """Context manager entry."""
         self.initialize()
         return self

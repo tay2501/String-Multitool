@@ -8,7 +8,16 @@ import time
 from pathlib import Path
 from typing import Callable, Dict, Set
 from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler, FileModifiedEvent, FileCreatedEvent, FileDeletedEvent
+from watchdog.events import (
+    FileSystemEventHandler, 
+    FileSystemEvent,
+    FileModifiedEvent, 
+    FileCreatedEvent, 
+    FileDeletedEvent,
+    DirCreatedEvent,
+    DirModifiedEvent,
+    DirDeletedEvent
+)
 
 from ..core.exceptions import SyncError
 
@@ -43,20 +52,23 @@ class TSVFileHandler(FileSystemEventHandler):
         self._last_processed: Dict[str, float] = {}
         self._pending_deletes: Set[str] = set()
         
-    def on_created(self, event: FileCreatedEvent) -> None:
+    def on_created(self, event: FileCreatedEvent | DirCreatedEvent) -> None:
         """Handle file creation events."""
-        if not event.is_directory and self._is_tsv_file(event.src_path):
-            self._schedule_sync(Path(event.src_path))
+        src_path = str(event.src_path)
+        if not event.is_directory and self._is_tsv_file(src_path):
+            self._schedule_sync(Path(src_path))
     
-    def on_modified(self, event: FileModifiedEvent) -> None:
+    def on_modified(self, event: FileModifiedEvent | DirModifiedEvent) -> None:
         """Handle file modification events."""
-        if not event.is_directory and self._is_tsv_file(event.src_path):
-            self._schedule_sync(Path(event.src_path))
+        src_path = str(event.src_path)
+        if not event.is_directory and self._is_tsv_file(src_path):
+            self._schedule_sync(Path(src_path))
     
-    def on_deleted(self, event: FileDeletedEvent) -> None:
+    def on_deleted(self, event: FileDeletedEvent | DirDeletedEvent) -> None:
         """Handle file deletion events."""
-        if not event.is_directory and self._is_tsv_file(event.src_path):
-            rule_set_name = Path(event.src_path).stem
+        src_path = str(event.src_path)
+        if not event.is_directory and self._is_tsv_file(src_path):
+            rule_set_name = Path(src_path).stem
             self._pending_deletes.add(rule_set_name)
             self._schedule_delete(rule_set_name)
     
@@ -164,6 +176,6 @@ class FileWatcher:
         self.start()
         return self
     
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:  # type: ignore[no-untyped-def]
         """Context manager exit with cleanup."""
         self.stop()

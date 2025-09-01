@@ -5,7 +5,7 @@ performance optimizations and comprehensive result tracking.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, cast
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -144,7 +144,8 @@ class ConversionService(BaseService, ConversionServiceInterface):
     
     def _get_rule_set(self, name: str) -> Optional[RuleSet]:
         """Get rule set by name with error handling."""
-        return (
+        return cast(
+            Optional[RuleSet],
             self._db_session.query(RuleSet)
             .filter(RuleSet.name == name)
             .first()

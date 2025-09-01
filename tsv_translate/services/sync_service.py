@@ -8,7 +8,7 @@ import hashlib
 import csv
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, cast
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -161,7 +161,8 @@ class SyncService(BaseService, SyncServiceInterface):
     
     def _get_existing_rule_set(self, name: str) -> Optional[RuleSet]:
         """Retrieve existing rule set by name."""
-        return (
+        return cast(
+            Optional[RuleSet],
             self._db_session.query(RuleSet)
             .filter(RuleSet.name == name)
             .first()

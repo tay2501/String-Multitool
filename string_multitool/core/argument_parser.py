@@ -17,6 +17,8 @@ from ..exceptions import ValidationError
 class ArgumentParsingError(ValidationError):
     """Specialized exception for argument parsing errors."""
 
+    context: dict[str, Any]
+
     def __init__(self, message: str, context: dict[str, Any] | None = None) -> None:
         """Initialize with enhanced context for debugging.
 
@@ -25,6 +27,7 @@ class ArgumentParsingError(ValidationError):
             context: Additional context information for debugging
         """
         super().__init__(message, context or {})
+        self.context = context or {}
 
 
 class ShellStyleArgumentParser:

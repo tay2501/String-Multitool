@@ -4,7 +4,7 @@ Educational implementation of command-line completion using argcomplete
 with dynamic rule set name completion.
 """
 
-from typing import List, Optional
+from typing import Any, List, Optional
 from pathlib import Path
 
 try:
@@ -56,7 +56,7 @@ class RuleSetCompleter:
             return []
 
 
-def setup_completion(parser, config_path: Optional[Path] = None) -> None:
+def setup_completion(parser: Any, config_path: Optional[Path] = None) -> None:
     """Setup tab completion for the argument parser.
     
     Educational example of how to add intelligent completion

@@ -38,7 +38,7 @@ class SecurityManager:
     
     def is_encryption_enabled(self) -> bool:
         """Check if database encryption is enabled."""
-        return self._config.get("enable_encryption", False)
+        return bool(self._config.get("enable_encryption", False))
     
     def get_secure_database_url(self, base_url: str) -> str:
         """Transform database URL for encrypted database access.
@@ -225,7 +225,7 @@ def create_secure_database_url(config: Dict[str, Any]) -> str:
     
     security_config = config.get("security", {})
     if not security_config.get("enable_encryption", False):
-        return base_url
+        return str(base_url)
     
     security_manager = SecurityManager(security_config)
     return security_manager.get_secure_database_url(base_url)

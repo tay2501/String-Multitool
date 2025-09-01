@@ -15,14 +15,14 @@ from ..cli.main import main, create_parser, handle_convert_command
 class TestCLIParsing:
     """Test cases for command-line argument parsing."""
     
-    def test_create_parser_basic(self):
+    def test_create_parser_basic(self) -> None:
         """Test parser creation and basic structure."""
         parser = create_parser()
         
         assert parser.prog == "tsvtr"
-        assert "Convert clipboard text" in parser.description
+        assert parser.description is not None and "Convert clipboard text" in parser.description
     
-    def test_parse_convert_command(self):
+    def test_parse_convert_command(self) -> None:
         """Test parsing convert command."""
         parser = create_parser()
         
@@ -31,7 +31,7 @@ class TestCLIParsing:
         assert args.command == "convert"
         assert args.rule_set == "test_rules"
     
-    def test_parse_list_command(self):
+    def test_parse_list_command(self) -> None:
         """Test parsing list command."""
         parser = create_parser()
         
@@ -42,7 +42,7 @@ class TestCLIParsing:
         args = parser.parse_args(["list"])
         assert args.command == "list"
     
-    def test_parse_remove_command(self):
+    def test_parse_remove_command(self) -> None:
         """Test parsing remove command."""
         parser = create_parser()
         
@@ -50,7 +50,7 @@ class TestCLIParsing:
         assert args.command == "rm"
         assert args.rule_set == "old_rules"
     
-    def test_parse_sync_command(self):
+    def test_parse_sync_command(self) -> None:
         """Test parsing sync command."""
         parser = create_parser()
         
@@ -63,7 +63,7 @@ class TestCLIParsing:
         args = parser.parse_args(["sync", "/custom/path"])
         assert args.directory == Path("/custom/path")
     
-    def test_parse_global_options(self):
+    def test_parse_global_options(self) -> None:
         """Test parsing global options."""
         parser = create_parser()
         
@@ -143,7 +143,7 @@ class TestMainFunction:
     """Test cases for main CLI entry point."""
     
     @patch('sys.argv', ['usetsvr', '--help'])
-    def test_help_display(self):
+    def test_help_display(self) -> None:
         """Test help display functionality."""
         with pytest.raises(SystemExit) as exc_info:
             main()
@@ -168,13 +168,13 @@ class TestMainFunction:
                 mock_print.assert_called()
     
     @patch('sys.argv', ['usetsvr', 'nonexistent_command'])
-    def test_invalid_command(self):
+    def test_invalid_command(self) -> None:
         """Test handling of invalid commands."""
         with patch('builtins.print'):
             result = main()
             assert result == 1  # Error exit code
     
-    def test_keyboard_interrupt_handling(self):
+    def test_keyboard_interrupt_handling(self) -> None:
         """Test graceful handling of Ctrl+C."""
         with patch('tsv_converter.cli.main.TSVConverterEngine') as mock_engine:
             mock_engine.side_effect = KeyboardInterrupt()

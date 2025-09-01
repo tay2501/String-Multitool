@@ -210,7 +210,7 @@ class ApplicationFactory:
         from .exceptions import ConfigurationError
         from .core.config import ConfigurationManager
         from .core.transformations import TextTransformationEngine
-        from .utils.logger import get_logger
+        from .utils.unified_logger import get_logger
 
         logger = get_logger(__name__)
 
