@@ -5,9 +5,19 @@ to the complex subsystem with proper dependency management.
 """
 
 from pathlib import Path
-from typing import List, Optional, Dict, Any
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from typing import List, Optional, Dict, Any, TYPE_CHECKING
+
+try:
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker, Session
+    SQLALCHEMY_AVAILABLE = True
+except ImportError:
+    # SQLAlchemy is optional for basic functionality
+    SQLALCHEMY_AVAILABLE = False
+    if TYPE_CHECKING:
+        from sqlalchemy.orm import Session  # type: ignore[import]
+        from sqlalchemy import create_engine  # type: ignore[import]
+        from sqlalchemy.orm import sessionmaker  # type: ignore[import]
 
 from ..models import Base
 from ..services import SyncService, ConversionService
@@ -46,6 +56,11 @@ class TSVTranslateEngine:
         """
         if self._is_initialized:
             return
+            
+        if not SQLALCHEMY_AVAILABLE:
+            raise TSVTranslateError(
+                "SQLAlchemy is required for database operations. Install with: pip install sqlalchemy"
+            )
         
         try:
             # Database setup with SQLAlchemy 2.0 patterns

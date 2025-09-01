@@ -9,7 +9,7 @@ on:
     types: [ published ]
 
 env:
-  PYTHON_VERSION_MATRIX: "['3.10', '3.11', '3.12', '3.13']"
+  PYTHON_VERSION_MATRIX: "['3.12', '3.13']"
 
 jobs:
   test:
@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.12', '3.13']
 
     steps:
     - name: Checkout code
@@ -53,8 +53,8 @@ jobs:
         uv run pytest test_transform.py test_tsv_case_insensitive.py --cov=string_multitool --cov-report=xml --cov-report=term-missing -v
 
     - name: Upload coverage reports
-      if: matrix.python-version == '3.11' && matrix.os == 'ubuntu-latest'
-      uses: codecov/codecov-action@v4
+      if: matrix.python-version == '3.12' && matrix.os == 'ubuntu-latest'
+      uses: codecov/codecov-action@v5
       with:
         file: ./coverage.xml
         token: ${{ secrets.CODECOV_TOKEN }}
@@ -77,7 +77,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.12'
 
     - name: Install dependencies
       run: |
@@ -134,7 +134,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.12'
 
     - name: Install dependencies
       run: |

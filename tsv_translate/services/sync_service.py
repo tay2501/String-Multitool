@@ -8,9 +8,17 @@ import hashlib
 import csv
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional, cast
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
+from typing import List, Optional, cast, TYPE_CHECKING
+
+try:
+    from sqlalchemy.orm import Session
+    from sqlalchemy.exc import SQLAlchemyError
+    SQLALCHEMY_AVAILABLE = True
+except ImportError:
+    SQLALCHEMY_AVAILABLE = False
+    if TYPE_CHECKING:
+        from sqlalchemy.orm import Session  # type: ignore[import]
+        from sqlalchemy.exc import SQLAlchemyError  # type: ignore[import]
 
 from .base import BaseService
 from ..models import RuleSet, ConversionRule
@@ -57,7 +65,7 @@ class SyncService(BaseService, SyncServiceInterface):
             # Simple connectivity test
             self._db_session.execute("SELECT 1").fetchone()
             return True
-        except SQLAlchemyError:
+        except Exception as e:\n            # Handle both SQLAlchemyError and import errors gracefully\n            if SQLALCHEMY_AVAILABLE and 'SQLAlchemyError' in str(type(e)):
             return False
     
     def sync_file(self, file_path: Path) -> SyncResult:
@@ -142,7 +150,7 @@ class SyncService(BaseService, SyncServiceInterface):
                 rules_deleted=rules_count
             )
             
-        except SQLAlchemyError as e:
+        except Exception as e:\n            # Handle both SQLAlchemyError and import errors gracefully\n            if not SQLALCHEMY_AVAILABLE:\n                raise SyncError(\"SQLAlchemy not available\") from e
             self._db_session.rollback()
             return SyncResult(
                 status=OperationStatus.ERROR,
@@ -256,6 +264,6 @@ class SyncService(BaseService, SyncServiceInterface):
                 file_hash=file_hash
             )
             
-        except SQLAlchemyError as e:
+        except Exception as e:\n            # Handle both SQLAlchemyError and import errors gracefully\n            if not SQLALCHEMY_AVAILABLE:\n                raise SyncError(\"SQLAlchemy not available\") from e
             self._db_session.rollback()
             raise SyncError(f"Database synchronization failed: {str(e)}")

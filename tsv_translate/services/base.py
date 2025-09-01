@@ -5,8 +5,15 @@ and dependency injection principles.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
-from sqlalchemy.orm import Session
+from typing import Any, Optional, TYPE_CHECKING
+
+try:
+    from sqlalchemy.orm import Session
+    SQLALCHEMY_AVAILABLE = True
+except ImportError:
+    SQLALCHEMY_AVAILABLE = False
+    if TYPE_CHECKING:
+        from sqlalchemy.orm import Session  # type: ignore[import]
 
 from ..core.exceptions import TSVTranslateError
 

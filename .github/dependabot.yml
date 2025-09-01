@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # Python dependencies
+  # Python dependencies managed by uv
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
@@ -26,24 +26,29 @@ updates:
       security-updates:
         patterns:
           - "cryptography"
-          - "pyopenssl"
           - "urllib3"
           - "requests"
+          - "pyopenssl"
         update-types:
           - "security-update"
-      testing-dependencies:
+      core-dependencies:
         patterns:
-          - "pytest*"
-          - "*test*"
+          - "typer"
+          - "rich"
+          - "pyperclip"
+          - "watchdog"
+          - "structlog"
         update-types:
           - "minor"
           - "patch"
-      development-tools:
+      dev-tools:
         patterns:
+          - "pytest*"
           - "black"
-          - "isort"
+          - "isort" 
           - "mypy"
-          - "flake8"
+          - "ruff"
+          - "pre-commit"
         update-types:
           - "minor"
           - "patch"

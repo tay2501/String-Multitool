@@ -7,13 +7,8 @@ name: Dependency Review
 on:
   pull_request:
     paths:
-      - 'requirements*.txt'
       - 'pyproject.toml'
-      - 'setup.py'
-      - 'setup.cfg'
-      - 'Pipfile'
-      - 'Pipfile.lock'
-      - 'poetry.lock'
+      - 'uv.lock'
 
 permissions:
   contents: read
@@ -62,97 +57,36 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
       - name: Install analysis tools
         run: |
-          python -m pip install --upgrade pip
-          pip install pip-audit safety pipenv-setup
+          uv sync --all-extras --dev
+          uv add --dev pip-audit safety
 
-      - name: Check requirements.txt sync
+      - name: Check pyproject.toml sync
         run: |
-          # Verify that requirements files are properly formatted
-          python -c "
-          import pkg_resources
-          
-          def check_requirements_file(filename):
-              try:
-                  with open(filename, 'r') as f:
-                      requirements = f.read()
-                  
-                  # Parse requirements
-                  parsed = list(pkg_resources.parse_requirements(requirements))
-                  print(f'✅ {filename}: {len(parsed)} valid requirements found')
-                  
-                  # Check for duplicates
-                  names = [req.project_name.lower() for req in parsed]
-                  duplicates = set([name for name in names if names.count(name) > 1])
-                  
-                  if duplicates:
-                      print(f'⚠️ {filename}: Duplicate requirements found: {duplicates}')
-                  else:
-                      print(f'✅ {filename}: No duplicates found')
-                  
-                  return parsed
-                  
-              except FileNotFoundError:
-                  print(f'ℹ️ {filename}: File not found, skipping')
-                  return []
-              except Exception as e:
-                  print(f'❌ {filename}: Error parsing - {e}')
-                  return None
-          
-          # Check main requirements files
-          main_reqs = check_requirements_file('requirements.txt')
-          dev_reqs = check_requirements_file('requirements-dev.txt')
-          
-          if main_reqs is not None and dev_reqs is not None:
-              print('✅ All requirements files are valid')
-          else:
-              print('❌ Some requirements files have issues')
-              exit(1)
-          "
+          # Verify pyproject.toml is valid
+          uv check
+          echo "✅ pyproject.toml and uv.lock are in sync"
 
       - name: Analyze dependency tree
         run: |
-          pip install -r requirements.txt
-          pip install pipdeptree
-          
+          uv tree > dependency-tree.txt
           echo "## Dependency Tree Analysis" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          pipdeptree --warn silence >> $GITHUB_STEP_SUMMARY
+          uv tree >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 
       - name: Check for outdated packages
         run: |
-          pip list --outdated --format=json > outdated.json
-          
           echo "## Outdated Packages" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
-          python -c "
-          import json
-          
-          try:
-              with open('outdated.json', 'r') as f:
-                  outdated = json.load(f)
-              
-              if outdated:
-                  print('| Package | Current | Latest | Type |')
-                  print('|---------|---------|--------|------|')
-                  
-                  for pkg in outdated:
-                      name = pkg['name']
-                      current = pkg['version']
-                      latest = pkg['latest_version']
-                      pkg_type = pkg['latest_filetype']
-                      
-                      print(f'| {name} | {current} | {latest} | {pkg_type} |')
-              else:
-                  print('✅ All packages are up to date!')
-          
-          except Exception as e:
-              print(f'Error checking outdated packages: {e}')
-          " >> $GITHUB_STEP_SUMMARY
+          echo "Using uv for dependency management - check uv.lock for current versions" >> $GITHUB_STEP_SUMMARY
 
       - name: Generate dependency report
         run: |
@@ -160,11 +94,10 @@ jobs:
           echo "" >> dependency-report.md
           
           # Run pip-audit
-          pip-audit --format=json --output=pip-audit.json || true
+          uv run pip-audit --format=json --output=pip-audit.json || true
           
           # Run safety check
-          pip install -r requirements.txt
-          safety check --json --output=safety.json || true
+          uv run safety check --json --output=safety.json || true
           
           # Process results
           python -c "

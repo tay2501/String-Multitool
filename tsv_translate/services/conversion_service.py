@@ -5,9 +5,17 @@ performance optimizations and comprehensive result tracking.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, cast
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
+from typing import List, Optional, cast, TYPE_CHECKING
+
+try:
+    from sqlalchemy.orm import Session
+    from sqlalchemy.exc import SQLAlchemyError
+    SQLALCHEMY_AVAILABLE = True
+except ImportError:
+    SQLALCHEMY_AVAILABLE = False
+    if TYPE_CHECKING:
+        from sqlalchemy.orm import Session  # type: ignore[import]
+        from sqlalchemy.exc import SQLAlchemyError  # type: ignore[import]
 
 from .base import BaseService
 from ..models import RuleSet, ConversionRule
@@ -50,7 +58,10 @@ class ConversionService(BaseService, ConversionServiceInterface):
             # Test basic query operation
             count = self._db_session.query(RuleSet).count()
             return True
-        except SQLAlchemyError:
+        except Exception as e:
+            # Handle both SQLAlchemyError and import errors gracefully
+            if not SQLALCHEMY_AVAILABLE:
+                return False
             return False
     
     def convert_text(self, text: str, rule_set_name: str) -> ConversionResult:
@@ -94,7 +105,7 @@ class ConversionService(BaseService, ConversionServiceInterface):
                 rules_applied=1 if converted_text != text else 0
             )
             
-        except SQLAlchemyError as e:
+        except Exception as e:\n            # Handle both SQLAlchemyError and import errors gracefully\n            if not SQLALCHEMY_AVAILABLE:\n                raise ValueError(\"SQLAlchemy not available\") from e
             return ConversionResult(
                 status=OperationStatus.ERROR,
                 original_text=text,
@@ -112,7 +123,7 @@ class ConversionService(BaseService, ConversionServiceInterface):
             )
             return [rs.name for rs in rule_sets]
             
-        except SQLAlchemyError:
+        except Exception as e:\n            # Handle both SQLAlchemyError and import errors gracefully\n            if not SQLALCHEMY_AVAILABLE:\n                return None
             return []
     
     def get_rule_set_info(self, rule_set_name: str) -> Optional[dict]:
@@ -139,7 +150,7 @@ class ConversionService(BaseService, ConversionServiceInterface):
                 "description": rule_set.description
             }
             
-        except SQLAlchemyError:
+        except Exception as e:\n            # Handle both SQLAlchemyError and import errors gracefully\n            if not SQLALCHEMY_AVAILABLE:\n                return None
             return None
     
     def _get_rule_set(self, name: str) -> Optional[RuleSet]:
@@ -187,7 +198,7 @@ class ConversionService(BaseService, ConversionServiceInterface):
                 rule.usage_count += 1
                 self._db_session.commit()
                 
-        except SQLAlchemyError:
+        except Exception as e:\n            # Handle both SQLAlchemyError and import errors gracefully\n            if not SQLALCHEMY_AVAILABLE:\n                return None
             # Statistics update failure shouldn't affect main operation
             self._db_session.rollback()
             self._log_operation("usage_stats_update_failed", {

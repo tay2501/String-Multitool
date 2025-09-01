@@ -7,8 +7,14 @@ reusable test infrastructure with proper setup/teardown.
 import tempfile
 import pytest
 from pathlib import Path
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+try:
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    SQLALCHEMY_AVAILABLE = True
+except ImportError:
+    SQLALCHEMY_AVAILABLE = False
+    create_engine = None  # type: ignore
+    sessionmaker = None  # type: ignore
 
 from ..models import Base
 from ..core.engine import TSVTranslateEngine

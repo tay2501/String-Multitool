@@ -7,7 +7,13 @@ Educational testing examples demonstrating:
 """
 
 import pytest
-from sqlalchemy.exc import IntegrityError
+
+try:
+    from sqlalchemy.exc import IntegrityError
+    SQLALCHEMY_AVAILABLE = True
+except ImportError:
+    SQLALCHEMY_AVAILABLE = False
+    IntegrityError = Exception  # Fallback for type checking
 
 from ..models import RuleSet, ConversionRule
 
