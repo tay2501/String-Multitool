@@ -64,7 +64,7 @@ class ApplicationInterface:
 
     def _run_interactive_mode(self) -> None:
         """Run interactive mode."""
-        from .modes.interactive import InteractiveSession, CommandProcessor
+        from .modes.interactive import CommandProcessor, InteractiveSession
 
         print("Interactive mode")
         print(

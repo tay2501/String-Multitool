@@ -16,7 +16,6 @@ from typing import Any
 
 from ..exceptions import TransformationError, ValidationError
 from .argument_parser import ArgumentParsingError, default_parser
-from .transformation_base import TransformationBase
 from .constants import (
     CRYPTO_CONSTANTS,
     ERROR_CONTEXT_KEYS,
@@ -25,6 +24,7 @@ from .constants import (
     RuleNames,
     TSVOptionNames,
 )
+from .transformation_base import TransformationBase
 from .types import (
     ConfigManagerProtocol,
     ConfigurableComponent,

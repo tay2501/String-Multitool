@@ -316,10 +316,9 @@ class CaseInsensitiveConversionStrategy(AbstractTSVConversionStrategy):
         # 正規表現を使用して大文字小文字を無視したマッチング
         pattern = re.escape(lowercase_pattern)
         flags = re.IGNORECASE
-        
+
         # シンプルな置換のみ（ケース保持機能を削除）
         return re.sub(pattern, replacement, text, flags=flags)
-
 
 
 class TSVConversionStrategyFactory:

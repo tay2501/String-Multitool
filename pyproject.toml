@@ -267,6 +267,8 @@ ignore = [
 
 [tool.uv]
 dev-dependencies = [
+    "black==25.1.0",
+    "isort==5.13.2",
     "mypy>=1.17.1",
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",

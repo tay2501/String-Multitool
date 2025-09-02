@@ -329,7 +329,6 @@ class CommandProcessor:
             if command in ["commands", "cmd"]:
                 return self._handle_commands_command()
 
-
             # Unknown command
             return CommandResult(
                 success=False,
@@ -470,7 +469,6 @@ class CommandProcessor:
         )
 
         return CommandResult(success=True, message="\n".join(lines))
-
 
     def _handle_help_command(self) -> CommandResult:
         """Handle help command - this will be handled by ApplicationInterface."""

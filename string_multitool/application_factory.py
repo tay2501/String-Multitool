@@ -80,7 +80,12 @@ def configure_services(container: DIContainer) -> None:
             return None
         except Exception as e:
             logger = get_logger(__name__)
-            log_with_context(logger, "warning", "Unexpected error creating crypto manager", error=str(e))
+            log_with_context(
+                logger,
+                "warning",
+                "Unexpected error creating crypto manager",
+                error=str(e),
+            )
             return None
 
     def create_crypto_manager_concrete(
@@ -143,14 +148,16 @@ class ApplicationFactory:
         Raises:
             ConfigurationError: If application creation fails
         """
-        from .exceptions import ConfigurationError
         from .core.config import ConfigurationManager
-        from .core.transformations import TextTransformationEngine
         from .core.crypto import CryptographyManager
+        from .core.transformations import TextTransformationEngine
+        from .exceptions import ConfigurationError
         from .utils.unified_logger import get_logger, log_with_context
 
         logger = get_logger(__name__)
-        log_with_context(logger, "debug", "Starting application creation with dependency injection")
+        log_with_context(
+            logger, "debug", "Starting application creation with dependency injection"
+        )
 
         try:
             # Import ApplicationInterface locally to avoid circular imports
@@ -158,7 +165,9 @@ class ApplicationFactory:
 
             # Configure services - EAFP style
             ServiceRegistry.configure(configure_services)
-            log_with_context(logger, "debug", "Service registry configured successfully")
+            log_with_context(
+                logger, "debug", "Service registry configured successfully"
+            )
 
             # Get core dependencies via DI - these are required
             config_manager = inject(ConfigurationManager)
@@ -172,7 +181,9 @@ class ApplicationFactory:
                 crypto_manager = inject(CryptographyManager)
                 log_with_context(logger, "debug", "Cryptography manager available")
             except (CryptographyError, ImportError, OSError) as e:
-                log_with_context(logger, "warning", "Cryptography manager unavailable", error=str(e))
+                log_with_context(
+                    logger, "warning", "Cryptography manager unavailable", error=str(e)
+                )
             except Exception as e:
                 logger.warning("Unexpected error with crypto manager", error=str(e))
 
@@ -183,7 +194,9 @@ class ApplicationFactory:
                 io_manager=io_manager,
                 crypto_manager=crypto_manager,
             )
-            log_with_context(logger, "debug", "Application interface created successfully")
+            log_with_context(
+                logger, "debug", "Application interface created successfully"
+            )
             return app_interface
 
         except Exception as e:
@@ -207,9 +220,9 @@ class ApplicationFactory:
         Raises:
             ConfigurationError: If test application creation fails
         """
-        from .exceptions import ConfigurationError
         from .core.config import ConfigurationManager
         from .core.transformations import TextTransformationEngine
+        from .exceptions import ConfigurationError
         from .utils.unified_logger import get_logger
 
         logger = get_logger(__name__)

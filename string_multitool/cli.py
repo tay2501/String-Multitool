@@ -20,7 +20,13 @@ from .exceptions import ConfigurationError, StringMultitoolError, ValidationErro
 from .main import ApplicationInterface
 
 # Import logging utilities
-from .utils.unified_logger import get_logger, log_debug, log_error, log_info, log_warning
+from .utils.unified_logger import (
+    get_logger,
+    log_debug,
+    log_error,
+    log_info,
+    log_warning,
+)
 
 # Rich console for beautiful output
 console: Console = Console()

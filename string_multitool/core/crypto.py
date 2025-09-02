@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 from ..exceptions import ConfigurationError, CryptographyError
 
-# Import logging utilities  
+# Import logging utilities
 from ..utils.unified_logger import get_logger, log_with_context
 from .types import ConfigManagerProtocol, ConfigurableComponent, CryptoManagerProtocol
 
@@ -292,9 +292,11 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
                 pass
 
             logger = get_logger(__name__)
-            logger.info("RSA key pair saved securely:",
-                       private_key_path=str(self.private_key_path),
-                       public_key_path=str(self.public_key_path))
+            logger.info(
+                "RSA key pair saved securely:",
+                private_key_path=str(self.private_key_path),
+                public_key_path=str(self.public_key_path),
+            )
 
         except Exception as e:
             raise CryptographyError(

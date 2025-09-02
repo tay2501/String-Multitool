@@ -10,16 +10,16 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 from typing import Any, List, Union
-from structlog.types import Processor
 
 import structlog
 from structlog import stdlib
 from structlog.processors import JSONRenderer, TimeStamper
+from structlog.types import Processor
 
 
 def configure_logging(level: str = "INFO", json_output: bool = False) -> None:
     """Configure structured logging for the application.
-    
+
     Args:
         level: Logging level (DEBUG, INFO, WARNING, ERROR)
         json_output: Whether to output JSON format logs
@@ -27,29 +27,26 @@ def configure_logging(level: str = "INFO", json_output: bool = False) -> None:
     # Ensure logs directory exists
     logs_dir = Path("logs")
     logs_dir.mkdir(exist_ok=True)
-    
+
     # Configure stdlib logging to work with structlog
     import logging
     import logging.handlers
-    
+
     # Create file handler
     file_handler = logging.handlers.RotatingFileHandler(
         logs_dir / "string_multitool.log",
         maxBytes=10 * 1024 * 1024,  # 10MB
         backupCount=5,
-        encoding="utf-8"
+        encoding="utf-8",
     )
-    
+
     # Configure basic logging
     logging.basicConfig(
         level=getattr(logging, level.upper()),
         format="%(message)s",
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-            file_handler
-        ]
+        handlers=[logging.StreamHandler(sys.stdout), file_handler],
     )
-    
+
     # Configure structlog processors
     processors: List[Processor] = [
         stdlib.filter_by_level,
@@ -59,15 +56,17 @@ def configure_logging(level: str = "INFO", json_output: bool = False) -> None:
         TimeStamper(fmt="iso"),
         structlog.contextvars.merge_contextvars,
     ]
-    
+
     if json_output:
         processors.append(JSONRenderer())
     else:
-        processors.extend([
-            structlog.dev.ConsoleRenderer(colors=True),
-            stdlib.ProcessorFormatter.wrap_for_formatter,
-        ])
-    
+        processors.extend(
+            [
+                structlog.dev.ConsoleRenderer(colors=True),
+                stdlib.ProcessorFormatter.wrap_for_formatter,
+            ]
+        )
+
     structlog.configure(
         processors=processors,
         logger_factory=stdlib.LoggerFactory(),
@@ -78,10 +77,10 @@ def configure_logging(level: str = "INFO", json_output: bool = False) -> None:
 
 def get_logger(name: str) -> structlog.stdlib.BoundLogger:
     """Get a structured logger instance.
-    
+
     Args:
         name: Logger name (typically __name__)
-        
+
     Returns:
         Structured logger instance
     """
@@ -95,7 +94,7 @@ def log_with_context(
     **context: Any,
 ) -> None:
     """Log a message with structured context.
-    
+
     Args:
         logger: Structured logger instance
         level: Log level (info, warning, error, debug)
@@ -110,7 +109,9 @@ def log_with_context(
 
 
 # Convenience functions for backward compatibility
-def log_debug(logger: structlog.stdlib.BoundLogger, message: str, **kwargs: Any) -> None:
+def log_debug(
+    logger: structlog.stdlib.BoundLogger, message: str, **kwargs: Any
+) -> None:
     """Log debug message with context."""
     log_with_context(logger, "debug", message, **kwargs)
 
@@ -120,12 +121,16 @@ def log_info(logger: structlog.stdlib.BoundLogger, message: str, **kwargs: Any) 
     log_with_context(logger, "info", message, **kwargs)
 
 
-def log_warning(logger: structlog.stdlib.BoundLogger, message: str, **kwargs: Any) -> None:
+def log_warning(
+    logger: structlog.stdlib.BoundLogger, message: str, **kwargs: Any
+) -> None:
     """Log warning message with context."""
     log_with_context(logger, "warning", message, **kwargs)
 
 
-def log_error(logger: structlog.stdlib.BoundLogger, message: str, **kwargs: Any) -> None:
+def log_error(
+    logger: structlog.stdlib.BoundLogger, message: str, **kwargs: Any
+) -> None:
     """Log error message with context."""
     log_with_context(logger, "error", message, **kwargs)
 
@@ -136,4 +141,5 @@ try:
 except Exception:
     # Fallback configuration
     import logging
+
     logging.basicConfig(level=logging.INFO)
