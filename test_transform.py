@@ -301,12 +301,26 @@ class TestCryptographyManager:
     """Test cryptography functionality."""
 
     @pytest.fixture
-    def crypto_manager(self) -> CryptographyManager:
-        """Create a CryptographyManager instance for testing."""
+    def crypto_manager(self, tmp_path) -> CryptographyManager:
+        """Create a CryptographyManager instance for testing with temporary keys."""
+        import tempfile
+        from pathlib import Path
+        
         config_manager: ConfigurationManager = ConfigurationManager()
         if not CRYPTO_AVAILABLE:
             pytest.skip("Cryptography not available")
-        return CryptographyManager(config_manager)
+        
+        # Create temporary directory for test keys
+        test_key_dir = tmp_path / "test_rsa"
+        test_key_dir.mkdir(exist_ok=True)
+        
+        # Override the key directory in the crypto manager
+        crypto_manager = CryptographyManager(config_manager)
+        crypto_manager.key_directory = test_key_dir
+        crypto_manager.private_key_path = test_key_dir / "rsa"
+        crypto_manager.public_key_path = test_key_dir / "rsa.pub"
+        
+        return crypto_manager
 
     def test_key_generation(self, crypto_manager: CryptographyManager) -> None:
         """Test RSA key pair generation."""

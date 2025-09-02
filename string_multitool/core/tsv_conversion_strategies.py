@@ -302,7 +302,7 @@ class CaseInsensitiveConversionStrategy(AbstractTSVConversionStrategy):
         replacement: str,
         options: TSVConversionOptions,
     ) -> str:
-        """大文字小文字を無視した文字列置換 (シンプル版).
+        """大文字小文字を無視した文字列置換 (ケース保持機能付き).
 
         Args:
             text: 対象テキスト
@@ -317,8 +317,29 @@ class CaseInsensitiveConversionStrategy(AbstractTSVConversionStrategy):
         pattern = re.escape(lowercase_pattern)
         flags = re.IGNORECASE
 
-        # シンプルな置換のみ（ケース保持機能を削除）
-        return re.sub(pattern, replacement, text, flags=flags)
+        def preserve_case_replace(match):
+            """元のケースを保持した置換関数."""
+            original = match.group(0)
+            
+            # オリジナルケース保持が無効の場合、置換文字列をそのまま返す
+            if not options.preserve_original_case:
+                return replacement
+            
+            # 元のケースパターンを保持（より精密な判定）
+            if original.isupper():
+                return replacement.upper()
+            elif original.istitle():
+                return replacement.title()
+            elif original.islower():
+                return replacement.lower()
+            elif original[0].isupper():
+                # 最初が大文字の場合はタイトルケースにする
+                return replacement.title()
+            else:
+                # その他の場合は小文字
+                return replacement.lower()
+
+        return re.sub(pattern, preserve_case_replace, text, flags=flags)
 
 
 class TSVConversionStrategyFactory:

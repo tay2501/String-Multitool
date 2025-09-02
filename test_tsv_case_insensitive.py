@@ -163,10 +163,10 @@ class TestCaseInsensitiveConversionStrategy:
         return TSVConversionOptions(case_insensitive=True)
     
     @pytest.mark.parametrize("input_text,expected", [
-        ("Use API for development", "Use Application Programming Interface for development"),
-        ("Use api for development", "Use Application Programming Interface for development"),
+        ("Use API for development", "Use APPLICATION PROGRAMMING INTERFACE for development"),
+        ("Use api for development", "Use application programming interface for development"),
         ("Use Api for development", "Use Application Programming Interface for development"),
-        ("Use aPI for development", "Use Application Programming Interface for development"),
+        ("Use aPI for development", "Use application programming interface for development"),
     ])
     def test_case_insensitive_match(
         self,
@@ -181,10 +181,10 @@ class TestCaseInsensitiveConversionStrategy:
         assert result == expected
     
     @pytest.mark.parametrize("input_text,expected", [
-        ("Use API", "Use Application Programming Interface"),
-        ("Use api", "Use Application Programming Interface"),
+        ("Use API", "Use APPLICATION PROGRAMMING INTERFACE"),
+        ("Use api", "Use application programming interface"),
         ("Use Api", "Use Application Programming Interface"),
-        ("Use aPI", "Use Application Programming Interface"),
+        ("Use aPI", "Use application programming interface"),
     ])
     def test_preserve_original_case_enabled(
         self,
@@ -236,7 +236,7 @@ class TestCaseInsensitiveConversionStrategy:
         
         text = "Use API and sql with HTTP protocol"
         result = strategy.convert_text(text, default_conversion_dict, options)
-        expected = "Use Application Programming Interface and Structured Query Language with HyperText Transfer Protocol protocol"
+        expected = "Use APPLICATION PROGRAMMING INTERFACE and structured query language with HYPERTEXT TRANSFER PROTOCOL protocol"
         assert result == expected
 
 
@@ -458,7 +458,9 @@ class TestPerformanceAndEdgeCases:
         
         # Performance verification (should complete within 1 second)
         assert end_time - start_time < 1.0
-        assert "Definition for term 0001" in result
+        # TERM0001 is all caps, so replacement should be all caps too
+        assert "DEFINITION FOR TERM 0001" in result
+        # term0500 is lowercase, so replacement should be lowercase too
         assert "definition for term 0500" in result
     
     def test_empty_tsv_file(self, performance_tsv_file: Path) -> None:
@@ -501,7 +503,7 @@ SQL\tStructured Query Language\tExtra column"""
         
         text = "Use api and データベース and 🚀"
         result = transformer.transform(text)
-        expected = "Use アプリケーション プログラミング インターフェース and Database and Rocket Emoji"
+        expected = "Use アプリケーション プログラミング インターフェース and database and rocket emoji"
         assert result == expected
 
 

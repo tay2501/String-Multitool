@@ -211,14 +211,11 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
             # EAFP: Try to load existing keys directly
             try:
                 return self._load_key_pair()
-            except (FileNotFoundError, OSError, ValueError, TypeError):
+            except (FileNotFoundError, OSError, ValueError, TypeError, CryptographyError):
                 # Keys don't exist or are corrupted, regenerate
-                pass
-
-            # Generate new key pair
-            logger = get_logger(__name__)
-            logger.info("Generating new RSA key pair...")
-            return self._generate_key_pair()
+                logger = get_logger(__name__)
+                logger.info("Generating new RSA key pair...")
+                return self._generate_key_pair()
 
         except Exception as e:
             raise CryptographyError(
@@ -228,7 +225,7 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
     def _ensure_key_directory(self) -> None:
         """Ensure key directory exists with proper permissions."""
         try:
-            self.key_directory.mkdir(mode=0o700, exist_ok=True)
+            self.key_directory.mkdir(mode=0o700, parents=True, exist_ok=True)
         except Exception as e:
             raise CryptographyError(
                 f"Failed to create key directory: {e}",
