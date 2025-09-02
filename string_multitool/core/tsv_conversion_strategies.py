@@ -320,11 +320,11 @@ class CaseInsensitiveConversionStrategy(AbstractTSVConversionStrategy):
         def preserve_case_replace(match):
             """元のケースを保持した置換関数."""
             original = match.group(0)
-            
+
             # オリジナルケース保持が無効の場合、置換文字列をそのまま返す
             if not options.preserve_original_case:
                 return replacement
-            
+
             # 元のケースパターンを保持（より精密な判定）
             if original.isupper():
                 return replacement.upper()

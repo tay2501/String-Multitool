@@ -211,7 +211,13 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
             # EAFP: Try to load existing keys directly
             try:
                 return self._load_key_pair()
-            except (FileNotFoundError, OSError, ValueError, TypeError, CryptographyError):
+            except (
+                FileNotFoundError,
+                OSError,
+                ValueError,
+                TypeError,
+                CryptographyError,
+            ):
                 # Keys don't exist or are corrupted, regenerate
                 logger = get_logger(__name__)
                 logger.info("Generating new RSA key pair...")
