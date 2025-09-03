@@ -7,6 +7,7 @@ all application components and handles command-line execution.
 
 from __future__ import annotations
 
+import argparse
 import sys
 from typing import Any, Optional
 
@@ -39,6 +40,7 @@ class ApplicationInterface:
         self.transformation_engine = transformation_engine
         self.io_manager = io_manager
         self.crypto_manager = crypto_manager
+        self.silent_mode = False
 
         self.logger = get_logger(__name__)
 
@@ -53,27 +55,82 @@ class ApplicationInterface:
 
     def run(self) -> None:
         """Main application entry point."""
-        args = sys.argv[1:] if len(sys.argv) > 1 else []
-
-        if not args:
-            self._run_interactive_mode()
-        elif args[0] == "help":
+        # Parse command line arguments using argparse best practices
+        parser = self._create_argument_parser()
+        args = parser.parse_args()
+        
+        # Set silent mode
+        self.silent_mode = args.silent
+        
+        # Handle different modes based on arguments
+        if args.help_cmd:
             self.display_help()
+        elif args.rule:
+            self._run_rule_mode(args.rule, args.args)
         else:
-            self._run_rule_mode(args[0])
+            self._run_interactive_mode()
+    
+    def _create_argument_parser(self) -> argparse.ArgumentParser:
+        """Create and configure argument parser following best practices."""
+        parser = argparse.ArgumentParser(
+            prog="String_Multitool.py",
+            description="Advanced text transformation tool with pipe support and RSA encryption",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+Examples:
+  String_Multitool.py                     # Interactive mode
+  String_Multitool.py /t/l                # Apply trim + lowercase to clipboard
+  String_Multitool.py -s /u               # Silent mode, uppercase only
+  echo "text" | String_Multitool.py /t/l  # Apply to piped text
+  String_Multitool.py help                # Show detailed help
+            """,
+            add_help=False  # Custom help handling
+        )
+        
+        # Add silent mode option following best practices
+        parser.add_argument(
+            "-s", "--silent", 
+            action="store_true",
+            help="Silent mode - show only transformation result"
+        )
+        
+        # Add help option
+        parser.add_argument(
+            "--help", "-h",
+            action="store_true",
+            dest="help_cmd",
+            help="Show this help message and exit"
+        )
+        
+        # Positional arguments for transformation rule and parameters
+        parser.add_argument(
+            "rule",
+            nargs="?",
+            default=None,
+            help="Transformation rule (e.g., /t/l, /u, help)"
+        )
+        parser.add_argument(
+            "args",
+            nargs="*",
+            help="Additional arguments for the transformation rule (e.g., /S '+' where '+' is the separator)"
+        )
+        
+        return parser
 
     def _run_interactive_mode(self) -> None:
         """Run interactive mode."""
         from .modes.interactive import CommandProcessor, InteractiveSession
 
-        print("Interactive mode")
-        print(
-            "Type 'help' for available transformation rules or 'commands' for interactive commands."
-        )
-        print(
-            "Enter transformation rules (e.g. '/t/l' for trim + lowercase) or commands."
-        )
-        print("Type 'quit' or 'exit' to leave.\n")
+        # Only show messages in non-silent mode
+        if not self.silent_mode:
+            print("Interactive mode")
+            print(
+                "Type 'help' for available transformation rules or 'commands' for interactive commands."
+            )
+            print(
+                "Enter transformation rules (e.g. '/t/l' for trim + lowercase) or commands."
+            )
+            print("Type 'quit' or 'exit' to leave.\n")
 
         # Initialize interactive session
         session = InteractiveSession(self.io_manager, self.transformation_engine)
@@ -113,18 +170,21 @@ class ApplicationInterface:
                                 )
                             )
 
-                            # Copy result to clipboard
-                            self.io_manager.set_output_text(result_text)
-
-                            # Show result
-                            display_text = (
-                                result_text[:100] + "..."
-                                if len(result_text) > 100
-                                else result_text
-                            )
-                            print(
-                                f"[SUCCESS] Result copied to clipboard: '{display_text}'"
-                            )
+                            # Handle output based on mode
+                            if self.silent_mode:
+                                # Silent mode: only show the result, no clipboard copy
+                                print(result_text)
+                            else:
+                                # Normal mode: copy to clipboard and show success message
+                                self.io_manager.set_output_text(result_text)
+                                display_text = (
+                                    result_text[:100] + "..."
+                                    if len(result_text) > 100
+                                    else result_text
+                                )
+                                print(
+                                    f"[SUCCESS] Result copied to clipboard: '{display_text}'"
+                                )
 
                         except ValidationError as e:
                             print(f"[ERROR] Transformation failed: {e}")
@@ -141,11 +201,34 @@ class ApplicationInterface:
             # Cleanup
             session.cleanup()
 
-    def _run_rule_mode(self, rule: str) -> None:
+    def _run_rule_mode(self, rule: str, rule_args: list[str] = None) -> None:
         """Run rule-based transformation mode."""
+        # Handle help command
+        if rule == "help":
+            self.display_help()
+            return
+        
+        # Windows CMD compatibility: normalize double slashes to single slashes
+        # This handles cases where Windows converts /t to T: in command line
+        if rule and '//' in rule:
+            rule = rule.replace('//', '/')
+        
+        # Combine rule with arguments if provided (e.g., "/S '+'" becomes "/S '+'")
+        if rule_args:
+            combined_rule = f"{rule} {' '.join(repr(arg) for arg in rule_args)}"
+        else:
+            combined_rule = rule
+            
         input_text = self.io_manager.get_input_text()
-        result = self.transformation_engine.apply_transformations(input_text, rule)
-        self.io_manager.set_output_text(result)
+        result = self.transformation_engine.apply_transformations(input_text, combined_rule)
+        
+        if self.silent_mode:
+            # Silent mode: only output the transformation result, no clipboard copying
+            print(result, end='')  # No newline to keep output clean
+        else:
+            # Normal mode: output to stdout for pipe chaining AND copy to clipboard
+            print(result)  # Output for pipe chaining
+            self.io_manager.set_output_text(result)
 
     def display_help(self) -> None:
         """Display help information."""

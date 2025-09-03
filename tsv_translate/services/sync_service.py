@@ -65,7 +65,10 @@ class SyncService(BaseService, SyncServiceInterface):
             # Simple connectivity test
             self._db_session.execute("SELECT 1").fetchone()
             return True
-        except Exception as e:\n            # Handle both SQLAlchemyError and import errors gracefully\n            if SQLALCHEMY_AVAILABLE and 'SQLAlchemyError' in str(type(e)):
+        except Exception as e:
+            # Handle both SQLAlchemyError and import errors gracefully
+            if SQLALCHEMY_AVAILABLE and 'SQLAlchemyError' in str(type(e)):
+                pass  # Log specific SQLAlchemy errors if needed
             return False
     
     def sync_file(self, file_path: Path) -> SyncResult:
@@ -150,7 +153,10 @@ class SyncService(BaseService, SyncServiceInterface):
                 rules_deleted=rules_count
             )
             
-        except Exception as e:\n            # Handle both SQLAlchemyError and import errors gracefully\n            if not SQLALCHEMY_AVAILABLE:\n                raise SyncError(\"SQLAlchemy not available\") from e
+        except Exception as e:
+            # Handle both SQLAlchemyError and import errors gracefully
+            if not SQLALCHEMY_AVAILABLE:
+                raise SyncError("SQLAlchemy not available") from e
             self._db_session.rollback()
             return SyncResult(
                 status=OperationStatus.ERROR,
@@ -264,6 +270,9 @@ class SyncService(BaseService, SyncServiceInterface):
                 file_hash=file_hash
             )
             
-        except Exception as e:\n            # Handle both SQLAlchemyError and import errors gracefully\n            if not SQLALCHEMY_AVAILABLE:\n                raise SyncError(\"SQLAlchemy not available\") from e
+        except Exception as e:
+            # Handle both SQLAlchemyError and import errors gracefully
+            if not SQLALCHEMY_AVAILABLE:
+                raise SyncError("SQLAlchemy not available") from e
             self._db_session.rollback()
             raise SyncError(f"Database synchronization failed: {str(e)}")

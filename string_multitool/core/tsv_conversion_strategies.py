@@ -317,7 +317,7 @@ class CaseInsensitiveConversionStrategy(AbstractTSVConversionStrategy):
         pattern = re.escape(lowercase_pattern)
         flags = re.IGNORECASE
 
-        def preserve_case_replace(match):
+        def preserve_case_replace(match: re.Match[str]) -> str:
             """元のケースを保持した置換関数."""
             original = match.group(0)
 

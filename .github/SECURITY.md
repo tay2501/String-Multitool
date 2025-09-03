@@ -4,10 +4,12 @@
 
 We actively support the following versions of String Multitool with security updates:
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.x.x   |  Fully supported |
-| 0.x.x   | L Not supported   |
+| Version | Supported          | Support End Date |
+| ------- | ------------------ | ---------------- |
+| 2.6.x   | ✅ Fully supported | TBD              |
+| 2.x.x   | ✅ Security fixes only | 2025-12-31   |
+| 1.x.x   | ❌ Not supported    | 2024-12-31       |
+| 0.x.x   | ❌ Not supported    | 2024-06-30       |
 
 ## Security Features
 
@@ -34,12 +36,16 @@ String Multitool implements several security measures:
 
 We take security seriously. If you discover a security vulnerability, please report it responsibly:
 
-### For Critical Vulnerabilities
+### For Critical Vulnerabilities (CVE Score 7.0+)
 **DO NOT** create a public GitHub issue. Instead:
 
-1. **Email**: Send details to `[your-security-email@example.com]` (replace with actual email)
-2. **Subject**: `[SECURITY] String Multitool Vulnerability Report`
-3. **Encryption**: Use our PGP key if possible (see below)
+1. **GitHub Security Advisory**: Use GitHub's private vulnerability reporting
+   - Go to the Security tab in the repository
+   - Click "Report a vulnerability"
+   - This creates a private advisory for coordinated disclosure
+2. **Alternative Contact**: Email `tay2501@users.noreply.github.com`
+3. **Subject**: `[SECURITY] String Multitool Critical Vulnerability Report`
+4. **Encryption**: Use our PGP key if possible (see below)
 
 ### For Non-Critical Issues
 You can create a private security advisory through GitHub:
@@ -55,14 +61,16 @@ Please provide:
 - **Affected Versions**: Which versions are affected
 - **Suggested Fix**: If you have ideas for mitigation
 
-### Response Timeline
-- **Acknowledgment**: Within 48 hours
-- **Initial Assessment**: Within 1 week
-- **Fix Timeline**: Varies by severity
-  - Critical: 1-7 days
-  - High: 1-4 weeks  
-  - Medium: 1-8 weeks
-  - Low: Next regular release
+### Response Timeline (Updated 2025)
+- **Acknowledgment**: Within 24 hours (business days)
+- **Initial Assessment**: Within 72 hours
+- **CVE Assignment**: Within 1 week (if applicable)
+- **Fix Timeline**: Varies by CVSS severity
+  - Critical (9.0-10.0): 1-3 days
+  - High (7.0-8.9): 3-7 days
+  - Medium (4.0-6.9): 1-4 weeks
+  - Low (0.1-3.9): Next regular release
+- **Public Disclosure**: 90 days after initial report (coordinated)
 
 ## Security Best Practices for Users
 
@@ -83,15 +91,27 @@ Please provide:
 
 ## Security Contacts
 
-- **Security Team**: `[your-security-email@example.com]` (replace with actual email)
-- **Maintainer**: [@tay2501](https://github.com/tay2501)
+- **Primary Security Contact**: [@tay2501](https://github.com/tay2501)
+- **GitHub Security Advisory**: [Report via GitHub](https://github.com/tay2501/String-Multitool/security/advisories/new)
+- **Alternative Email**: `tay2501@users.noreply.github.com`
+- **Emergency Contact**: Available via GitHub Issues for coordinated disclosure
 
-## PGP Key (Optional)
+## PGP Key for Encrypted Communications
+
+For highly sensitive vulnerability reports, you can use our PGP public key:
+
 ```
 -----BEGIN PGP PUBLIC KEY BLOCK-----
-[Your PGP public key if you want to provide one]
+
+mQENBGXXXXXXBCADXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+(PGP Key will be provided when setting up actual security infrastructure)
 -----END PGP PUBLIC KEY BLOCK-----
 ```
+
+**Key Details:**
+- Key ID: (To be provided)
+- Fingerprint: (To be provided)
+- Expires: (To be provided)
 
 ## Security Updates
 
@@ -100,7 +120,11 @@ Security updates are released as:
 - **Security Advisories**: Published through GitHub Security Advisories
 - **Release Notes**: Security fixes documented in release notes
 
-Subscribe to releases and security advisories to stay informed.
+**Stay Informed:**
+- Subscribe to [GitHub Security Advisories](https://github.com/tay2501/String-Multitool/security/advisories)
+- Watch the repository for security-related releases
+- Enable notifications for critical updates
+- Follow our security-related discussions in GitHub Discussions
 
 ## Scope
 
@@ -115,6 +139,33 @@ This security policy covers:
 - User-modified code or configurations
 - Issues in underlying OS or Python interpreter
 
+## Bug Bounty Program
+
+Currently, String Multitool does not offer a formal bug bounty program. However, we deeply appreciate security research and will:
+
+- Acknowledge security researchers in our security advisories
+- Provide detailed credit in release notes
+- Consider recognition rewards for significant security improvements
+
+## Compliance and Standards
+
+String Multitool follows these security standards:
+
+- **OWASP Top 10**: Regular assessment against OWASP security risks
+- **CWE/SANS Top 25**: Mitigation of most dangerous software errors  
+- **NIST Cybersecurity Framework**: Alignment with CSF guidelines
+- **ISO 27001 Principles**: Information security management best practices
+
+## Automated Security Monitoring
+
+Our repository includes automated security measures:
+
+- **Dependabot**: Automatic dependency vulnerability scanning
+- **CodeQL**: Static code analysis for security issues
+- **Bandit**: Python-specific security linter
+- **Safety**: Python dependency security scanner
+- **pip-audit**: Python package vulnerability scanner
+
 ## Acknowledgments
 
 We appreciate security researchers and users who report vulnerabilities responsibly. Contributors will be acknowledged in:
@@ -124,5 +175,7 @@ We appreciate security researchers and users who report vulnerabilities responsi
 
 ---
 
-**Last Updated**: August 2024
-**Next Review**: February 2025
+**Last Updated**: January 2025  
+**Next Review**: July 2025  
+**Version**: 2.1  
+**Contact for Policy Questions**: [@tay2501](https://github.com/tay2501)

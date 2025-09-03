@@ -1,0 +1,50 @@
+# CODEOWNERS - Defines code ownership for automatic review assignment
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global ownership - applies to all files unless overridden
+* @tay2501
+
+# GitHub Configuration and CI/CD
+/.github/ @tay2501
+/.github/workflows/ @tay2501
+/.github/ISSUE_TEMPLATE/ @tay2501
+/.github/dependabot.yml @tay2501
+/.github/SECURITY.md @tay2501
+
+# Core Application Code
+/string_multitool/ @tay2501
+/String_Multitool.py @tay2501
+
+# Configuration Files
+/config/ @tay2501
+pyproject.toml @tay2501
+requirements.txt @tay2501
+
+# Documentation
+README.md @tay2501
+CLAUDE.md @tay2501
+CHANGELOG.md @tay2501
+*.md @tay2501
+
+# Testing
+/test_*.py @tay2501
+/tests/ @tay2501
+
+# Build and Distribution
+build.ps1 @tay2501
+/dist/ @tay2501
+/build/ @tay2501
+
+# Security Sensitive Files
+/rsa/ @tay2501
+*.pem @tay2501
+*.key @tay2501
+
+# Development Tools
+.gitignore @tay2501
+.pre-commit-config.yaml @tay2501
+
+# Scripts and Automation
+*.ps1 @tay2501
+*.sh @tay2501
+*.bat @tay2501

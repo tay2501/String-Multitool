@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # Python dependencies managed by uv
+  # Python dependencies managed by uv and pyproject.toml
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
@@ -9,46 +9,68 @@ updates:
       time: "09:00"
       timezone: "UTC"
     open-pull-requests-limit: 5
+    target-branch: "main"
     reviewers:
       - "tay2501"
     assignees:
       - "tay2501"
+    milestone: "Dependency Updates"
     commit-message:
       prefix: "deps"
       include: "scope"
     labels:
       - "dependencies"
       - "python"
+      - "security"
     allow:
       - dependency-type: "direct"
       - dependency-type: "indirect"
     groups:
-      security-updates:
+      security-critical:
+        applies-to: security-updates
         patterns:
           - "cryptography"
           - "urllib3"
           - "requests"
           - "pyopenssl"
-        update-types:
-          - "security-update"
-      core-dependencies:
+          - "pyjwt"
+          - "pillow"
+        priority: 10
+      core-runtime:
         patterns:
           - "typer"
           - "rich"
           - "pyperclip"
           - "watchdog"
           - "structlog"
+          - "python-json-logger"
+          - "typing-extensions"
+          - "sqlalchemy"
         update-types:
           - "minor"
           - "patch"
-      dev-tools:
+      dev-tooling:
         patterns:
           - "pytest*"
           - "black"
-          - "isort" 
+          - "isort"
           - "mypy"
           - "ruff"
           - "pre-commit"
+          - "bandit*"
+          - "safety"
+          - "pip-audit"
+          - "coverage*"
+        update-types:
+          - "minor"
+          - "patch"
+      build-tools:
+        patterns:
+          - "pyinstaller"
+          - "build"
+          - "wheel"
+          - "setuptools"
+          - "twine"
         update-types:
           - "minor"
           - "patch"
@@ -62,20 +84,48 @@ updates:
       time: "10:00"
       timezone: "UTC"
     open-pull-requests-limit: 3
+    target-branch: "main"
     reviewers:
       - "tay2501"
     assignees:
       - "tay2501"
+    milestone: "GitHub Actions Updates"
     commit-message:
       prefix: "ci"
       include: "scope"
     labels:
       - "dependencies"
       - "github-actions"
+      - "automation"
     groups:
-      github-actions:
+      github-actions-all:
         patterns:
-          - "*"
+          - "actions/*"
+          - "github/*"
+          - "codecov/*"
+          - "astral-sh/*"
+          - "softprops/*"
         update-types:
           - "minor"
           - "patch"
+  
+  # Docker dependencies (if present)
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "11:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 2
+    target-branch: "main"
+    reviewers:
+      - "tay2501"
+    assignees:
+      - "tay2501"
+    commit-message:
+      prefix: "docker"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "docker"

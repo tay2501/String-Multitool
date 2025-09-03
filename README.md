@@ -84,8 +84,8 @@ Master these 5 rules for 90% of use cases:
 |------|----------|---------|
 | `/r 'old' 'new'` | Replace | `/r 'old' 'new'` → `old text` → `new text` |
 | `/S '+'` | Slugify | `/S '+'` → `http://foo.bar` → `http+foo+bar` |
-| `/convertbytsv file.tsv --case-insensitive` | TSV Convert | `API` → `Application Programming Interface` |
-| `/tsv file.tsv` | TSV Database Sync | Sync TSV files to database for fast lookups |
+| `/tsvtr file.tsv --case-insensitive` | TSV Convert | `API` → `Application Programming Interface` |
+| `/tsvtr file.tsv` | TSV Database Sync | Sync TSV files to database for fast lookups |
 | `/enc` | RSA Encrypt | `Secret message` → `Base64 encrypted text` |
 | `/dec` | RSA Decrypt | `Base64 encrypted text` → `Secret message` |
 
@@ -140,20 +140,28 @@ python String_Multitool.py --hotkey
 ```
 
 ### TSV-based Text Conversion
+
+#### Built-in TSV Conversion (convertbytsv rule)
 ```bash
 # Create conversion dictionary
 echo -e "API\tApplication Programming Interface" > terms.tsv
 echo -e "SQL\tStructured Query Language" >> terms.tsv
 
-# Convert abbreviations (case-insensitive)
+# Convert abbreviations using String_Multitool built-in rule
 echo "Use api and SQL" | python String_Multitool.py /convertbytsv terms.tsv --case-insensitive
 # → "Use Application Programming Interface and Structured Query Language"
-
-# TSV Database System (Advanced)
-python usetsvr.py sync config/tsv_rules    # Sync TSV files to database
-python usetsvr.py japanese_english          # Convert using rule set
-python usetsvr.py ls                        # List available rule sets
 ```
+
+#### Advanced TSV Database System (tsvtr CLI tool)
+```bash
+# Independent TSV translation tool with database backend
+python tsvtr.py sync config/tsv_rules       # Sync TSV files to database
+python tsvtr.py japanese_english            # Convert using rule set
+python tsvtr.py ls                          # List available rule sets
+python tsvtr.py info japanese_english       # Show rule set information
+```
+
+**Note**: `convertbytsv` is a String_Multitool transformation rule, while `tsvtr` is a separate CLI tool for advanced TSV management.
 
 ## 🔒 Security Features
 
