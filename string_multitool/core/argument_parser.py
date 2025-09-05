@@ -67,7 +67,7 @@ class ShellStyleArgumentParser:
         Handles complex cases like:
         - /r '/' '\'
         - /r "path with spaces" "new path"
-        - /convertbytsv --case-insensitive file.tsv
+        - /tsvtr --case-insensitive file.tsv
 
         Args:
             rule_string: Rule string to parse (e.g., "/r 'old' 'new'")

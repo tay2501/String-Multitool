@@ -106,8 +106,8 @@ class RuleNames(Enum):
     Provides type-safe access to rule names with IDE completion.
     """
 
-    # Core transformation rule (convertbytsv for consistency with documentation)
-    USE_TSV_RULES = "convertbytsv"
+    # Core transformation rule (tsvtr for consistency with documentation)
+    USE_TSV_RULES = "tsvtr"
 
     # Basic transformations
     UNDERBAR_TO_HYPHEN = "uh"

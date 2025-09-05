@@ -56,8 +56,10 @@
   "string_operations": {
     "t": {
       "name": "Trim",
-      "description": "Trim whitespace from beginning and end",
-      "example": "  hello world   -> hello world"
+      "description": "Trim whitespace from beginning and end, or specific characters with argument",
+      "example": "  hello world   -> hello world | /t '\"' -> \"COLUMN1\" -> COLUMN1",
+      "supports_args": true,
+      "arg_description": "Characters to trim (optional). Example: /t '\"' removes quotes"
     },
     "R": {
       "name": "Reverse",

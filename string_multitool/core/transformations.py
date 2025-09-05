@@ -936,10 +936,10 @@ class TextTransformationEngine(
                     default_args=["-"],
                     rule_type=TransformationRuleType.ADVANCED,
                 ),
-                "convertbytsv": TransformationRule(
+                "tsvtr": TransformationRule(
                     name="Convert by TSV",
                     description="Convert text using TSV file rules",
-                    example="/convertbytsv technical_terms.tsv → API → Application Programming Interface",
+                    example="/tsvtr technical_terms.tsv → API → Application Programming Interface",
                     function=lambda text: text,  # Handled specially
                     requires_args=True,
                     rule_type=TransformationRuleType.ADVANCED,
@@ -1156,8 +1156,8 @@ class TextTransformationEngine(
         try:
             if not args:
                 raise TransformationError(
-                    "convertbytsv rule requires TSV file path",
-                    {"rule_name": "convertbytsv", "args_count": len(args)},
+                    "tsvtr rule requires TSV file path",
+                    {"rule_name": "tsvtr", "args_count": len(args)},
                 )
 
             # 引数を解析（ファイルパスとオプションを分離）
@@ -1182,7 +1182,7 @@ class TextTransformationEngine(
         except Exception as e:
             self.set_error_context(
                 {
-                    "rule_name": "convertbytsv",
+                    "rule_name": "tsvtr",
                     "args": args,
                     "error_type": type(e).__name__,
                 }
@@ -1195,7 +1195,7 @@ class TextTransformationEngine(
         """TSV変換の引数を解析（POSIX準拠：オプション優先パターン）
 
         POSIX標準に従い、オプションが引数より前に配置される形式を採用:
-        /convertbytsv --case-insensitive technical_terms.tsv
+        /tsvtr --case-insensitive technical_terms.tsv
 
         Args:
             args: 引数リスト

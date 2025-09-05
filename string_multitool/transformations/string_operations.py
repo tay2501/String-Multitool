@@ -13,7 +13,7 @@ from ..exceptions import TransformationError
 
 
 class TrimTransformation(TransformationBase):
-    """文字列の前後の空白を削除する変換クラス"""
+    """文字列の前後の空白または指定文字を削除する変換クラス"""
 
     def __init__(self, config: ConfigDict | None = None) -> None:
         """初期化
@@ -25,9 +25,19 @@ class TrimTransformation(TransformationBase):
         self._rule: str = "t"
         self._input_text: str = ""
         self._output_text: str = ""
+        self._trim_chars: str | None = None
+
+    def set_arguments(self, args: list[str]) -> None:
+        """引数を設定
+
+        Args:
+            args: 削除対象の文字列リスト
+        """
+        if args:
+            self._trim_chars = args[0]
 
     def transform(self, text: str) -> str:
-        """文字列の前後の空白を削除
+        """文字列の前後の空白または指定文字を削除
 
         Args:
             text: 変換対象のテキスト
@@ -40,13 +50,19 @@ class TrimTransformation(TransformationBase):
         """
         try:
             self._input_text = text
-            self._output_text = text.strip()
+            if self._trim_chars is not None:
+                # Use strip() with specific characters for optimal performance
+                self._output_text = text.strip(self._trim_chars)
+            else:
+                # Default whitespace trimming
+                self._output_text = text.strip()
             return self._output_text
         except Exception as e:
             self.set_error_context(
                 {
                     "rule": self._rule,
                     "input_length": len(text) if isinstance(text, str) else 0,
+                    "trim_chars": self._trim_chars,
                     "error_type": type(e).__name__,
                 }
             )

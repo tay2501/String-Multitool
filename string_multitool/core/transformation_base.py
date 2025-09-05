@@ -128,6 +128,18 @@ class TransformationBase(ABC):
             # EAFPスタイル: コピーに失敗した場合は空辞書を返す
             return {}
 
+    def set_arguments(self, args: list[str]) -> None:
+        """変換処理の引数を設定（オプションメソッド）
+
+        Args:
+            args: 変換処理に渡す引数のリスト
+
+        Note:
+            このメソッドは引数を必要とする変換クラスでオーバーライドされる
+        """
+        # Default implementation does nothing
+        pass
+
     def _safe_transform(self, text: str) -> str:
         """安全な変換実行のヘルパーメソッド
 

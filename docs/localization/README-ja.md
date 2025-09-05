@@ -130,7 +130,7 @@ echo -e "A001\nA002\nA003" | python String_Multitool.py /si
 ### TSVファイルによるテキスト置換
 ```bash
 # 略語の展開
-echo "API と SQL" | python String_Multitool.py "/convertbytsv terms.tsv"
+echo "API と SQL" | python String_Multitool.py "/tsvtr terms.tsv"
 # → "Application Programming Interface と Structured Query Language"
 ```
 

@@ -28,10 +28,10 @@ String_Multitool v2.6.0 introduces enterprise-grade case-insensitive TSV convers
 
 ```bash
 # Traditional case-sensitive conversion
-echo "API" | python String_Multitool.py "/convertbytsv technical_terms.tsv"
+echo "API" | python String_Multitool.py "/tsvtr technical_terms.tsv"
 # Result: "Application Programming Interface"
 
-echo "api" | python String_Multitool.py "/convertbytsv technical_terms.tsv" 
+echo "api" | python String_Multitool.py "/tsvtr technical_terms.tsv" 
 # Result: "api" (no change - case mismatch)
 ```
 
@@ -39,13 +39,13 @@ echo "api" | python String_Multitool.py "/convertbytsv technical_terms.tsv"
 
 ```bash
 # POSIX-compliant: options before arguments
-echo "api" | python String_Multitool.py "/convertbytsv --case-insensitive technical_terms.tsv"
+echo "api" | python String_Multitool.py "/tsvtr --case-insensitive technical_terms.tsv"
 # Result: "Application Programming Interface"
 
-echo "Api" | python String_Multitool.py "/convertbytsv --case-insensitive technical_terms.tsv"
+echo "Api" | python String_Multitool.py "/tsvtr --case-insensitive technical_terms.tsv"
 # Result: "Application Programming Interface"
 
-echo "API" | python String_Multitool.py "/convertbytsv --case-insensitive technical_terms.tsv"
+echo "API" | python String_Multitool.py "/tsvtr --case-insensitive technical_terms.tsv"
 # Result: "Application Programming Interface"
 ```
 
@@ -55,11 +55,11 @@ echo "API" | python String_Multitool.py "/convertbytsv --case-insensitive techni
 
 ```bash
 # Default: preserve original case patterns (intelligent)
-echo "Api Development" | python String_Multitool.py "/convertbytsv --case-insensitive terms.tsv"
+echo "Api Development" | python String_Multitool.py "/tsvtr --case-insensitive terms.tsv"
 # Result: "Application Programming Interface Development"
 
 # Disable case preservation
-echo "Api Development" | python String_Multitool.py "/convertbytsv --case-insensitive --no-preserve-case terms.tsv"
+echo "Api Development" | python String_Multitool.py "/tsvtr --case-insensitive --no-preserve-case terms.tsv"
 # Result: "Application Programming Interface Development"
 ```
 
@@ -67,10 +67,10 @@ echo "Api Development" | python String_Multitool.py "/convertbytsv --case-insens
 
 ```bash
 # Short form
-python String_Multitool.py "/convertbytsv -i technical_terms.tsv"
+python String_Multitool.py "/tsvtr -i technical_terms.tsv"
 
 # Alternative long form
-python String_Multitool.py "/convertbytsv --caseinsensitive technical_terms.tsv"
+python String_Multitool.py "/tsvtr --caseinsensitive technical_terms.tsv"
 ```
 
 ## TSV File Format
@@ -99,7 +99,7 @@ Save as `technical_terms.tsv` in the `config/tsv_rules/` directory.
 echo -e "API\tApplication Programming Interface\nREST\tREpresentational State Transfer\nJSON\tJavaScript Object Notation\nSQL\tStructured Query Language\nHTTP\tHyperText Transfer Protocol" > tech_terms.tsv
 
 # Convert mixed-case technical content
-echo "Use rest api calls with json and sql databases for modern web development" | python String_Multitool.py "/convertbytsv --case-insensitive tech_terms.tsv"
+echo "Use rest api calls with json and sql databases for modern web development" | python String_Multitool.py "/tsvtr --case-insensitive tech_terms.tsv"
 # Result: "Use REpresentational State Transfer Application Programming Interface calls with JavaScript Object Notation and Structured Query Language databases for modern web development"
 ```
 
@@ -107,11 +107,11 @@ echo "Use rest api calls with json and sql databases for modern web development"
 
 ```bash
 # Combine case-insensitive conversion with text formatting
-echo "developing rest api endpoints" | python String_Multitool.py "/convertbytsv --case-insensitive tech_terms.tsv/a"
+echo "developing rest api endpoints" | python String_Multitool.py "/tsvtr --case-insensitive tech_terms.tsv/a"
 # Result: "Developing Representational State Transfer Application Programming Interface Endpoints"
 
 # Multiple transformations
-echo "  api  and  sql  " | python String_Multitool.py "/t/convertbytsv --case-insensitive tech_terms.tsv/p"
+echo "  api  and  sql  " | python String_Multitool.py "/t/tsvtr --case-insensitive tech_terms.tsv/p"
 # Result: "Application Programming Interface And Structured Query Language"
 ```
 
@@ -119,7 +119,7 @@ echo "  api  and  sql  " | python String_Multitool.py "/t/convertbytsv --case-in
 
 ```bash
 # Process documentation with various case patterns
-echo "The API uses HTTP protocol with JSON data format and SQL queries" | python String_Multitool.py "/convertbytsv --case-insensitive tech_terms.tsv"
+echo "The API uses HTTP protocol with JSON data format and SQL queries" | python String_Multitool.py "/tsvtr --case-insensitive tech_terms.tsv"
 # Result: "The Application Programming Interface uses HyperText Transfer Protocol protocol with JavaScript Object Notation data format and Structured Query Language queries"
 ```
 
@@ -148,15 +148,15 @@ echo "The API uses HTTP protocol with JSON data format and SQL queries" | python
 
 ```bash
 # Missing TSV file
-echo "api" | python String_Multitool.py "/convertbytsv --case-insensitive missing.tsv"
+echo "api" | python String_Multitool.py "/tsvtr --case-insensitive missing.tsv"
 # Error: TSVファイルが見つかりません: missing.tsv
 
 # Invalid TSV format (handled gracefully)
-echo "api" | python String_Multitool.py "/convertbytsv --case-insensitive malformed.tsv"
+echo "api" | python String_Multitool.py "/tsvtr --case-insensitive malformed.tsv"
 # Malformed lines are automatically skipped
 
 # Empty TSV file (handled gracefully)
-echo "api" | python String_Multitool.py "/convertbytsv --case-insensitive empty.tsv"  
+echo "api" | python String_Multitool.py "/tsvtr --case-insensitive empty.tsv"  
 # Result: "api" (no conversion, no error)
 ```
 
@@ -193,12 +193,12 @@ echo "api" | python String_Multitool.py "/convertbytsv --case-insensitive empty.
 
 **Old syntax (still supported)**:
 ```bash
-python String_Multitool.py "/convertbytsv technical_terms.tsv"
+python String_Multitool.py "/tsvtr technical_terms.tsv"
 ```
 
 **New POSIX-compliant syntax (recommended)**:
 ```bash
-python String_Multitool.py "/convertbytsv --case-insensitive technical_terms.tsv"
+python String_Multitool.py "/tsvtr --case-insensitive technical_terms.tsv"
 ```
 
 ### Backwards Compatibility
@@ -214,8 +214,8 @@ The GitHub Actions workflow now includes comprehensive testing for the new case-
 ```yaml
 - name: Test TSV case-insensitive conversion
   run: |
-    echo "api" | python String_Multitool.py "/convertbytsv --case-insensitive technical_terms.tsv" | findstr "Application Programming Interface"
-    echo "Api" | python String_Multitool.py "/convertbytsv --case-insensitive technical_terms.tsv" | findstr "Application Programming Interface"
+    echo "api" | python String_Multitool.py "/tsvtr --case-insensitive technical_terms.tsv" | findstr "Application Programming Interface"
+    echo "Api" | python String_Multitool.py "/tsvtr --case-insensitive technical_terms.tsv" | findstr "Application Programming Interface"
 ```
 
 ### Programmatic Usage
@@ -236,7 +236,7 @@ result = transformer.transform("api development")
 ### Common Questions
 
 **Q: Why do I get "Rules must start with '/'" error?**
-A: Make sure to quote the entire rule string: `"/convertbytsv --case-insensitive file.tsv"`
+A: Make sure to quote the entire rule string: `"/tsvtr --case-insensitive file.tsv"`
 
 **Q: Can I use both old and new syntax?**
 A: Yes, both are supported for backwards compatibility.
@@ -253,7 +253,7 @@ Enable detailed logging for troubleshooting:
 ```bash
 # Set environment variable for debug output
 export STRING_MULTITOOL_DEBUG=1
-echo "api" | python String_Multitool.py "/convertbytsv --case-insensitive technical_terms.tsv"
+echo "api" | python String_Multitool.py "/tsvtr --case-insensitive technical_terms.tsv"
 ```
 
 ## Future Roadmap

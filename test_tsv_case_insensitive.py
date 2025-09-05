@@ -350,7 +350,7 @@ JSON\tJavaScript Object Notation"""
         transformer = TSVTransformation(str(tsv_test_file), options)
         
         rule = transformer.get_transformation_rule()
-        assert "convertbytsv" in rule
+        assert "tsvtr" in rule
         assert "--case-insensitive" in rule
         assert "--no-preserve-case" in rule
 

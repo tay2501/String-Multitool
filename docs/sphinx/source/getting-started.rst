@@ -233,7 +233,7 @@ Save this for quick access:
    # Advanced
    /enc  # RSA encrypt
    /dec  # RSA decrypt
-   /convertbytsv file.tsv  # Convert using TSV dictionary
+   /tsvtr file.tsv  # Convert using TSV dictionary
 
    # Chain rules with /
    /t/l/s    # trim → lowercase → snake_case

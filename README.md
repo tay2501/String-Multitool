@@ -141,14 +141,14 @@ python String_Multitool.py --hotkey
 
 ### TSV-based Text Conversion
 
-#### Built-in TSV Conversion (convertbytsv rule)
+#### Built-in TSV Conversion (tsvtr rule)
 ```bash
 # Create conversion dictionary
 echo -e "API\tApplication Programming Interface" > terms.tsv
 echo -e "SQL\tStructured Query Language" >> terms.tsv
 
 # Convert abbreviations using String_Multitool built-in rule
-echo "Use api and SQL" | python String_Multitool.py /convertbytsv terms.tsv --case-insensitive
+echo "Use api and SQL" | python String_Multitool.py /tsvtr terms.tsv --case-insensitive
 # → "Use Application Programming Interface and Structured Query Language"
 ```
 
@@ -160,8 +160,6 @@ python tsvtr.py japanese_english            # Convert using rule set
 python tsvtr.py ls                          # List available rule sets
 python tsvtr.py info japanese_english       # Show rule set information
 ```
-
-**Note**: `convertbytsv` is a String_Multitool transformation rule, while `tsvtr` is a separate CLI tool for advanced TSV management.
 
 ## 🔒 Security Features
 
