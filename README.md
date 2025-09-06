@@ -89,6 +89,16 @@ Master these 5 rules for 90% of use cases:
 | `/enc` | RSA Encrypt | `Secret message` → `Base64 encrypted text` |
 | `/dec` | RSA Decrypt | `Base64 encrypted text` → `Secret message` |
 
+### TSV Database Access
+TSV conversion rules are stored in SQLite for performance. Access the database directly:
+
+| Command | Function | Example |
+|---------|----------|---------|
+| `tsvtr --shell litecli` | **Interactive SQL Shell** | Launch enhanced SQLite shell with syntax highlighting |
+| `tsvtr --shell sqlite3` | **Standard SQL Shell** | Launch standard SQLite command-line interface |
+| `tsvtr ls` | **List Rule Sets** | Show available TSV conversion rule sets |
+| `tsvtr sync ~/rules` | **Sync TSV Files** | Import TSV files from directory to database |
+
 ## 🎮 Usage Examples
 
 ### Programming Workflow
@@ -142,6 +152,18 @@ python tsvtr.py sync config/tsv_rules       # Sync TSV files to database
 python tsvtr.py japanese_english            # Convert using rule set
 python tsvtr.py ls                          # List available rule sets
 python tsvtr.py info japanese_english       # Show rule set information
+
+# Direct database access for advanced users
+python tsvtr.py --shell litecli             # Launch enhanced SQLite shell
+python tsvtr.py --shell sqlite3             # Launch standard SQLite CLI
+```
+
+#### Database Management Examples
+```sql
+-- Sample SQL queries for direct database access
+SELECT COUNT(*) FROM conversion_rules WHERE rule_set_name = 'technical_terms';
+UPDATE conversion_rules SET target_text = 'Database Management System' WHERE source_text = 'DBMS';
+INSERT INTO conversion_rules (source_text, target_text, rule_set_name) VALUES ('ML', 'Machine Learning', 'ai_terms');
 ```
 
 ## 🔒 Security Features
