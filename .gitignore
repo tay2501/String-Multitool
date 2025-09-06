@@ -325,7 +325,6 @@ abstract_method_validation.log
 poetry.lock.bak
 Pipfile.bak
 requirements*.txt.bak
-uv.lock
 pdm.lock
 
 # Type checking
@@ -490,7 +489,6 @@ future_reference/
 !future_reference/README.md
 
 # UV package manager (Python 3.12+ modern tool)
-uv.lock
 .uv/
 
 # NOTE: Duplicate entries removed - basic Python patterns already covered above
