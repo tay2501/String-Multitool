@@ -22,17 +22,8 @@ Step 1: Clone and Setup
    git clone https://github.com/yourusername/String-Multitool.git
    cd String-Multitool
 
-   # Create virtual environment
-   python -m venv .venv
-
-   # Activate virtual environment
-   # Windows:
-   .venv\Scripts\activate
-   # macOS/Linux:
-   source .venv/bin/activate
-
-   # Install dependencies
-   pip install -r requirements.txt
+   # Install with uv (recommended)
+   uv sync
 
 Step 2: Verify Installation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

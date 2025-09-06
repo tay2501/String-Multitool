@@ -17,8 +17,7 @@
 # インストール
 git clone https://github.com/yourusername/String-Multitool.git
 cd String-Multitool
-python -m venv .venv && .venv\Scripts\activate
-pip install -r requirements.txt
+uv sync
 
 # 基本的な使用方法
 echo "  こんにちは世界  " | python String_Multitool.py /t/l
@@ -163,13 +162,8 @@ python String_Multitool.py /dec
 git clone https://github.com/yourusername/String-Multitool.git
 cd String-Multitool
 
-# 仮想環境
-python -m venv .venv
-.venv\Scripts\activate  # Windows
-source .venv/bin/activate  # macOS/Linux
-
-# 依存関係のインストール
-pip install -r requirements.txt
+# uvを使用したインストール（推奨）
+uv sync
 
 # インストール確認
 python String_Multitool.py help

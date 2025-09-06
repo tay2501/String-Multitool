@@ -31,8 +31,8 @@ Basic installation and usage:
 
 .. code-block:: bash
 
-   # Install dependencies
-   pip install -r requirements.txt
+   # Install with uv
+   uv sync
    
    # Basic transformation
    echo "  HELLO WORLD  " | python String_Multitool.py /t/l

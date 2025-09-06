@@ -18,7 +18,7 @@
 # Configuration Files
 /config/ @tay2501
 pyproject.toml @tay2501
-requirements.txt @tay2501
+uv.lock @tay2501
 
 # Documentation
 README.md @tay2501

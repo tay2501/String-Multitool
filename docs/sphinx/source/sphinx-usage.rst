@@ -10,11 +10,11 @@ Ensure you have the required Sphinx packages installed:
 
 .. code-block:: bash
 
-   # Install Sphinx and extensions
-   pip install sphinx sphinx-autodoc-typehints sphinx-rtd-theme
+   # Install Sphinx and extensions with uv
+   uv add --dev sphinx sphinx-autodoc-typehints sphinx-rtd-theme
 
-   # Or install from requirements.txt (if added)
-   pip install -r requirements.txt
+   # Or sync all development dependencies
+   uv sync --all-extras --dev
 
 Basic Usage
 -----------
@@ -346,8 +346,8 @@ For GitHub Pages deployment, consider using GitHub Actions workflow:
            python-version: '3.10'
        - name: Install dependencies
          run: |
-           pip install -r requirements.txt
-           pip install sphinx sphinx-autodoc-typehints sphinx-rtd-theme
+           uv sync --all-extras --dev
+           uv add --dev sphinx sphinx-autodoc-typehints sphinx-rtd-theme
        - name: Build documentation
          run: |
            cd docs/sphinx

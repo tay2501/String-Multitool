@@ -18,8 +18,7 @@ Get started in under 5 minutes:
 # Install
 git clone https://github.com/[your-username]/String-Multitool.git
 cd String-Multitool
-python -m venv .venv && .venv\Scripts\activate
-pip install -r requirements.txt
+uv sync
 
 # Basic usage
 echo "  HELLO WORLD  " | python String_Multitool.py /t/l
@@ -195,13 +194,8 @@ python String_Multitool.py /dec
 git clone https://github.com/[your-username]/String-Multitool.git
 cd String-Multitool
 
-# Virtual environment (.venv必須)
-python -m venv .venv
-.venv\Scripts\activate  # Windows
-source .venv/bin/activate  # macOS/Linux
-
-# Install dependencies
-pip install -r requirements.txt
+# Install with uv (recommended)
+uv sync
 
 # Verify installation
 python String_Multitool.py help

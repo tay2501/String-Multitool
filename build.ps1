@@ -63,7 +63,6 @@ $script:Config = @{
     OptionalFiles = @(
         @{ Source = "README.md"; Dest = "README.md" },
         @{ Source = "LICENSE"; Dest = "LICENSE" },
-        @{ Source = "requirements.txt"; Dest = "requirements.txt" },
         @{ Source = "ARCHITECTURE.md"; Dest = "ARCHITECTURE.md" }
     )
     PyInstallerArgs = @(
@@ -146,7 +145,7 @@ function Test-Prerequisites {
     }
     catch {
         Write-BuildLog "Installing PyInstaller..." -Level Warning
-        python -m pip install pyinstaller --quiet
+        uv add --dev pyinstaller
         if ($LASTEXITCODE -ne 0) {
             throw "Failed to install PyInstaller"
         }

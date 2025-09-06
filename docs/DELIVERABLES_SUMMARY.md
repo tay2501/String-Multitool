@@ -108,7 +108,8 @@
 
 #### Development Configuration
 - **`pyrightconfig.json`**: Type checker configuration
-- **`requirements.txt`**: Runtime dependencies
+- **`pyproject.toml`**: Modern dependency management with uv
+- **`uv.lock`**: Locked dependency versions for reproducible builds
 - **`requirements-dev.txt`**: Development dependencies
 - **`.gitignore`**: Comprehensive ignore patterns
 

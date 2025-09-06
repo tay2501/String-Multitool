@@ -8,9 +8,9 @@ This document describes the organization and purpose of files in the String_Mult
 String_Multitool/
 ├── 📄 String_Multitool.py              # 🔄 Legacy entry point (backward compatible)
 ├── 📄 README.md                        # 📚 Comprehensive documentation
-├── 📄 pyproject.toml                   # 🔧 Modern Python project configuration
+├── 📄 pyproject.toml                   # 📦 Modern Python project with uv dependencies  
+├── 📄 uv.lock                          # 🔐 Locked dependency versions (uv)
 ├── 📄 pyrightconfig.json               # 🔍 Pylance/Pyright type checker configuration
-├── 📄 requirements.txt                 # 📦 Python dependencies
 ├── 📄 test_transform.py                # 🧪 Main test suite
 ├── 📄 build.ps1                        # 🔨 PowerShell build script
 ├── 📄 setup.py                         # 📦 Python package setup (legacy support)
