@@ -7,8 +7,8 @@ and system behavior under various conditions.
 import pytest
 from pathlib import Path
 
-from ..core.engine import TSVTranslateEngine
-from ..core.exceptions import TSVTranslateError
+from ..models.engine import TSVTranslateEngine
+from ..models.exceptions import TSVTranslateError
 
 
 class TestTSVTranslateEngine:

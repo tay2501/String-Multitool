@@ -1076,9 +1076,7 @@ class ResultContainer(Generic[T]):
     that may succeed or fail.
     """
 
-    def __init__(
-        self, success: bool, data: T | None = None, error: str | None = None
-    ) -> None:
+    def __init__(self, success: bool, data: T | None = None, error: str | None = None) -> None:
         """Initialize result container.
 
         Args:
@@ -1154,9 +1152,7 @@ class StateManager(Generic[T]):
     with validation and change tracking.
     """
 
-    def __init__(
-        self, initial_state: T, validator: Callable[[T], bool] | None = None
-    ) -> None:
+    def __init__(self, initial_state: T, validator: Callable[[T], bool] | None = None) -> None:
         """Initialize state manager.
 
         Args:
@@ -1645,9 +1641,7 @@ class EventHandlerProtocol(Protocol):
 class LoggerProtocol(Protocol):
     """Protocol for logging operations."""
 
-    def log(
-        self, level: str, message: str, context: dict[str, Any] | None = None
-    ) -> None:
+    def log(self, level: str, message: str, context: dict[str, Any] | None = None) -> None:
         """Log a message.
 
         Args:
@@ -2146,9 +2140,7 @@ def safe_cast_with_validation(
     return obj
 
 
-def validate_configuration_structure(
-    config: Any, required_keys: list[str]
-) -> ConfigDict:
+def validate_configuration_structure(config: Any, required_keys: list[str]) -> ConfigDict:
     """Validate configuration structure with required keys.
 
     Args:

@@ -7,8 +7,8 @@
 
 from __future__ import annotations
 
-from ..core.transformation_base import TransformationBase
-from ..core.types import ConfigDict
+from ..models.transformation_base import TransformationBase
+from ..models.types import ConfigDict
 from ..exceptions import TransformationError
 
 
@@ -66,9 +66,7 @@ class TrimTransformation(TransformationBase):
                     "error_type": type(e).__name__,
                 }
             )
-            raise TransformationError(
-                f"トリム処理に失敗: {e}", self.get_error_context()
-            ) from e
+            raise TransformationError(f"トリム処理に失敗: {e}", self.get_error_context()) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得
@@ -133,9 +131,7 @@ class ReverseTransformation(TransformationBase):
                     "error_type": type(e).__name__,
                 }
             )
-            raise TransformationError(
-                f"リバース処理に失敗: {e}", self.get_error_context()
-            ) from e
+            raise TransformationError(f"リバース処理に失敗: {e}", self.get_error_context()) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得
@@ -200,9 +196,7 @@ class SqlInClauseTransformation(TransformationBase):
                     "error_type": type(e).__name__,
                 }
             )
-            raise TransformationError(
-                f"SQL IN句変換に失敗: {e}", self.get_error_context()
-            ) from e
+            raise TransformationError(f"SQL IN句変換に失敗: {e}", self.get_error_context()) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得
@@ -270,9 +264,7 @@ class DeleteLineBreaksTransformation(TransformationBase):
         """
         try:
             self._input_text = text
-            self._output_text = (
-                text.replace("\r\n", "").replace("\n", "").replace("\r", "")
-            )
+            self._output_text = text.replace("\r\n", "").replace("\n", "").replace("\r", "")
             return self._output_text
         except Exception as e:
             self.set_error_context(
@@ -282,9 +274,7 @@ class DeleteLineBreaksTransformation(TransformationBase):
                     "error_type": type(e).__name__,
                 }
             )
-            raise TransformationError(
-                f"改行削除処理に失敗: {e}", self.get_error_context()
-            ) from e
+            raise TransformationError(f"改行削除処理に失敗: {e}", self.get_error_context()) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得

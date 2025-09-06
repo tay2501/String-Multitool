@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import hashlib
 
-from ..core.transformation_base import TransformationBase
-from ..core.types import ConfigDict
+from ..models.transformation_base import TransformationBase
+from ..models.types import ConfigDict
 from ..exceptions import TransformationError
 
 

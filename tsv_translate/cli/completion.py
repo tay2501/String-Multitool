@@ -14,7 +14,7 @@ try:
 except ImportError:
     COMPLETION_AVAILABLE = False
 
-from ..core.engine import TSVTranslateEngine
+from ..models.engine import TSVTranslateEngine
 from .main import load_config
 
 

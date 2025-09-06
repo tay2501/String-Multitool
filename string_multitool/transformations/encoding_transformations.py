@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import base64
 
-from ..core.transformation_base import TransformationBase
-from ..core.types import ConfigDict
+from ..models.transformation_base import TransformationBase
+from ..models.types import ConfigDict
 from ..exceptions import TransformationError
 
 
@@ -95,9 +95,7 @@ class Base64EncodeTransformation(TransformationBase):
             encoded_bytes = base64.b64encode(text.encode("utf-8"))
             return encoded_bytes.decode("ascii")
         except UnicodeEncodeError as e:
-            self.set_error_context(
-                {"encoding_error": str(e), "text_preview": text[:50]}
-            )
+            self.set_error_context({"encoding_error": str(e), "text_preview": text[:50]})
             raise TransformationError(
                 f"テキストエンコードに失敗: {e}", self.get_error_context()
             ) from e

@@ -22,8 +22,8 @@ except ImportError:
 
 from .base import BaseService
 from ..models import RuleSet, ConversionRule
-from ..core.types import SyncResult, OperationStatus
-from ..core.exceptions import SyncError, ValidationError
+from ..models.types import SyncResult, OperationStatus
+from ..models.exceptions import SyncError, ValidationError
 
 
 class SyncServiceInterface(ABC):

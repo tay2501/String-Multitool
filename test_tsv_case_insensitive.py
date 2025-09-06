@@ -23,13 +23,13 @@ from typing import Any
 import pytest
 
 # Import modules to test
-from string_multitool.core.transformations import TSVTransformation, TextTransformationEngine
-from string_multitool.core.tsv_conversion_strategies import (
+from string_multitool.models.transformations import TSVTransformation, TextTransformationEngine
+from string_multitool.models.tsv_conversion_strategies import (
     CaseInsensitiveConversionStrategy,
     CaseSensitiveConversionStrategy,
     TSVConversionStrategyFactory,
 )
-from string_multitool.core.types import TSVConversionOptions
+from string_multitool.models.types import TSVConversionOptions
 from string_multitool.exceptions import TransformationError, ValidationError
 
 
@@ -382,7 +382,7 @@ REST\tRepresentational State Transfer"""
     def test_parse_tsv_conversion_args(self) -> None:
         """TSV変換引数解析をテスト（POSIX準拠：オプション優先パターン）."""
         # テスト用のエンジンインスタンスを作成
-        from string_multitool.core.config import ConfigurationManager
+        from string_multitool.models.config import ConfigurationManager
         config_manager = ConfigurationManager()
         engine = TextTransformationEngine(config_manager)
         
@@ -512,7 +512,7 @@ class TestErrorHandling:
     
     def test_nonexistent_file(self) -> None:
         """Test error handling for nonexistent file."""
-        with pytest.raises(ValidationError):
+        with pytest.raises(TransformationError):
             TSVTransformation("/nonexistent/path.tsv")
     
     def test_invalid_options_type(self) -> None:

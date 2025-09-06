@@ -20,13 +20,7 @@ from .exceptions import ConfigurationError, StringMultitoolError, ValidationErro
 from .main import ApplicationInterface
 
 # Import logging utilities
-from .utils.unified_logger import (
-    get_logger,
-    log_debug,
-    log_error,
-    log_info,
-    log_warning,
-)
+from .utils.unified_logger import get_logger, log_debug, log_error, log_info, log_warning
 
 # Rich console for beautiful output
 console: Console = Console()
@@ -121,11 +115,7 @@ def _get_input_text(
         if not input_text.strip():
             raise ValidationError(
                 "No input text available",
-                {
-                    "text_source": (
-                        "clipboard" if use_clipboard_fallback else "pipe_or_clipboard"
-                    )
-                },
+                {"text_source": ("clipboard" if use_clipboard_fallback else "pipe_or_clipboard")},
             )
 
         return input_text
@@ -156,18 +146,14 @@ def _output_result(
             app_instance.io_manager.set_output_text(result)
 
         console.print(f"[green]{success_message}[/green]")
-        console.print(
-            f"[cyan]Result:[/cyan] '{result[:100]}{'...' if len(result) > 100 else ''}'"
-        )
+        console.print(f"[cyan]Result:[/cyan] '{result[:100]}{'...' if len(result) > 100 else ''}'")
     except Exception as e:
         logger = get_logger(__name__)
         log_warning(logger, f"Failed to output result: {e}")
         # Continue execution - output failure shouldn't stop the operation
 
 
-@app.command(
-    "interactive", help="Start interactive mode for real-time text transformation"
-)
+@app.command("interactive", help="Start interactive mode for real-time text transformation")
 def interactive_mode() -> None:
     """Start interactive mode with clipboard monitoring and real-time transformation."""
     try:
@@ -199,9 +185,7 @@ def transform_text(
     ],
     text: Annotated[
         Optional[str],
-        typer.Option(
-            "--text", "-t", help="Input text (if not provided, uses clipboard or pipe)"
-        ),
+        typer.Option("--text", "-t", help="Input text (if not provided, uses clipboard or pipe)"),
     ] = None,
     output: Annotated[
         bool, typer.Option("--output", "-o", help="Copy result to clipboard")
@@ -218,9 +202,7 @@ def transform_text(
         app_instance = get_app()
         input_text = _get_input_text(app_instance, text)
 
-        result = app_instance.transformation_engine.apply_transformations(
-            input_text, rules
-        )
+        result = app_instance.transformation_engine.apply_transformations(input_text, rules)
 
         _output_result(app_instance, result, output, f"Transformation applied: {rules}")
 
@@ -232,9 +214,7 @@ def transform_text(
 def encrypt_text(
     text: Annotated[
         Optional[str],
-        typer.Option(
-            "--text", "-t", help="Text to encrypt (if not provided, uses clipboard)"
-        ),
+        typer.Option("--text", "-t", help="Text to encrypt (if not provided, uses clipboard)"),
     ] = None,
     output: Annotated[
         bool, typer.Option("--output", "-o", help="Copy result to clipboard")
@@ -270,9 +250,7 @@ def encrypt_text(
 def decrypt_text(
     text: Annotated[
         Optional[str],
-        typer.Option(
-            "--text", "-t", help="Text to decrypt (if not provided, uses clipboard)"
-        ),
+        typer.Option("--text", "-t", help="Text to decrypt (if not provided, uses clipboard)"),
     ] = None,
     output: Annotated[
         bool, typer.Option("--output", "-o", help="Copy result to clipboard")
@@ -366,12 +344,8 @@ def show_rules(
 
         # Show usage examples
         console.print("\n[bold]Usage Examples:[/bold]")
-        console.print(
-            "  [cyan]string-multitool transform '/t/l'[/cyan] - Trim and lowercase"
-        )
-        console.print(
-            "  [cyan]string-multitool transform '/u/R'[/cyan] - Uppercase and reverse"
-        )
+        console.print("  [cyan]string-multitool transform '/t/l'[/cyan] - Trim and lowercase")
+        console.print("  [cyan]string-multitool transform '/u/R'[/cyan] - Uppercase and reverse")
         console.print(
             "  [cyan]echo 'text' | string-multitool transform '/p'[/cyan] - PascalCase from pipe"
         )

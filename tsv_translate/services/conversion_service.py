@@ -19,8 +19,8 @@ except ImportError:
 
 from .base import BaseService
 from ..models import RuleSet, ConversionRule
-from ..core.types import ConversionResult, OperationStatus
-from ..core.exceptions import ConversionError
+from ..models.types import ConversionResult, OperationStatus
+from ..models.exceptions import ConversionError
 
 
 class ConversionServiceInterface(ABC):

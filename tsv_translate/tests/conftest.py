@@ -17,7 +17,7 @@ except ImportError:
     sessionmaker = None  # type: ignore
 
 from ..models import Base
-from ..core.engine import TSVTranslateEngine
+from ..models.engine import TSVTranslateEngine
 from ..services import SyncService, ConversionService
 
 

@@ -8,8 +8,8 @@ conversion, and other basic text operations as individual classes.
 
 from __future__ import annotations
 
-from ..core.transformation_base import TransformationBase
-from ..core.types import ConfigDict
+from ..models.transformation_base import TransformationBase
+from ..models.types import ConfigDict
 from ..exceptions import TransformationError
 
 
@@ -185,9 +185,7 @@ class FullToHalfWidthTransformation(TransformationBase):
                     "error_type": type(e).__name__,
                 }
             )
-            raise TransformationError(
-                f"全角→半角変換に失敗: {e}", self.get_error_context()
-            ) from e
+            raise TransformationError(f"全角→半角変換に失敗: {e}", self.get_error_context()) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得
@@ -272,9 +270,7 @@ class HalfToFullWidthTransformation(TransformationBase):
                     "error_type": type(e).__name__,
                 }
             )
-            raise TransformationError(
-                f"半角→全角変換に失敗: {e}", self.get_error_context()
-            ) from e
+            raise TransformationError(f"半角→全角変換に失敗: {e}", self.get_error_context()) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得

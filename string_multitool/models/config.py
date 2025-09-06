@@ -61,9 +61,7 @@ class ConfigurationManager(ConfigurableComponent[dict[str, Any]]):
         """
         if self._transformation_rules is None:
             config_file = self.config_dir / "transformation_rules.json"
-            self._transformation_rules = self._load_json_file(
-                config_file, "transformation rules"
-            )
+            self._transformation_rules = self._load_json_file(config_file, "transformation rules")
 
         return self._transformation_rules
 
@@ -78,9 +76,7 @@ class ConfigurationManager(ConfigurableComponent[dict[str, Any]]):
         """
         if self._security_config is None:
             config_file = self.config_dir / "security_config.json"
-            self._security_config = self._load_json_file(
-                config_file, "security configuration"
-            )
+            self._security_config = self._load_json_file(config_file, "security configuration")
 
         return self._security_config
 
@@ -95,9 +91,7 @@ class ConfigurationManager(ConfigurableComponent[dict[str, Any]]):
         """
         if self._hotkey_config is None:
             config_file = self.config_dir / "hotkey_config.json"
-            self._hotkey_config = self._load_json_file(
-                config_file, "hotkey configuration"
-            )
+            self._hotkey_config = self._load_json_file(config_file, "hotkey configuration")
 
         return self._hotkey_config
 

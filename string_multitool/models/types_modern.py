@@ -95,9 +95,7 @@ class ConfigManagerProtocol[T](Protocol):
 
     def load_config(self) -> T: ...
     def save_config(self, config: T) -> None: ...
-    def get_config_value(
-        self, key: str, default: ConfigValue = None
-    ) -> ConfigValue: ...
+    def get_config_value(self, key: str, default: ConfigValue = None) -> ConfigValue: ...
 
 
 class CryptoManagerProtocol(Protocol):
@@ -279,9 +277,7 @@ class EnhancedValidationMixin:
             TypeError: If value doesn't match expected type
         """
         if not isinstance(value, expected_type):
-            raise TypeError(
-                f"Expected {expected_type.__name__}, got {type(value).__name__}"
-            )
+            raise TypeError(f"Expected {expected_type.__name__}, got {type(value).__name__}")
         return value
 
     def ensure_string_input(self, value: Any) -> str:

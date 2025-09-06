@@ -30,8 +30,8 @@ import pytest
 # Add current directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from string_multitool.core.config import ConfigurationManager
-from string_multitool.core.transformations import TextTransformationEngine
+from string_multitool.models.config import ConfigurationManager
+from string_multitool.models.transformations import TextTransformationEngine
 from string_multitool.exceptions import ConfigurationError, TransformationError
 from string_multitool.io.manager import InputOutputManager
 # Import ApplicationInterface with fallback
@@ -88,7 +88,7 @@ class TestSystemIntegration:
         assert result == expected, f"Pipeline {rules} failed: got '{result}', expected '{expected}'"
 
     @pytest.mark.parametrize("config_section,expected_keys", [
-        ("basic_transformations", ["l", "u", "t"]),
+        ("case_transformations", ["l", "u", "c"]),
         ("case_transformations", ["p", "c", "s", "a"]),
         ("string_operations", ["R", "si", "dlb"]),
         ("advanced_rules", ["S", "r"]),
@@ -262,8 +262,8 @@ class TestCryptographyIntegration:
     def test_crypto_manager_availability(self) -> None:
         """暗号化マネージャーの利用可能性テスト"""
         try:
-            from string_multitool.core.crypto import CryptographyManager, CRYPTOGRAPHY_AVAILABLE
-            from string_multitool.core.config import ConfigurationManager
+            from string_multitool.models.crypto import CryptographyManager, CRYPTOGRAPHY_AVAILABLE
+            from string_multitool.models.config import ConfigurationManager
             
             if not CRYPTOGRAPHY_AVAILABLE:
                 pytest.skip("Cryptography package not available")
@@ -278,8 +278,8 @@ class TestCryptographyIntegration:
     def test_end_to_end_encryption(self) -> None:
         """エンドツーエンド暗号化テスト"""
         try:
-            from string_multitool.core.crypto import CryptographyManager, CRYPTOGRAPHY_AVAILABLE
-            from string_multitool.core.config import ConfigurationManager
+            from string_multitool.models.crypto import CryptographyManager, CRYPTOGRAPHY_AVAILABLE
+            from string_multitool.models.config import ConfigurationManager
             
             if not CRYPTOGRAPHY_AVAILABLE:
                 pytest.skip("Cryptography package not available")

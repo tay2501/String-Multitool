@@ -338,7 +338,6 @@ pyrightconfig.json.bak
 .wandb/
 mlruns/
 .neptune/
-models/
 checkpoints/
 
 # User interaction history files (as requested)
@@ -494,21 +493,7 @@ future_reference/
 uv.lock
 .uv/
 
-# Modern Python 3.12+ features and tools
-__pycache__/
-*.py[cod]
-*$py.class
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+# NOTE: Duplicate entries removed - basic Python patterns already covered above
 
 # Structlog and modern logging
 logs/structured/

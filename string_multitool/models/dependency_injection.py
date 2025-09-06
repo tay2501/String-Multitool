@@ -84,9 +84,7 @@ class DIContainer:
         else:
             raise ValidationError("Implementation must be a class or callable")
 
-    def register_factory(
-        self, service_type: type[T], factory: Callable[..., T]
-    ) -> None:
+    def register_factory(self, service_type: type[T], factory: Callable[..., T]) -> None:
         """Register a factory function for creating instances."""
         if not inspect.isclass(service_type):
             raise ValidationError(f"Service type must be a class: {service_type}")
@@ -198,9 +196,7 @@ class DIContainer:
             if param_type is None:
                 if param.default is not inspect.Parameter.empty:
                     continue  # Use default value
-                raise ValidationError(
-                    f"No type hint for parameter '{param_name}' in factory"
-                )
+                raise ValidationError(f"No type hint for parameter '{param_name}' in factory")
 
             # Resolve dependency
             try:

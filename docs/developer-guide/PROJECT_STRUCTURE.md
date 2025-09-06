@@ -33,7 +33,7 @@ string_multitool/
 ├── 📄 cli.py                           # 🖥️ Modern Typer CLI interface
 ├── 📄 application_factory.py          # 🏭 Application factory and DI container
 ├── 📄 exceptions.py                    # 🚨 Custom exception definitions
-├── 📁 core/                           # Core business logic
+├── 📁 models/                         # Business logic layer (MVC Model)
 │   ├── 📄 __init__.py
 │   ├── 📄 config.py                   # 🔧 Configuration management
 │   ├── 📄 crypto.py                   # 🔒 RSA encryption/decryption
@@ -44,7 +44,7 @@ string_multitool/
 │   ├── 📄 __init__.py
 │   ├── 📄 clipboard.py                # 📋 Clipboard operations
 │   └── 📄 manager.py                  # 📊 I/O management
-├── 📁 modes/                          # Application execution modes
+├── 📁 models/                         # [MERGED] Execution modes moved to models/
 │   ├── 📄 __init__.py
 │   ├── 📄 daemon.py                   # 🔄 Daemon mode (continuous monitoring)
 │   ├── 📄 daemon_config_manager.py    # 🔧 Daemon configuration management
@@ -128,17 +128,17 @@ String_Multitool.exe                   # 💻 Executable file (when built)
    - Component creation and lifecycle management
    - Configuration-driven component assembly
 
-3. **TextTransformationEngine** (`core/transformations.py`)
+3. **TextTransformationEngine** (`models/transformations.py`)
    - Core text transformation logic
    - Rule parsing and sequential processing
    - Configuration-driven rule registration
 
-4. **CryptographyManager** (`core/crypto.py`)
+4. **CryptographyManager** (`models/crypto.py`)
    - RSA-4096 key management
    - Hybrid AES+RSA encryption
    - Secure key storage and permissions
 
-5. **ConfigurationManager** (`core/config.py`)
+5. **ConfigurationManager** (`models/config.py`)
    - JSON configuration loading and caching
    - Validation and error handling
    - Runtime configuration updates
@@ -155,17 +155,17 @@ String_Multitool.exe                   # 💻 Executable file (when built)
 
 ### Application Modes
 
-1. **Interactive Mode** (`modes/interactive.py`)
+1. **Interactive Mode** (`models/interactive.py`)
    - Real-time clipboard monitoring
    - Dynamic text refresh
    - Command-driven interface
 
-2. **Daemon Mode** (`modes/daemon.py`)
+2. **Daemon Mode** (`models/daemon.py`)
    - Background clipboard monitoring
    - Automatic transformations
    - Preset-based configuration
 
-3. **Hotkey Mode** (`modes/hotkey.py`)
+3. **Hotkey Mode** (`models/hotkey.py`)
    - Global hotkey support
    - Sequence-based hotkey management
    - System tray integration

@@ -9,10 +9,13 @@ from __future__ import annotations
 
 import argparse
 import sys
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Optional
 
-from .core.config import ConfigurationManager
-from .core.transformations import TextTransformationEngine
+if TYPE_CHECKING:
+    from .models.crypto import CryptographyManager
+
+from .models.config import ConfigurationManager
+from .models.transformations import TextTransformationEngine
 from .exceptions import ValidationError
 from .io.manager import InputOutputManager
 from .utils.unified_logger import get_logger
@@ -26,7 +29,7 @@ class ApplicationInterface:
         config_manager: ConfigurationManager,
         transformation_engine: TextTransformationEngine,
         io_manager: InputOutputManager,
-        crypto_manager: Optional[Any] = None,
+        crypto_manager: Optional[CryptographyManager] = None,
     ) -> None:
         """Initialize application interface with dependency injection."""
         if config_manager is None:
@@ -58,10 +61,10 @@ class ApplicationInterface:
         # Parse command line arguments using argparse best practices
         parser = self._create_argument_parser()
         args = parser.parse_args()
-        
+
         # Set silent mode
         self.silent_mode = args.silent
-        
+
         # Handle different modes based on arguments
         if args.help_cmd:
             self.display_help()
@@ -69,7 +72,7 @@ class ApplicationInterface:
             self._run_rule_mode(args.rule, args.args)
         else:
             self._run_interactive_mode()
-    
+
     def _create_argument_parser(self) -> argparse.ArgumentParser:
         """Create and configure argument parser following best practices."""
         parser = argparse.ArgumentParser(
@@ -84,42 +87,41 @@ Examples:
   echo "text" | String_Multitool.py /t/l  # Apply to piped text
   String_Multitool.py help                # Show detailed help
             """,
-            add_help=False  # Custom help handling
+            add_help=False,  # Custom help handling
         )
-        
+
         # Add silent mode option following best practices
         parser.add_argument(
-            "-s", "--silent", 
+            "-s",
+            "--silent",
             action="store_true",
-            help="Silent mode - show only transformation result"
+            help="Silent mode - show only transformation result",
         )
-        
+
         # Add help option
         parser.add_argument(
-            "--help", "-h",
+            "--help",
+            "-h",
             action="store_true",
             dest="help_cmd",
-            help="Show this help message and exit"
+            help="Show this help message and exit",
         )
-        
+
         # Positional arguments for transformation rule and parameters
         parser.add_argument(
-            "rule",
-            nargs="?",
-            default=None,
-            help="Transformation rule (e.g., /t/l, /u, help)"
+            "rule", nargs="?", default=None, help="Transformation rule (e.g., /t/l, /u, help)"
         )
         parser.add_argument(
             "args",
             nargs="*",
-            help="Additional arguments for the transformation rule (e.g., /S '+' where '+' is the separator)"
+            help="Additional arguments for the transformation rule (e.g., /S '+' where '+' is the separator)",
         )
-        
+
         return parser
 
     def _run_interactive_mode(self) -> None:
         """Run interactive mode."""
-        from .modes.interactive import CommandProcessor, InteractiveSession
+        from .models.interactive import CommandProcessor, InteractiveSession
 
         # Only show messages in non-silent mode
         if not self.silent_mode:
@@ -127,9 +129,7 @@ Examples:
             print(
                 "Type 'help' for available transformation rules or 'commands' for interactive commands."
             )
-            print(
-                "Enter transformation rules (e.g. '/t/l' for trim + lowercase) or commands."
-            )
+            print("Enter transformation rules (e.g. '/t/l' for trim + lowercase) or commands.")
             print("Type 'quit' or 'exit' to leave.\n")
 
         # Initialize interactive session
@@ -164,10 +164,8 @@ Examples:
                                 continue
 
                             # Apply transformation
-                            result_text = (
-                                self.transformation_engine.apply_transformations(
-                                    input_text, user_input
-                                )
+                            result_text = self.transformation_engine.apply_transformations(
+                                input_text, user_input
                             )
 
                             # Handle output based on mode
@@ -182,9 +180,7 @@ Examples:
                                     if len(result_text) > 100
                                     else result_text
                                 )
-                                print(
-                                    f"[SUCCESS] Result copied to clipboard: '{display_text}'"
-                                )
+                                print(f"[SUCCESS] Result copied to clipboard: '{display_text}'")
 
                         except ValidationError as e:
                             print(f"[ERROR] Transformation failed: {e}")
@@ -201,30 +197,30 @@ Examples:
             # Cleanup
             session.cleanup()
 
-    def _run_rule_mode(self, rule: str, rule_args: list[str] = None) -> None:
+    def _run_rule_mode(self, rule: str, rule_args: list[str] | None = None) -> None:
         """Run rule-based transformation mode."""
         # Handle help command
         if rule == "help":
             self.display_help()
             return
-        
+
         # Windows CMD compatibility: normalize double slashes to single slashes
         # This handles cases where Windows converts /t to T: in command line
-        if rule and '//' in rule:
-            rule = rule.replace('//', '/')
-        
+        if rule and "//" in rule:
+            rule = rule.replace("//", "/")
+
         # Combine rule with arguments if provided (e.g., "/S '+'" becomes "/S '+'")
         if rule_args:
             combined_rule = f"{rule} {' '.join(repr(arg) for arg in rule_args)}"
         else:
             combined_rule = rule
-            
+
         input_text = self.io_manager.get_input_text()
         result = self.transformation_engine.apply_transformations(input_text, combined_rule)
-        
+
         if self.silent_mode:
             # Silent mode: only output the transformation result, no clipboard copying
-            print(result, end='')  # No newline to keep output clean
+            print(result, end="")  # No newline to keep output clean
         else:
             # Normal mode: output to stdout for pipe chaining AND copy to clipboard
             print(result)  # Output for pipe chaining

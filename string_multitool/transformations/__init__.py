@@ -29,10 +29,7 @@ from .case_transformations import (
 )
 
 # エンコード変換
-from .encoding_transformations import (
-    Base64DecodeTransformation,
-    Base64EncodeTransformation,
-)
+from .encoding_transformations import Base64DecodeTransformation, Base64EncodeTransformation
 
 # 暗号化変換
 from .encryption_transformations import DecryptTransformation, EncryptTransformation

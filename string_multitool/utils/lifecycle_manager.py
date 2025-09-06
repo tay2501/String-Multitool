@@ -156,9 +156,7 @@ class LifecycleObserver(Protocol):
         """Called when application starts."""
         ...
 
-    def on_application_end(
-        self, session_info: SessionInfo, debug_info: DebugInfo
-    ) -> None:
+    def on_application_end(self, session_info: SessionInfo, debug_info: DebugInfo) -> None:
         """Called when application ends."""
         ...
 
@@ -204,13 +202,9 @@ class ApplicationLifecycleManager:
         if PSUTIL_AVAILABLE:
             try:
                 self._process = psutil.Process()
-                self._initial_memory = (
-                    self._process.memory_info().rss / 1024 / 1024
-                )  # MB
+                self._initial_memory = self._process.memory_info().rss / 1024 / 1024  # MB
             except Exception as e:
-                self._logger.warning(
-                    f"Failed to initialize psutil process monitoring: {e}"
-                )
+                self._logger.warning(f"Failed to initialize psutil process monitoring: {e}")
                 self._process = None
                 self._initial_memory = 0.0
         else:
@@ -244,16 +238,12 @@ class ApplicationLifecycleManager:
 
             # Log human-readable startup message
             self._logger.info(f"Application started - Session ID: {self._session_id}")
-            self._logger.debug(
-                f"Startup timestamp: {session_info['start_timestamp_iso']}"
-            )
+            self._logger.debug(f"Startup timestamp: {session_info['start_timestamp_iso']}")
             self._logger.debug(
                 f"System: {system_info['platform']} {system_info['platform_version']}"
             )
             self._logger.debug(f"Python: {system_info['python_version']}")
-            self._logger.debug(
-                f"Memory usage: {resource_metrics['memory_usage_mb']:.1f} MB"
-            )
+            self._logger.debug(f"Memory usage: {resource_metrics['memory_usage_mb']:.1f} MB")
             self._logger.debug(f"Process ID: {system_info['process_id']}")
 
             # Notify observers
@@ -291,9 +281,7 @@ class ApplicationLifecycleManager:
         """Unregister a lifecycle event observer."""
         try:
             self._observers.remove(observer)
-            self._logger.debug(
-                f"Lifecycle observer unregistered: {type(observer).__name__}"
-            )
+            self._logger.debug(f"Lifecycle observer unregistered: {type(observer).__name__}")
         except ValueError:
             self._logger.warning(
                 f"Observer not found for unregistration: {type(observer).__name__}"
@@ -406,17 +394,13 @@ class ApplicationLifecycleManager:
             # Try to get resource module metrics if available
             if RESOURCE_AVAILABLE:
                 try:
-                    if hasattr(resource, "getrusage") and hasattr(
-                        resource, "RUSAGE_SELF"
-                    ):
+                    if hasattr(resource, "getrusage") and hasattr(resource, "RUSAGE_SELF"):
                         # Type-safe access to resource constants
                         rusage_self = getattr(resource, "RUSAGE_SELF")
                         ru = resource.getrusage(rusage_self)
                         user_time = ru.ru_utime
                         system_time = ru.ru_stime
-                        peak_memory = (
-                            ru.ru_maxrss / 1024
-                        )  # Convert to MB (Linux reports in KB)
+                        peak_memory = ru.ru_maxrss / 1024  # Convert to MB (Linux reports in KB)
                         if platform.system() == "Darwin":  # macOS reports in bytes
                             peak_memory = ru.ru_maxrss / 1024 / 1024
                 except (AttributeError, OSError) as e:

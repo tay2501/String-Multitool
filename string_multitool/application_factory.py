@@ -7,22 +7,21 @@ with proper dependency injection configuration.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from .core.config import ConfigurationManager
-from .core.crypto import CryptographyManager
-from .core.dependency_injection import DIContainer, ServiceRegistry, inject
-from .core.transformations import TextTransformationEngine
-from .core.types import (
-    ConfigManagerProtocol,
-    CryptoManagerProtocol,
-    TransformationEngineProtocol,
-)
+if TYPE_CHECKING:
+    from .main import ApplicationInterface
+
+from .models.config import ConfigurationManager
+from .models.crypto import CryptographyManager
+from .models.dependency_injection import DIContainer, ServiceRegistry, inject
+from .models.transformations import TextTransformationEngine
+from .models.types import ConfigManagerProtocol, CryptoManagerProtocol, TransformationEngineProtocol
 from .exceptions import CryptographyError
 from .io.manager import InputOutputManager
 
 # ApplicationInterface will be imported locally to avoid circular imports
-from .modes.interactive import CommandProcessor, InteractiveSession
+from .models.interactive import CommandProcessor, InteractiveSession
 from .utils.unified_logger import get_logger, log_with_context
 
 
@@ -136,7 +135,7 @@ class ApplicationFactory:
     """Factory for creating application instances with dependency injection."""
 
     @staticmethod
-    def create_application() -> Any:  # Use Any to avoid forward reference issues
+    def create_application() -> ApplicationInterface:
         """Create application instance with all dependencies configured.
 
         Uses EAFP (Easier to Ask for Forgiveness than Permission) approach
@@ -148,9 +147,9 @@ class ApplicationFactory:
         Raises:
             ConfigurationError: If application creation fails
         """
-        from .core.config import ConfigurationManager
-        from .core.crypto import CryptographyManager
-        from .core.transformations import TextTransformationEngine
+        from .models.config import ConfigurationManager
+        from .models.crypto import CryptographyManager
+        from .models.transformations import TextTransformationEngine
         from .exceptions import ConfigurationError
         from .utils.unified_logger import get_logger, log_with_context
 
@@ -160,14 +159,12 @@ class ApplicationFactory:
         )
 
         try:
-            # Import ApplicationInterface locally to avoid circular imports
+            # Import ApplicationInterface at runtime to avoid circular imports
             from .main import ApplicationInterface
-
+            
             # Configure services - EAFP style
             ServiceRegistry.configure(configure_services)
-            log_with_context(
-                logger, "debug", "Service registry configured successfully"
-            )
+            log_with_context(logger, "debug", "Service registry configured successfully")
 
             # Get core dependencies via DI - these are required
             config_manager = inject(ConfigurationManager)
@@ -194,9 +191,7 @@ class ApplicationFactory:
                 io_manager=io_manager,
                 crypto_manager=crypto_manager,
             )
-            log_with_context(
-                logger, "debug", "Application interface created successfully"
-            )
+            log_with_context(logger, "debug", "Application interface created successfully")
             return app_interface
 
         except Exception as e:
@@ -208,7 +203,7 @@ class ApplicationFactory:
     @staticmethod
     def create_for_testing(
         config_override: dict[str, Any] | None = None,
-    ) -> Any:  # Use Any to avoid forward reference issues
+    ) -> ApplicationInterface:
         """Create application instance for testing with optional config override.
 
         Args:
@@ -220,17 +215,17 @@ class ApplicationFactory:
         Raises:
             ConfigurationError: If test application creation fails
         """
-        from .core.config import ConfigurationManager
-        from .core.transformations import TextTransformationEngine
+        from .models.config import ConfigurationManager
+        from .models.transformations import TextTransformationEngine
         from .exceptions import ConfigurationError
         from .utils.unified_logger import get_logger
 
         logger = get_logger(__name__)
 
         try:
-            # Import ApplicationInterface locally to avoid circular imports
+            # Import ApplicationInterface at runtime to avoid circular imports
             from .main import ApplicationInterface
-
+            
             # Reset service registry for clean test state
             ServiceRegistry.reset()
 

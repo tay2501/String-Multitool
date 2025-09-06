@@ -12,8 +12,8 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from string_multitool.core.config import ConfigurationManager
-from string_multitool.core.transformations import TextTransformationEngine
+from string_multitool.models.config import ConfigurationManager
+from string_multitool.models.transformations import TextTransformationEngine
 
 
 def test_readme_examples():

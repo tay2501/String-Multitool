@@ -11,7 +11,7 @@ import threading
 import time
 from typing import Callable, Final
 
-from ..core.types import IOManagerProtocol, ThreadCallback
+from ..models.types import IOManagerProtocol, ThreadCallback
 from ..exceptions import ClipboardError, ValidationError
 
 

@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import json
 
-from ..core.transformation_base import TransformationBase
-from ..core.types import ConfigDict
+from ..models.transformation_base import TransformationBase
+from ..models.types import ConfigDict
 from ..exceptions import TransformationError
 
 
@@ -51,9 +51,7 @@ class JsonFormatTransformation(TransformationBase):
                     "error_type": type(e).__name__,
                 }
             )
-            raise TransformationError(
-                f"JSON整形に失敗: {e}", self.get_error_context()
-            ) from e
+            raise TransformationError(f"JSON整形に失敗: {e}", self.get_error_context()) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得
@@ -112,6 +110,4 @@ class JsonFormatTransformation(TransformationBase):
         except Exception as e:
             # その他のエラー
             self.set_error_context({"error_type": type(e).__name__})
-            raise TransformationError(
-                f"JSON整形に失敗: {e}", self.get_error_context()
-            ) from e
+            raise TransformationError(f"JSON整形に失敗: {e}", self.get_error_context()) from e

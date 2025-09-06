@@ -10,8 +10,8 @@ from unittest.mock import patch, MagicMock
 
 from ..services import SyncService, ConversionService
 from ..models import RuleSet, ConversionRule
-from ..core.types import OperationStatus
-from ..core.exceptions import ValidationError
+from ..models.types import OperationStatus
+from ..models.exceptions import ValidationError
 
 
 class TestSyncService:

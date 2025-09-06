@@ -15,7 +15,7 @@ except ImportError:
     if TYPE_CHECKING:
         from sqlalchemy.orm import Session  # type: ignore[import]
 
-from ..core.exceptions import TSVTranslateError
+from ..models.exceptions import TSVTranslateError
 
 
 class BaseService(ABC):

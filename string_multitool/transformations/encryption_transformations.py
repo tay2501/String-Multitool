@@ -6,8 +6,8 @@
 
 from __future__ import annotations
 
-from ..core.transformation_base import TransformationBase
-from ..core.types import ConfigDict, CryptoManagerProtocol
+from ..models.transformation_base import TransformationBase
+from ..models.types import ConfigDict, CryptoManagerProtocol
 from ..exceptions import TransformationError
 
 
@@ -66,9 +66,7 @@ class EncryptTransformation(TransformationBase):
                     "error_type": type(e).__name__,
                 }
             )
-            raise TransformationError(
-                f"暗号化処理に失敗: {e}", self.get_error_context()
-            ) from e
+            raise TransformationError(f"暗号化処理に失敗: {e}", self.get_error_context()) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得
@@ -152,9 +150,7 @@ class DecryptTransformation(TransformationBase):
                     "error_type": type(e).__name__,
                 }
             )
-            raise TransformationError(
-                f"復号化処理に失敗: {e}", self.get_error_context()
-            ) from e
+            raise TransformationError(f"復号化処理に失敗: {e}", self.get_error_context()) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得

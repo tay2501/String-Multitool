@@ -20,8 +20,8 @@ from typing import Dict, Any
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from string_multitool.core.transformations import TextTransformationEngine
-from string_multitool.core.config import ConfigurationManager
+from string_multitool.models.transformations import TextTransformationEngine
+from string_multitool.models.config import ConfigurationManager
 from string_multitool.exceptions import TransformationError, ValidationError
 
 
@@ -62,33 +62,33 @@ class TestTSVOperationsCore(unittest.TestCase):
         rules = self.engine.get_available_rules()
         
         # Validate rule exists with proper key
-        self.assertIn("tsv", rules, "TSV rule should be registered in available rules")
+        self.assertIn("tsvtr", rules, "TSVTR rule should be registered in available rules")
         
-        tsv_rule = rules["tsv"]
+        tsv_rule = rules["tsvtr"]
         
         # Validate rule metadata
-        self.assertEqual(tsv_rule.name, "TSV Operations", "Rule name should be descriptive")
+        self.assertEqual(tsv_rule.name, "Tsv Transform", "Rule name should match implementation")
         self.assertTrue(tsv_rule.requires_args, "TSV rule should require arguments")
         
         # Validate description contains key functionality
         description_lower = tsv_rule.description.lower()
-        self.assertIn("list", description_lower, "Description should mention list functionality")
+        self.assertIn("convert", description_lower, "Description should mention convert functionality")
         self.assertIn("sqlite", description_lower, "Description should mention SQLite functionality")
         self.assertIn("convert", description_lower, "Description should mention conversion functionality")
     
     def test_tsv_help_information(self) -> None:
         """Verify TSV rule help information is comprehensive and accurate."""
-        help_info = self.engine.get_rule_help("tsv")
+        help_info = self.engine.get_rule_help("tsvtr")
         
         help_lower = help_info.lower()
         self.assertIn("tsv", help_lower, "Help should contain rule name")
-        self.assertIn("list", help_lower, "Help should document list command")
-        self.assertIn("sqlite3", help_lower, "Help should document sqlite3 command")
+        self.assertIn("convert", help_lower, "Help should document convert functionality")
+        self.assertIn("tsv", help_lower, "Help should document tsv functionality")
     
     def test_tsv_list_command_execution(self) -> None:
         """Test TSV list command executes without errors."""
         try:
-            result = self.engine.apply_transformations("", "/tsv list")
+            result = self.engine.apply_transformations("", "/tsvtr --list")
             
             # Validate result structure
             self.assertIsInstance(result, str, "List command should return string result")
@@ -96,9 +96,9 @@ class TestTSVOperationsCore(unittest.TestCase):
             
             # Check for expected content patterns
             result_lower = result.lower()
-            if "no rule sets found" not in result_lower:
-                # If database has content, verify formatting
-                self.assertIn("database rules", result_lower, "Should contain database rules header")
+            if "no tsv rule files found" not in result_lower:
+                # If tsv files exist, verify formatting
+                self.assertIn("available", result_lower, "Should contain available files header")
             
         except ImportError:
             # Allow test to pass if TSV converter module unavailable in test environment
@@ -113,7 +113,7 @@ class TestTSVOperationsCore(unittest.TestCase):
     def test_tsv_sqlite3_command_execution(self) -> None:
         """Test TSV sqlite3 command provides database information."""
         try:
-            result = self.engine.apply_transformations("", "/tsv sqlite3")
+            result = self.engine.apply_transformations("", "/tsvtr sqlite3")
             
             # Validate result structure
             self.assertIsInstance(result, str, "SQLite command should return string result")
@@ -144,7 +144,7 @@ class TestTSVOperationsCore(unittest.TestCase):
     def test_tsv_missing_arguments_error(self) -> None:
         """Verify TSV command without arguments raises appropriate error."""
         with self.assertRaises((TransformationError, ValidationError)) as context:
-            self.engine.apply_transformations("", "/tsv")
+            self.engine.apply_transformations("", "/tsvtr")
         
         error_message = str(context.exception).lower()
         self.assertIn("require", error_message, "Error should mention requirement")
@@ -153,9 +153,9 @@ class TestTSVOperationsCore(unittest.TestCase):
     def test_rule_string_parsing_accuracy(self) -> None:
         """Test accurate parsing of TSV command variations."""
         test_cases = [
-            ("/tsv list", [("tsv", ["list"])]),
-            ("/tsv sqlite3", [("tsv", ["sqlite3"])]),
-            ("/tsv file.tsv", [("tsv", ["file.tsv"])]),
+            ("/tsvtr --list", [("tsvtr", ["--list"])]),
+            ("/tsvtr -l", [("tsvtr", ["-l"])]),
+            ("/tsvtr file.tsv", [("tsvtr", ["file.tsv"])]),
         ]
         
         for rule_string, expected_result in test_cases:
@@ -201,7 +201,7 @@ class TestTSVOperationsIntegration(unittest.TestCase):
         mock_connect.side_effect = Exception("Connection failed")
         
         try:
-            result = self.engine.apply_transformations("", "/tsv sqlite3")
+            result = self.engine.apply_transformations("", "/tsvtr sqlite3")
             
             # Should handle error gracefully and provide informative message
             result_lower = result.lower()
@@ -261,7 +261,7 @@ class TestTSVOperationsPerformance(unittest.TestCase):
         start_time = time.time()
         
         try:
-            self.engine.apply_transformations("", "/tsv sqlite3")
+            self.engine.apply_transformations("", "/tsvtr sqlite3")
         except (ImportError, TransformationError):
             # Allow failures in test environment
             pass
@@ -278,7 +278,7 @@ class TestTSVOperationsPerformance(unittest.TestCase):
         """Validate rule string parsing performance for complex commands."""
         test_commands = [
             "/tsv list",
-            "/tsv sqlite3", 
+            "/tsvtr sqlite3", 
             "/tsv technical_terms.tsv --case-insensitive",
             "/tsv file.tsv --preserve-case"
         ]

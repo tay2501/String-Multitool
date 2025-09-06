@@ -15,9 +15,9 @@ import pytest
 # Add current directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from string_multitool.core.config import ConfigurationManager
-from string_multitool.core.transformations import TextTransformationEngine
-from string_multitool.core.types import (
+from string_multitool.models.config import ConfigurationManager
+from string_multitool.models.transformations import TextTransformationEngine
+from string_multitool.models.types import (
     CommandResult,
     SessionState,
     TextSource,
@@ -54,7 +54,7 @@ class ApplicationInterface:
         pass
 
 try:
-    from string_multitool.core.crypto import CryptographyManager, CRYPTOGRAPHY_AVAILABLE as CRYPTO_AVAILABLE
+    from string_multitool.models.crypto import CryptographyManager, CRYPTOGRAPHY_AVAILABLE as CRYPTO_AVAILABLE
 except ImportError:
     CryptographyManager = None
     CRYPTO_AVAILABLE = False
@@ -65,7 +65,7 @@ from string_multitool.exceptions import (
     TransformationError,
     ValidationError,
 )
-from string_multitool.modes.interactive import CommandProcessor, InteractiveSession
+from string_multitool.models.interactive import CommandProcessor, InteractiveSession
 
 try:
     from string_multitool.transformations.encryption_transformations import (
@@ -857,7 +857,7 @@ def test_pathlib_usage() -> None:
     """Test proper pathlib usage throughout the project."""
     from pathlib import Path
 
-    from string_multitool.core.config import ConfigurationManager
+    from string_multitool.models.config import ConfigurationManager
 
     # Test ConfigurationManager with pathlib
     config_manager = ConfigurationManager()

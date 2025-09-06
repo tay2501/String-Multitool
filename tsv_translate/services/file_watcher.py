@@ -19,7 +19,7 @@ from watchdog.events import (
     DirDeletedEvent
 )
 
-from ..core.exceptions import SyncError
+from ..models.exceptions import SyncError
 
 
 class TSVFileHandler(FileSystemEventHandler):

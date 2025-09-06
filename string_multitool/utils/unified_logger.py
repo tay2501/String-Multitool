@@ -109,9 +109,7 @@ def log_with_context(
 
 
 # Convenience functions for backward compatibility
-def log_debug(
-    logger: structlog.stdlib.BoundLogger, message: str, **kwargs: Any
-) -> None:
+def log_debug(logger: structlog.stdlib.BoundLogger, message: str, **kwargs: Any) -> None:
     """Log debug message with context."""
     log_with_context(logger, "debug", message, **kwargs)
 
@@ -121,16 +119,12 @@ def log_info(logger: structlog.stdlib.BoundLogger, message: str, **kwargs: Any) 
     log_with_context(logger, "info", message, **kwargs)
 
 
-def log_warning(
-    logger: structlog.stdlib.BoundLogger, message: str, **kwargs: Any
-) -> None:
+def log_warning(logger: structlog.stdlib.BoundLogger, message: str, **kwargs: Any) -> None:
     """Log warning message with context."""
     log_with_context(logger, "warning", message, **kwargs)
 
 
-def log_error(
-    logger: structlog.stdlib.BoundLogger, message: str, **kwargs: Any
-) -> None:
+def log_error(logger: structlog.stdlib.BoundLogger, message: str, **kwargs: Any) -> None:
     """Log error message with context."""
     log_with_context(logger, "error", message, **kwargs)
 

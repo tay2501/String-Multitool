@@ -89,9 +89,7 @@ class TSVTransformation(TransformationBase):
         # Strategy Pattern: 変換戦略を動的に選択
         from .tsv_conversion_strategies import TSVConversionStrategyFactory
 
-        self._conversion_strategy = TSVConversionStrategyFactory.create_strategy(
-            self._options
-        )
+        self._conversion_strategy = TSVConversionStrategyFactory.create_strategy(self._options)
 
         # TSVファイルの妥当性検証とロード
         self._load_tsv_rules()
@@ -160,9 +158,7 @@ class TSVTransformation(TransformationBase):
         except Exception as e:
             self.set_error_context(
                 {
-                    ERROR_CONTEXT_KEYS.TEXT_LENGTH: (
-                        len(text) if isinstance(text, str) else 0
-                    ),
+                    ERROR_CONTEXT_KEYS.TEXT_LENGTH: (len(text) if isinstance(text, str) else 0),
                     ERROR_CONTEXT_KEYS.TSV_FILE: str(self._tsv_file_path),
                     "strategy": self._conversion_strategy.__class__.__name__,
                     "options": {
@@ -172,9 +168,7 @@ class TSVTransformation(TransformationBase):
                     ERROR_CONTEXT_KEYS.ERROR_TYPE: type(e).__name__,
                 }
             )
-            raise TransformationError(
-                f"TSV変換処理に失敗: {e}", self.get_error_context()
-            ) from e
+            raise TransformationError(f"TSV変換処理に失敗: {e}", self.get_error_context()) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得
@@ -210,14 +204,7 @@ class TSVTransformation(TransformationBase):
         import csv
 
         try:
-            # ファイル存在確認（EAFPスタイル）
-            if not self._tsv_file_path.exists():
-                raise ValidationError(
-                    f"TSVファイルが見つかりません: {self._tsv_file_path}",
-                    {ERROR_CONTEXT_KEYS.FILE_PATH: str(self._tsv_file_path)},
-                )
-
-            # TSVファイル読み込み
+            # EAFP style: try to open the file directly
             with self._tsv_file_path.open("r", encoding="utf-8") as file:
                 csv_reader = csv.reader(file, delimiter="\t")
 
@@ -235,9 +222,7 @@ class TSVTransformation(TransformationBase):
 
             # 変換辞書が空の場合は警告
             if not self._conversion_dict:
-                self.set_error_context(
-                    {"file_path": str(self._tsv_file_path), "rules_count": 0}
-                )
+                self.set_error_context({"file_path": str(self._tsv_file_path), "rules_count": 0})
                 # 空でも処理を続行（変換は行われない）
 
         except ValidationError:
@@ -264,15 +249,11 @@ class TSVTransformation(TransformationBase):
 
             # オプションの妥当性を検証
             if not TSVConversionStrategyFactory.validate_options(new_options):
-                raise ValidationError(
-                    "無効なTSV変換オプション", {"options": str(new_options)}
-                )
+                raise ValidationError("無効なTSV変換オプション", {"options": str(new_options)})
 
             # オプションと戦略を更新
             self._options = new_options
-            self._conversion_strategy = TSVConversionStrategyFactory.create_strategy(
-                new_options
-            )
+            self._conversion_strategy = TSVConversionStrategyFactory.create_strategy(new_options)
             self._transformation_rule = self._build_transformation_rule()
 
         except Exception as e:
@@ -289,9 +270,7 @@ class TSVTransformation(TransformationBase):
         return self._options
 
 
-class TextTransformationEngine(
-    ConfigurableComponent[dict[str, Any]], TransformationBase
-):
+class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], TransformationBase):
     """Advanced text transformation engine with configurable rules.
 
     This class provides a comprehensive set of text transformation operations
@@ -440,9 +419,7 @@ class TextTransformationEngine(
             self.set_error_context(
                 {
                     ERROR_CONTEXT_KEYS.RULE_STRING: rule_string,
-                    ERROR_CONTEXT_KEYS.TEXT_LENGTH: (
-                        len(text) if isinstance(text, str) else 0
-                    ),
+                    ERROR_CONTEXT_KEYS.TEXT_LENGTH: (len(text) if isinstance(text, str) else 0),
                     ERROR_CONTEXT_KEYS.ERROR_TYPE: type(e).__name__,
                 }
             )
@@ -593,9 +570,7 @@ class TextTransformationEngine(
                     )
                 print("Using existing RSA key pair")
                 result = self.crypto_manager.encrypt_text(text)
-                print(
-                    f"Text encrypted successfully (AES-256+RSA-4096, {len(text)} bytes)"
-                )
+                print(f"Text encrypted successfully (AES-256+RSA-4096, {len(text)} bytes)")
                 return result
             elif rule_name == RuleNames.DECRYPT.value:
                 if self.crypto_manager is None:
@@ -605,9 +580,7 @@ class TextTransformationEngine(
                     )
                 print("Using existing RSA key pair")
                 result = self.crypto_manager.decrypt_text(text)
-                print(
-                    f"Text decrypted successfully (AES-256+RSA-4096, {len(result)} chars)"
-                )
+                print(f"Text decrypted successfully (AES-256+RSA-4096, {len(result)} chars)")
                 return result
             else:
                 raise TransformationError(f"Unknown crypto rule: {rule_name}")
@@ -660,9 +633,7 @@ class TextTransformationEngine(
                     )
 
             elif rule_name == RuleNames.SLUGIFY.value:  # Slugify
-                separator = (
-                    args[0] if args else TRANSFORM_CONSTANTS.DEFAULT_SLUG_SEPARATOR
-                )
+                separator = args[0] if args else TRANSFORM_CONSTANTS.DEFAULT_SLUG_SEPARATOR
                 # Convert to lowercase, replace non-alphanumeric with separator
                 result = re.sub(r"[^a-zA-Z0-9]+", separator, text.lower())
                 return result.strip(separator)
@@ -938,7 +909,7 @@ class TextTransformationEngine(
                 ),
                 "tsvtr": TransformationRule(
                     name="Convert by TSV",
-                    description="Convert text using TSV file rules",
+                    description="Convert text using TSV file rules. Use --shell litecli for database access",
                     example="/tsvtr technical_terms.tsv → API → Application Programming Interface",
                     function=lambda text: text,  # Handled specially
                     requires_args=True,
@@ -1014,9 +985,7 @@ class TextTransformationEngine(
             return encoded_bytes.decode("ascii")
         except UnicodeEncodeError as e:
             # UTF-8エンコードエラーの場合
-            self.set_error_context(
-                {"encoding_error": str(e), "text_preview": text[:50]}
-            )
+            self.set_error_context({"encoding_error": str(e), "text_preview": text[:50]})
             raise TransformationError(
                 f"Text encoding failed: {e}", self.get_error_context()
             ) from e
@@ -1066,9 +1035,7 @@ class TextTransformationEngine(
                     "text_preview": text[:100],
                 }
             )
-            raise TransformationError(
-                f"Invalid JSON format: {e}", self.get_error_context()
-            ) from e
+            raise TransformationError(f"Invalid JSON format: {e}", self.get_error_context()) from e
         except Exception as e:
             # その他のエラー
             self.set_error_context({"error_type": type(e).__name__})
@@ -1162,6 +1129,11 @@ class TextTransformationEngine(
 
             # 引数を解析（ファイルパスとオプションを分離）
             parsed_args = self._parse_tsv_conversion_args(args)
+
+            # --list/-l オプションの場合はTSVルール一覧を表示
+            if parsed_args.get("list_rules", False):
+                return self._get_tsv_rules_list()
+
             tsv_file_name = parsed_args["file_path"]
             options = parsed_args["options"]
 
@@ -1190,6 +1162,34 @@ class TextTransformationEngine(
             raise TransformationError(
                 f"TSV conversion failed: {e}", self.get_error_context()
             ) from e
+
+    def _get_tsv_rules_list(self) -> str:
+        """TSVルール一覧を取得（既存のPathオブジェクト処理を活用）
+
+        Returns:
+            TSVファイル一覧の文字列
+        """
+        try:
+            # プロジェクトルートからの正確な相対パス（既存コードと同じ処理）
+            base_path = Path(__file__).parent.parent.parent
+            tsv_rules_dir = base_path / "config" / "tsv_rules"
+
+            # EAFP style: try to glob files directly
+            tsv_files = list(tsv_rules_dir.glob("*.tsv"))
+
+            if not tsv_files:
+                return "No TSV rule files found."
+
+            # ファイル一覧を整形（簡潔な表示）
+            file_list = []
+            for tsv_file in sorted(tsv_files):
+                file_name = tsv_file.name
+                file_list.append(f"  {file_name}")
+
+            return f"Available TSV rule files:\n" + "\n".join(file_list)
+
+        except Exception as e:
+            return f"Error listing TSV rules: {e}"
 
     def _parse_tsv_conversion_args(self, args: list[str]) -> dict[str, Any]:
         """TSV変換の引数を解析（POSIX準拠：オプション優先パターン）
@@ -1231,6 +1231,8 @@ class TextTransformationEngine(
                         case_insensitive = True
                     elif arg_lower == "-i":
                         case_insensitive = True
+                    elif arg_lower in ["--list", "-l"]:
+                        return {"list_rules": True}
                     elif arg_lower in [
                         "--no-preserve-case",
                         "--no-preserve-original-case",

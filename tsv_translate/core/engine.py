@@ -22,8 +22,8 @@ except ImportError:
 from ..models import Base
 from ..services import SyncService, ConversionService
 from ..services.file_watcher import FileWatcher
-from ..core.types import ConversionResult, SyncResult
-from ..core.exceptions import TSVTranslateError
+from ..models.types import ConversionResult, SyncResult
+from ..models.exceptions import TSVTranslateError
 
 
 class TSVTranslateEngine:

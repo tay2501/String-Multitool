@@ -41,7 +41,7 @@ python String_Multitool.py
 - **TSV Conversion**: Dictionary-based text transformation with case-insensitive matching
 
 ### 🏢 Enterprise Features  
-- **Modular Architecture**: Clean separation of concerns
+- **MVC Architecture**: Python best practices with clear Model-View-Controller separation
 - **Configuration-Driven**: External JSON rule definitions
 - **Type Safety**: Comprehensive type hints and validation
 - **RSA-4096 Encryption**: Military-grade security with AES-256 hybrid
@@ -120,23 +120,6 @@ python String_Multitool.py
 Rules: /u                    # Transform to uppercase
 Rules: refresh               # Load new clipboard content
 Rules: daemon                # Switch to daemon mode
-```
-
-### Daemon Mode (Background Processing)
-```bash
-python String_Multitool.py --daemon
-Daemon> preset uppercase     # Set transformation
-Daemon> start               # Begin monitoring
-# Now copying text automatically transforms to uppercase
-```
-
-### Hotkey Mode (Global Shortcuts)
-```bash
-python String_Multitool.py --hotkey
-# Ctrl+Shift+L = lowercase
-# Ctrl+Shift+U = uppercase
-# Ctrl+Shift+S = snake_case
-# Works globally in any application
 ```
 
 ### TSV-based Text Conversion
@@ -234,20 +217,29 @@ python -m isort string_multitool/
 
 ## 🏗 Architecture
 
+### MVC Design Pattern
+Following Python MVC best practices for CUI applications:
+
 ```
-ApplicationInterface (Main UI & Coordination)
-├── ConfigurationManager (JSON config loading & caching)
-├── TextTransformationEngine (Rule parsing & transformation)
-├── CryptographyManager (RSA/AES encryption/decryption)
-├── InputOutputManager (Clipboard & stdio operations)
-├── InteractiveSession (Interactive mode management)
-└── DaemonMode (Background monitoring)
+string_multitool/
+├── models/          # Business Logic Layer (The "Model")
+│   ├── config.py    # Configuration management
+│   ├── crypto.py    # Cryptography operations
+│   ├── transformations.py  # String transformation engine
+│   ├── interactive.py      # Interactive session management
+│   └── types.py     # Type definitions and protocols
+├── io/             # View/Controller Layer (User Interface)
+│   ├── manager.py  # Clipboard operations and I/O handling
+│   └── clipboard.py # Clipboard monitoring
+├── main.py         # Entry Point (Application flow control)
+└── __init__.py     # Package initialization
 ```
 
 ### Key Architectural Principles
+- **MVC Separation**: Clear boundaries between business logic, UI, and control flow
 - **Configuration-Driven**: Rules externalized to `config/*.json`
 - **Type Safety**: Full type hints with dataclass-based rule definitions
-- **Modular Components**: Each manager handles specific domain
+- **Simplicity**: Minimal complexity while maintaining extensibility
 - **Security-First**: RSA-4096 + AES-256 hybrid encryption
 
 ## 🤝 Contributing
@@ -260,7 +252,7 @@ ApplicationInterface (Main UI & Coordination)
 
 ### Adding New Rules
 1. Add rule definition to `config/transformation_rules.json`
-2. Implement transformation method in `TextTransformationEngine`
+2. Implement transformation method in `models/transformations.py`
 3. Register method in `_initialize_rules()`
 4. Add test cases to `test_transform.py`
 
@@ -270,7 +262,7 @@ ApplicationInterface (Main UI & Coordination)
 - **Test Coverage**: 95%+
 - **Supported Rules**: 25+
 - **Supported Platforms**: 3 (Windows, macOS, Linux)
-- **Architecture**: Enterprise-grade modular design
+- **Architecture**: Python MVC best practices with clean separation of concerns
 
 ## 🆘 Support & Troubleshooting
 
@@ -287,26 +279,7 @@ ApplicationInterface (Main UI & Coordination)
 
 ## 📄 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
-
-## 📈 Changelog
-
-### Version 2.6.0 (Current)
-- ✨ **POSIX-Compliant CLI**: Full command-line standards compliance
-- 🔍 **Case-Insensitive TSV**: Smart case handling for TSV conversions  
-- 🏎 **Performance**: 30% faster argument parsing
-- 🧪 **Testing**: 100+ comprehensive test cases
-
-### Version 2.5.0
-- **Modular Architecture**: Individual transformation classes
-- **Abstract Base Classes**: `TransformationBase` with required methods
-- **Factory Pattern**: Clean rule-to-class mapping system
-- **Enhanced Type Safety**: Abstract methods ensure consistency
-
-### Version 2.4.0
-- **Hotkey Mode**: Global keyboard shortcuts for transformations
-- **Background Operation**: Continuous global hotkey monitoring
-- **Configurable Mappings**: Customizable key bindings via JSON
+This project is licensed under the **GNU AFFERO GENERAL PUBLIC LICENSE License** - see the [LICENSE](LICENSE) file for details.
 
 ---
 

@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import re
 
-from ..core.transformation_base import TransformationBase
-from ..core.types import ConfigDict
+from ..models.transformation_base import TransformationBase
+from ..models.types import ConfigDict
 from ..exceptions import TransformationError
 
 
@@ -74,9 +74,7 @@ class ReplaceTransformation(TransformationBase):
                     "error_type": type(e).__name__,
                 }
             )
-            raise TransformationError(
-                f"文字列置換に失敗: {e}", self.get_error_context()
-            ) from e
+            raise TransformationError(f"文字列置換に失敗: {e}", self.get_error_context()) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得
@@ -154,9 +152,7 @@ class SlugifyTransformation(TransformationBase):
                     "error_type": type(e).__name__,
                 }
             )
-            raise TransformationError(
-                f"スラグ化処理に失敗: {e}", self.get_error_context()
-            ) from e
+            raise TransformationError(f"スラグ化処理に失敗: {e}", self.get_error_context()) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得

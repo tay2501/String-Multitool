@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import re
 
-from ..core.transformation_base import TransformationBase
-from ..core.types import ConfigDict
+from ..models.transformation_base import TransformationBase
+from ..models.types import ConfigDict
 from ..exceptions import TransformationError
 
 
@@ -52,9 +52,7 @@ class LowercaseTransformation(TransformationBase):
                     "error_type": type(e).__name__,
                 }
             )
-            raise TransformationError(
-                f"小文字変換に失敗: {e}", self.get_error_context()
-            ) from e
+            raise TransformationError(f"小文字変換に失敗: {e}", self.get_error_context()) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得
@@ -119,9 +117,7 @@ class UppercaseTransformation(TransformationBase):
                     "error_type": type(e).__name__,
                 }
             )
-            raise TransformationError(
-                f"大文字変換に失敗: {e}", self.get_error_context()
-            ) from e
+            raise TransformationError(f"大文字変換に失敗: {e}", self.get_error_context()) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得
@@ -265,9 +261,7 @@ class CamelCaseTransformation(TransformationBase):
                     "error_type": type(e).__name__,
                 }
             )
-            raise TransformationError(
-                f"camelCase変換に失敗: {e}", self.get_error_context()
-            ) from e
+            raise TransformationError(f"camelCase変換に失敗: {e}", self.get_error_context()) from e
 
     def get_transformation_rule(self) -> str:
         """適用される変換ルールを取得

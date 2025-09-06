@@ -10,17 +10,11 @@ from __future__ import annotations
 import sys
 from typing import Final
 
-from ..core.types import IOManagerProtocol
+from ..models.types import IOManagerProtocol
 from ..exceptions import ClipboardError
 
 # Import logging utilities
-from ..utils.unified_logger import (
-    get_logger,
-    log_debug,
-    log_error,
-    log_info,
-    log_warning,
-)
+from ..utils.unified_logger import get_logger, log_debug, log_error, log_info, log_warning
 
 try:
     import pyperclip
@@ -74,9 +68,7 @@ class InputOutputManager:
                             # Encode back to bytes using latin-1 to preserve raw bytes
                             raw_bytes = raw_input.encode("latin-1", errors="ignore")
                             # Decode as UTF-8 with error handling
-                            corrected_input = raw_bytes.decode(
-                                "utf-8", errors="replace"
-                            )
+                            corrected_input = raw_bytes.decode("utf-8", errors="replace")
                             return str(corrected_input.strip())
                         except (UnicodeDecodeError, UnicodeEncodeError):
                             # Fallback to original input with replacement chars removed
@@ -248,9 +240,7 @@ class InputOutputManager:
                     timeout=5,
                 )
                 if result.returncode == 0:
-                    log_debug(
-                        logger, "[SUCCESS] Text copied to clipboard via PowerShell"
-                    )
+                    log_debug(logger, "[SUCCESS] Text copied to clipboard via PowerShell")
                     return
         except Exception:
             pass
@@ -261,13 +251,9 @@ class InputOutputManager:
             import sys
 
             if sys.platform == "win32":
-                result = subprocess.run(
-                    ["cmd", "/c", "clip"], input=text, text=True, timeout=5
-                )
+                result = subprocess.run(["cmd", "/c", "clip"], input=text, text=True, timeout=5)
                 if result.returncode == 0:
-                    log_debug(
-                        logger, "[SUCCESS] Text copied to clipboard via clip command"
-                    )
+                    log_debug(logger, "[SUCCESS] Text copied to clipboard via clip command")
                     return
         except Exception:
             pass
@@ -301,9 +287,7 @@ class InputOutputManager:
                             # Encode back to bytes using latin-1 to preserve raw bytes
                             raw_bytes = raw_input.encode("latin-1", errors="ignore")
                             # Decode as UTF-8 with error handling
-                            corrected_input = raw_bytes.decode(
-                                "utf-8", errors="replace"
-                            )
+                            corrected_input = raw_bytes.decode("utf-8", errors="replace")
                             return str(corrected_input.strip())
                         except (UnicodeDecodeError, UnicodeEncodeError):
                             # Fallback to original input with replacement chars removed
