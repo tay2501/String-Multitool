@@ -165,6 +165,12 @@ class TestTextTransformationEngine:
         ("/r 'Will' 'Bill'", "I'm Will, Will's son", "I'm Bill, Bill's son"),
         ("/S", "hello world test", "hello-world-test"),  # Default replacement
         ("/r 'this'", "remove this text", "remove  text"),  # Default replacement (empty)
+        # Escape sequence tests for newline conversion
+        ("/r '\\r\\n' '\\n'", "Line1\r\nLine2\r\nLine3", "Line1\nLine2\nLine3"),  # CRLF to LF
+        ("/r '\\n' '\\r\\n'", "Line1\nLine2\nLine3", "Line1\r\nLine2\r\nLine3"),  # LF to CRLF  
+        ("/r '\\r' '\\n'", "Line1\rLine2\rLine3", "Line1\nLine2\nLine3"),  # CR to LF
+        ("/r '\\t' ' '", "Col1\tCol2\tCol3", "Col1 Col2 Col3"),  # Tab to space
+        ("/r '\\\\' '/'", "C:\\path\\to\\file", "C:/path/to/file"),  # Backslash to forward slash
     ])
     def test_argument_based_rules(self, transformation_engine: TextTransformationEngine, rule: str, input_text: str, expected: str) -> None:
         """Test rules with arguments using parametrized testing."""

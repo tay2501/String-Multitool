@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import codecs
 import re
 
 from ..models.transformation_base import TransformationBase
@@ -62,7 +63,10 @@ class ReplaceTransformation(TransformationBase):
         """
         try:
             self._input_text = text
-            self._output_text = text.replace(self._search_text, self._replace_text)
+            # Decode escape sequences in search and replace strings
+            search_decoded = self._decode_escape_sequences(self._search_text)
+            replace_decoded = self._decode_escape_sequences(self._replace_text)
+            self._output_text = text.replace(search_decoded, replace_decoded)
             return self._output_text
         except Exception as e:
             self.set_error_context(
@@ -99,6 +103,42 @@ class ReplaceTransformation(TransformationBase):
             変換後の文字列
         """
         return self._output_text
+
+    def _decode_escape_sequences(self, text: str) -> str:
+        """Decode escape sequences in text using Python's codecs.decode
+        
+        Supports standard escape sequences including:
+        - \\n: newline (LF)
+        - \\r: carriage return (CR)  
+        - \\r\\n: CRLF
+        - \\t: tab
+        - \\\\: backslash
+        - \\': single quote
+        - \\": double quote
+        
+        Args:
+            text: Text potentially containing escape sequences
+            
+        Returns:
+            Text with escape sequences decoded
+            
+        Raises:
+            TransformationError: If escape sequence decoding fails
+        """
+        try:
+            # Use codecs.decode with 'unicode_escape' encoding for standard Python escape sequences
+            return codecs.decode(text, 'unicode_escape')
+        except Exception as e:
+            # If decoding fails, return original text (graceful degradation)
+            self.set_error_context(
+                {
+                    "decode_error": str(e),
+                    "original_text": text,
+                    "error_type": type(e).__name__,
+                }
+            )
+            # Return original text instead of raising error for backward compatibility
+            return text
 
 
 class SlugifyTransformation(TransformationBase):

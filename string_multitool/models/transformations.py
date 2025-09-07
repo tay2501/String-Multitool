@@ -618,19 +618,11 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
         # EAFPスタイル：まず引数を使用し、不足時にエラー処理
         try:
             if rule_name == RuleNames.REPLACE.value:  # Replace
-                if len(args) >= 2:
-                    return text.replace(args[0], args[1])
-                elif len(args) == 1:
-                    return text.replace(args[0], "")
-                else:
-                    # 引数不足の場合
-                    raise TransformationError(
-                        "Replace rule requires at least 1 argument",
-                        {
-                            ERROR_CONTEXT_KEYS.RULE_NAME: rule_name,
-                            ERROR_CONTEXT_KEYS.ARGS_COUNT: len(args),
-                        },
-                    )
+                # Use ReplaceTransformation class with escape sequence support
+                from ..transformations.advanced_transformations import ReplaceTransformation
+                replace_transformer = ReplaceTransformation()
+                replace_transformer.set_arguments(args)
+                return replace_transformer.transform(text)
 
             elif rule_name == RuleNames.SLUGIFY.value:  # Slugify
                 separator = args[0] if args else TRANSFORM_CONSTANTS.DEFAULT_SLUG_SEPARATOR
