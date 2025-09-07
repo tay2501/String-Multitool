@@ -105,16 +105,7 @@ addopts = [
     "--maxfail=5",           # stop after 5 failures
 ]
 testpaths = [
-    "test_transform.py",
-    "test_tsv_case_insensitive.py", 
-    "test_system_integration.py",
-    "test_tsv_operations.py",
-    "test_readme_examples.py",
-    "test_unicode.py",
-    "test_simple.py",
-    "test_code_quality.py",
-    "test_cli_functionality.py",
-    "test_signal_handler.py",
+    "tests",
 ]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
