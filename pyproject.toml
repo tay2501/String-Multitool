@@ -88,8 +88,9 @@ Homepage = "https://github.com/tay2501/String-Multitool"
 [project.scripts]
 string-multitool = "String_Multitool:main"
 
-[tool.setuptools]
-py-modules = ["String_Multitool"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["string_multitool*"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
