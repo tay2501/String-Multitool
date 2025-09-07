@@ -28,16 +28,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install uv
+    - name: Set up Python ${{ matrix.python-version }} and Install uv
       uses: astral-sh/setup-uv@v6
       with:
+        python-version: ${{ matrix.python-version }}
         version: "latest"
         enable-cache: true
         cache-dependency-glob: "**/pyproject.toml"
         github-token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Set up Python ${{ matrix.python-version }}
-      run: uv python install ${{ matrix.python-version }}
 
     - name: Install dependencies
       run: |
@@ -75,16 +73,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install uv
+    - name: Set up Python 3.12 and Install uv
       uses: astral-sh/setup-uv@v6
       with:
+        python-version: "3.12"
         version: "latest"
         enable-cache: true
         cache-dependency-glob: "**/pyproject.toml"
         github-token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Set up Python
-      run: uv python install 3.12
 
     - name: Install dependencies
       run: |
@@ -135,16 +131,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install uv
+    - name: Set up Python 3.12 and Install uv
       uses: astral-sh/setup-uv@v6
       with:
+        python-version: "3.12"
         version: "latest"
         enable-cache: true
         cache-dependency-glob: "**/pyproject.toml"
         github-token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Set up Python
-      run: uv python install 3.12
 
     - name: Install dependencies
       run: |
