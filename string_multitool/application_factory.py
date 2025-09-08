@@ -12,123 +12,89 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from .main import ApplicationInterface
 
-from .models.config import ConfigurationManager
-from .models.crypto import CryptographyManager
-from .models.dependency_injection import DIContainer, ServiceRegistry, inject
-from .models.transformations import TextTransformationEngine
-from .models.types import ConfigManagerProtocol, CryptoManagerProtocol, TransformationEngineProtocol
 from .exceptions import CryptographyError
 from .io.manager import InputOutputManager
+from .models.config import ConfigurationManager
+from .models.crypto import CryptographyManager
 
 # ApplicationInterface will be imported locally to avoid circular imports
 from .models.interactive import CommandProcessor, InteractiveSession
+from .models.transformations import TextTransformationEngine
+from .models.types import (
+    ConfigManagerProtocol,
+    CryptoManagerProtocol,
+    TransformationEngineProtocol,
+)
 from .utils.unified_logger import get_logger, log_with_context
 
+# DIContainer削除 - 直接的なファクトリパターンに変更
 
-def configure_services(container: DIContainer) -> None:
-    """Configure all application services in the DI container.
 
-    Uses EAFP (Easier to Ask for Forgiveness than Permission) approach
-    for robust service configuration with proper error handling.
+def create_services() -> tuple[
+    ConfigurationManager,
+    TextTransformationEngine,
+    InputOutputManager,
+    CryptographyManager | None,
+]:
+    """サービス群を直接作成するファクトリ関数
 
-    Args:
-        container: Dependency injection container instance
+    EAFP (Easier to Ask for Forgiveness than Permission) アプローチを使用し、
+    堅牢なサービス作成とエラーハンドリングを提供します。
+
+    Returns:
+        作成されたサービスのタプル (config_manager, transformation_engine, io_manager, crypto_manager)
 
     Raises:
-        ConfigurationError: If service configuration fails
+        ConfigurationError: サービス作成に失敗した場合
     """
     from .exceptions import ConfigurationError
 
-    # Configuration manager (singleton) - EAFP style initialization
+    logger = get_logger(__name__)
+
     try:
-        config_manager = ConfigurationManager()
-        container.register_singleton(type(config_manager), config_manager)
-        container.register_singleton(ConfigurationManager, config_manager)
-    except Exception as e:
-        raise ConfigurationError(
-            f"Failed to configure configuration manager: {e}",
-            {"error_type": type(e).__name__},
-        ) from e
-
-    # Text transformation engine (singleton)
-    def create_transformation_engine(
-        config_mgr: ConfigurationManager,
-    ) -> TextTransformationEngine:
-        return TextTransformationEngine(config_mgr)
-
-    # Skip protocol registration to avoid type-abstract error
-    container.register_factory(TextTransformationEngine, create_transformation_engine)
-
-    # Cryptography manager (singleton) - EAFP style with proper error handling
-    def create_crypto_manager(
-        config_mgr: ConfigurationManager,
-    ) -> CryptographyManager | None:
-        """Create cryptography manager using EAFP pattern.
-
-        Args:
-            config_mgr: Configuration manager protocol instance
-
-        Returns:
-            CryptographyManager instance or None if unavailable
-        """
+        # ConfigurationManager を作成 (EAFP style)
         try:
-            return CryptographyManager(config_mgr)
-        except CryptographyError as e:
-            logger = get_logger(__name__)
-            logger.warning("Cryptography manager not available", error=str(e))
-            return None
+            config_manager = ConfigurationManager()
+            logger.debug("ConfigurationManager created successfully")
         except Exception as e:
-            logger = get_logger(__name__)
-            log_with_context(
-                logger,
-                "warning",
-                "Unexpected error creating crypto manager",
-                error=str(e),
-            )
-            return None
+            logger.error(f"Failed to create ConfigurationManager: {e}")
+            raise ConfigurationError(f"Configuration manager creation failed: {e}") from e
 
-    def create_crypto_manager_concrete(
-        config_mgr: ConfigurationManager,
-    ) -> CryptographyManager:
-        """Create concrete cryptography manager with validation.
+        # TextTransformationEngine を作成 (config_manager に依存)
+        try:
+            transformation_engine = TextTransformationEngine(config_manager)
+            logger.debug("TextTransformationEngine created successfully")
+        except Exception as e:
+            logger.error(f"Failed to create TextTransformationEngine: {e}")
+            raise ConfigurationError(f"Transformation engine creation failed: {e}") from e
 
-        Args:
-            config_mgr: Configuration manager protocol instance
+        # InputOutputManager を作成
+        try:
+            io_manager = InputOutputManager()
+            logger.debug("InputOutputManager created successfully")
+        except Exception as e:
+            logger.error(f"Failed to create InputOutputManager: {e}")
+            raise ConfigurationError(f"I/O manager creation failed: {e}") from e
 
-        Returns:
-            CryptographyManager instance
+        # CryptographyManager を作成 (オプション - 失敗しても続行)
+        crypto_manager = None
+        try:
+            crypto_manager = CryptographyManager(config_manager)
+            logger.debug("CryptographyManager created successfully")
+        except CryptographyError as e:
+            # 暗号化依存関係が利用できない場合は期待される動作
+            logger.warning(f"CryptographyManager not available: {e}")
+            logger.info("Encryption/decryption features will be disabled")
+        except Exception as e:
+            logger.error(f"Unexpected error creating CryptographyManager: {e}")
+            # 暗号化はオプションなので例外を発生させない
+            logger.info("Continuing without cryptography support")
 
-        Raises:
-            CryptographyError: If manager creation fails
-        """
-        result = create_crypto_manager(config_mgr)
-        if result is None:
-            raise CryptographyError(
-                "Cryptography manager creation failed - dependencies unavailable",
-                {"config_available": config_mgr is not None},
-            )
-        return result
+        return config_manager, transformation_engine, io_manager, crypto_manager
 
-    # Skip protocol registration to avoid type-abstract error
-    container.register_factory(CryptographyManager, create_crypto_manager_concrete)
-
-    # I/O manager (transient)
-    container.register_transient(InputOutputManager, InputOutputManager)
-
-    # Interactive session (transient with dependencies)
-    def create_interactive_session(
-        io_manager: InputOutputManager,
-        transformation_engine: TransformationEngineProtocol,
-    ) -> InteractiveSession:
-        return InteractiveSession(io_manager, transformation_engine)
-
-    container.register_factory(InteractiveSession, create_interactive_session)
-
-    # Command processor (transient with dependencies)
-    def create_command_processor(session: InteractiveSession) -> CommandProcessor:
-        return CommandProcessor(session)
-
-    container.register_factory(CommandProcessor, create_command_processor)
+    except Exception as e:
+        logger.error(f"Service creation failed: {e}")
+        raise ConfigurationError(f"Failed to create application services: {e}") from e
 
 
 class ApplicationFactory:
@@ -147,10 +113,10 @@ class ApplicationFactory:
         Raises:
             ConfigurationError: If application creation fails
         """
+        from .exceptions import ConfigurationError
         from .models.config import ConfigurationManager
         from .models.crypto import CryptographyManager
         from .models.transformations import TextTransformationEngine
-        from .exceptions import ConfigurationError
         from .utils.unified_logger import get_logger, log_with_context
 
         logger = get_logger(__name__)
@@ -161,28 +127,10 @@ class ApplicationFactory:
         try:
             # Import ApplicationInterface at runtime to avoid circular imports
             from .main import ApplicationInterface
-            
-            # Configure services - EAFP style
-            ServiceRegistry.configure(configure_services)
-            log_with_context(logger, "debug", "Service registry configured successfully")
 
-            # Get core dependencies via DI - these are required
-            config_manager = inject(ConfigurationManager)
-            transformation_engine = inject(TextTransformationEngine)
-            io_manager = inject(InputOutputManager)
-            log_with_context(logger, "debug", "Core dependencies injected successfully")
-
-            # Get optional crypto manager - EAFP style
-            crypto_manager = None
-            try:
-                crypto_manager = inject(CryptographyManager)
-                log_with_context(logger, "debug", "Cryptography manager available")
-            except (CryptographyError, ImportError, OSError) as e:
-                log_with_context(
-                    logger, "warning", "Cryptography manager unavailable", error=str(e)
-                )
-            except Exception as e:
-                logger.warning("Unexpected error with crypto manager", error=str(e))
+            # Create services directly - EAFP style
+            config_manager, transformation_engine, io_manager, crypto_manager = create_services()
+            log_with_context(logger, "debug", "Services created successfully")
 
             # Create application interface with core dependencies
             app_interface = ApplicationInterface(
@@ -215,9 +163,9 @@ class ApplicationFactory:
         Raises:
             ConfigurationError: If test application creation fails
         """
+        from .exceptions import ConfigurationError
         from .models.config import ConfigurationManager
         from .models.transformations import TextTransformationEngine
-        from .exceptions import ConfigurationError
         from .utils.unified_logger import get_logger
 
         logger = get_logger(__name__)
@@ -225,25 +173,15 @@ class ApplicationFactory:
         try:
             # Import ApplicationInterface at runtime to avoid circular imports
             from .main import ApplicationInterface
-            
-            # Reset service registry for clean test state
-            ServiceRegistry.reset()
 
-            # Configure services with test overrides
-            def configure_test_services(container: DIContainer) -> None:
-                configure_services(container)
-                # Apply test-specific overrides if needed
-                if config_override:
-                    logger.debug(f"Applying test config overrides: {config_override}")
+            # Create services directly for testing
+            config_manager, transformation_engine, io_manager, _ = create_services()
 
-            ServiceRegistry.configure(configure_test_services)
+            # Apply test-specific overrides if needed
+            if config_override:
+                logger.debug(f"Applying test config overrides: {config_override}")
 
-            # Get core dependencies via DI
-            config_manager = inject(ConfigurationManager)
-            transformation_engine = inject(TextTransformationEngine)
-            io_manager = inject(InputOutputManager)
-
-            # Create minimal application for testing
+            # Create minimal application for testing (skip crypto)
             return ApplicationInterface(
                 config_manager=config_manager,
                 transformation_engine=transformation_engine,

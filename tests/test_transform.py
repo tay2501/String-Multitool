@@ -113,6 +113,7 @@ class TestConfigurationManager:
         assert isinstance(rules[config_key], expected_type)
 
 
+@pytest.mark.unit
 class TestTextTransformationEngine:
     """Test text transformation functionality with modern pytest patterns."""
 
@@ -207,6 +208,32 @@ class TestTextTransformationEngine:
         assert len(rules) > 0
         assert "u" in rules  # Basic rule
         assert "S" in rules  # Advanced rule
+    
+    @pytest.mark.parametrize("rule,input_text,expected", [
+        # Empty string edge cases
+        ("/l", "", ""),
+        ("/u", "", ""),
+        ("/t", "", ""),
+        # Single character edge cases
+        ("/l", "A", "a"),
+        ("/u", "z", "Z"),
+        ("/t", " ", ""),
+        # Special character edge cases
+        ("/l", "123!@#", "123!@#"),
+        ("/u", "456$%^", "456$%^"),
+        ("/R", "!@#", "#@!"),
+        # Unicode edge cases
+        ("/l", "\u00dc", "\u00fc"),
+        ("/u", "\u00f1", "\u00d1"),
+        ("/t", "\u3000", ""),  # Full-width space
+        # Null and control characters
+        ("/l", "\x00", "\x00"),
+        ("/u", "\t\n", "\t\n"),
+    ])
+    def test_edge_case_transformations(self, transformation_engine: TextTransformationEngine, rule: str, input_text: str, expected: str) -> None:
+        """Test edge case transformations using parametrized testing."""
+        result: str = transformation_engine.apply_transformations(input_text, rule)
+        assert result == expected, f"Edge case rule {rule} failed: got '{result}', expected '{expected}'"
 
 
 class TestInteractiveSession:
@@ -470,32 +497,8 @@ class TestInputOutputManager:
             io_manager.get_clipboard_text()
 
 
-@pytest.fixture(scope="session")
-def mock_clipboard() -> Generator[Mock, None, None]:
-    """Mock clipboard functionality for all tests with session scope for performance."""
-    with patch("string_multitool.io.manager.CLIPBOARD_AVAILABLE", True):
-        with patch("string_multitool.io.manager.pyperclip") as mock_pyperclip:
-            mock_pyperclip.paste.return_value = ""
-            mock_pyperclip.copy.return_value = None
-            yield mock_pyperclip
-
-# Modern pytest fixture for configuration manager
-@pytest.fixture(scope="session")
-def config_manager() -> ConfigurationManager:
-    """Provide a shared ConfigurationManager instance for all tests."""
-    return ConfigurationManager()
-
-# Modern pytest fixture for transformation engine  
-@pytest.fixture(scope="session")
-def transformation_engine(config_manager: ConfigurationManager) -> TextTransformationEngine:
-    """Provide a shared TextTransformationEngine instance for all tests."""
-    return TextTransformationEngine(config_manager)
-
-# Modern pytest fixture for IO manager with mocked clipboard
-@pytest.fixture
-def io_manager(mock_clipboard: Mock) -> InputOutputManager:
-    """Provide InputOutputManager with mocked clipboard for each test."""
-    return InputOutputManager()
+# Fixtures are now defined in conftest.py following modern pytest practices
+# This eliminates duplication and improves test organization
 
 
 class TestApplicationInterface:
@@ -857,6 +860,114 @@ def test_logging_integration() -> None:
     
     # Basic integration test - logger should work without errors
     assert logger is not None
+
+
+@pytest.mark.stress
+class TestStressAndBoundaryConditions:
+    """Stress testing and boundary condition validation."""
+    
+    def test_memory_usage_with_repeated_transformations(
+        self, transformation_engine: TextTransformationEngine
+    ) -> None:
+        """Test memory usage with repeated transformations."""
+        import gc
+        
+        # Force garbage collection before test
+        gc.collect()
+        
+        # Perform many transformations
+        for i in range(10000):
+            result = transformation_engine.apply_transformations(f"test{i}", "/u")
+            assert result == f"TEST{i}"
+            
+            # Periodically force garbage collection
+            if i % 1000 == 0:
+                gc.collect()
+        
+        # Final garbage collection
+        gc.collect()
+    
+    def test_deeply_nested_rule_chains(
+        self, transformation_engine: TextTransformationEngine
+    ) -> None:
+        """Test deeply nested rule chains."""
+        # Create a very long rule chain
+        long_chain = "/t/l/u/l/u/l/u/l/u/l/u/l/u/l/u/l/u/l/u"  # 19 rules
+        
+        result = transformation_engine.apply_transformations("  Hello World  ", long_chain)
+        # Final result should be lowercase (last /u changes to uppercase, but there's one more /l)
+        assert result == "hello world"
+    
+    @pytest.mark.parametrize("malicious_input", [
+        "\x00" * 1000,  # Null bytes
+        "\xff" * 1000,  # High bytes
+        "<script>alert('xss')</script>",  # XSS attempt
+        "'; DROP TABLE users; --",  # SQL injection attempt
+        "../../../etc/passwd",  # Path traversal attempt
+        "\u200B" * 1000,  # Zero-width spaces
+        "\uFEFF" * 1000,  # Byte order marks
+    ])
+    def test_malicious_input_handling(
+        self, 
+        transformation_engine: TextTransformationEngine, 
+        malicious_input: str
+    ) -> None:
+        """Test handling of potentially malicious input."""
+        try:
+            # Should not crash or raise security issues
+            result = transformation_engine.apply_transformations(malicious_input, "/l")
+            assert isinstance(result, str)
+        except Exception as e:
+            # Some malicious inputs might cause legitimate exceptions
+            # but should not cause security vulnerabilities
+            assert "security" not in str(e).lower()
+            assert "attack" not in str(e).lower()
+    
+    def test_resource_exhaustion_protection(
+        self, transformation_engine: TextTransformationEngine
+    ) -> None:
+        """Test protection against resource exhaustion attacks."""
+        import time
+        
+        # Test with extremely long input
+        very_long_input = "A" * 1000000  # 1MB
+        
+        start_time = time.time()
+        try:
+            result = transformation_engine.apply_transformations(very_long_input, "/l")
+            elapsed = time.time() - start_time
+            
+            # Should complete within reasonable time (5 seconds for 1MB)
+            assert elapsed < 5.0, f"Transformation took too long: {elapsed:.2f}s"
+            assert result == "a" * 1000000
+            
+        except MemoryError:
+            # If system can't handle 1MB, that's acceptable
+            pytest.skip("System unable to handle 1MB transformation")
+    
+    def test_unicode_boundary_conditions(
+        self, transformation_engine: TextTransformationEngine
+    ) -> None:
+        """Test Unicode boundary conditions and edge cases."""
+        boundary_cases = [
+            "\U0001F600",  # Emoji (4-byte UTF-8)
+            "\U00010000",  # First character in supplementary planes
+            "\U0010FFFF",  # Last valid Unicode code point
+            "\uD800\uDC00",  # Surrogate pair (valid in UTF-16)
+            "\u0300",  # Combining character alone
+            "a\u0300\u0301\u0302",  # Base + multiple combining characters
+        ]
+        
+        for test_case in boundary_cases:
+            try:
+                result = transformation_engine.apply_transformations(test_case, "/t")
+                assert isinstance(result, str)
+            except UnicodeError:
+                # Some boundary cases might legitimately fail
+                pass
+            except Exception as e:
+                # Should not cause other types of exceptions
+                pytest.fail(f"Unexpected exception for Unicode boundary case {repr(test_case)}: {e}")
 
 
 def test_pathlib_usage() -> None:

@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import base64
 
+from ..exceptions import TransformationError
 from ..models.transformation_base import TransformationBase
 from ..models.types import ConfigDict
-from ..exceptions import TransformationError
 
 
 class Base64EncodeTransformation(TransformationBase):

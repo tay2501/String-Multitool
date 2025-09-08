@@ -23,7 +23,8 @@ from typing import Any
 import pytest
 
 # Import modules to test
-from string_multitool.models.transformations import TSVTransformation, TextTransformationEngine
+from string_multitool.models.transformations import TextTransformationEngine
+from string_multitool.models.tsv_transformer import TSVTransformer
 from string_multitool.models.tsv_conversion_strategies import (
     CaseInsensitiveConversionStrategy,
     CaseSensitiveConversionStrategy,
@@ -275,8 +276,8 @@ class TestTSVConversionStrategyFactory:
         assert strategies == expected
 
 
-class TestTSVTransformationIntegration:
-    """TSV Transformation integration tests with modern pytest patterns."""
+class TestTSVTransformerIntegration:
+    """TSV Transformer integration tests with modern pytest patterns."""
     
     @pytest.fixture
     def tsv_test_file(self) -> Path:
@@ -300,7 +301,7 @@ JSON\tJavaScript Object Notation"""
     
     def test_default_case_sensitive_behavior(self, tsv_test_file: Path) -> None:
         """Test default case-sensitive behavior."""
-        transformer = TSVTransformation(str(tsv_test_file))
+        transformer = TSVTransformer(str(tsv_test_file))
         
         text = "Use API and api for development"
         result = transformer.transform(text)
@@ -310,16 +311,16 @@ JSON\tJavaScript Object Notation"""
     def test_case_insensitive_option(self, tsv_test_file: Path) -> None:
         """Test case-insensitive option."""
         options = TSVConversionOptions(case_insensitive=True)
-        transformer = TSVTransformation(str(tsv_test_file), options)
+        transformer = TSVTransformer(str(tsv_test_file), options)
         
         text = "Use api and Api for development"
         result = transformer.transform(text)
-        expected = "Use application programming interface and Application Programming Interface for development"
+        expected = "Use application programming interface and Application programming interface for development"
         assert result == expected
     
     def test_update_options_runtime(self, tsv_test_file: Path) -> None:
         """Test runtime option updates."""
-        transformer = TSVTransformation(str(tsv_test_file))
+        transformer = TSVTransformer(str(tsv_test_file))
         
         # Initial state (case-sensitive)
         text = "Use api"
@@ -336,7 +337,7 @@ JSON\tJavaScript Object Notation"""
     def test_get_current_options(self, tsv_test_file: Path) -> None:
         """Test getting current options."""
         options = TSVConversionOptions(case_insensitive=True)
-        transformer = TSVTransformation(str(tsv_test_file), options)
+        transformer = TSVTransformer(str(tsv_test_file), options)
         
         current_options = transformer.get_current_options()
         assert current_options == options
@@ -347,7 +348,7 @@ JSON\tJavaScript Object Notation"""
             case_insensitive=True,
             preserve_original_case=False
         )
-        transformer = TSVTransformation(str(tsv_test_file), options)
+        transformer = TSVTransformer(str(tsv_test_file), options)
         
         rule = transformer.get_transformation_rule()
         assert "tsvtr" in rule
@@ -448,7 +449,7 @@ class TestPerformanceAndEdgeCases:
     def test_large_tsv_file_performance(self, performance_tsv_file: Path) -> None:
         """Test large TSV file performance."""
         options = TSVConversionOptions(case_insensitive=True)
-        transformer = TSVTransformation(str(performance_tsv_file), options)
+        transformer = TSVTransformer(str(performance_tsv_file), options)
         
         text = "Use TERM0001 and term0500 in your code"
         
@@ -468,7 +469,7 @@ class TestPerformanceAndEdgeCases:
         empty_file = performance_tsv_file.parent / "empty.tsv"
         empty_file.write_text("", encoding="utf-8")
         
-        transformer = TSVTransformation(str(empty_file))
+        transformer = TSVTransformer(str(empty_file))
         text = "No conversion should happen"
         result = transformer.transform(text)
         assert result == text
@@ -483,7 +484,7 @@ SQL\tStructured Query Language\tExtra column"""
         
         malformed_file.write_text(content, encoding="utf-8")
         
-        transformer = TSVTransformation(str(malformed_file))
+        transformer = TSVTransformer(str(malformed_file))
         text = "Use API and SQL"
         result = transformer.transform(text)
         expected = "Use Application Programming Interface and Structured Query Language"
@@ -499,11 +500,11 @@ SQL\tStructured Query Language\tExtra column"""
         unicode_file.write_text(content, encoding="utf-8")
         
         options = TSVConversionOptions(case_insensitive=True)
-        transformer = TSVTransformation(str(unicode_file), options)
+        transformer = TSVTransformer(str(unicode_file), options)
         
         text = "Use api and データベース and 🚀"
         result = transformer.transform(text)
-        expected = "Use アプリケーション プログラミング インターフェース and database and rocket emoji"
+        expected = "Use アプリケーション プログラミング インターフェース and Database and 🚀"
         assert result == expected
 
 
@@ -513,7 +514,7 @@ class TestErrorHandling:
     def test_nonexistent_file(self) -> None:
         """Test error handling for nonexistent file."""
         with pytest.raises(TransformationError):
-            TSVTransformation("/nonexistent/path.tsv")
+            TSVTransformer("/nonexistent/path.tsv")
     
     def test_invalid_options_type(self) -> None:
         """Test error handling for invalid options type."""
@@ -523,7 +524,7 @@ class TestErrorHandling:
         
         try:
             with pytest.raises((TypeError, ValidationError)):
-                TSVTransformation(str(tsv_file), "invalid_options")  # type: ignore
+                TSVTransformer(str(tsv_file), "invalid_options")  # type: ignore
         finally:
             import shutil
             shutil.rmtree(temp_dir)

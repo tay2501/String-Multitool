@@ -11,6 +11,8 @@ import time
 from datetime import datetime
 from typing import Any
 
+from ..exceptions import ClipboardError, ValidationError
+from ..io.clipboard import ClipboardMonitor
 from .types import (
     CommandResult,
     ConfigManagerProtocol,
@@ -19,8 +21,6 @@ from .types import (
     TextSource,
     TransformationEngineProtocol,
 )
-from ..exceptions import ClipboardError, ValidationError
-from ..io.clipboard import ClipboardMonitor
 
 
 class InteractiveSession:
@@ -44,14 +44,18 @@ class InteractiveSession:
         Raises:
             ValidationError: If required parameters are invalid
         """
-        if io_manager is None:
-            raise ValidationError("IO manager cannot be None")
-        if transformation_engine is None:
-            raise ValidationError("Transformation engine cannot be None")
+        # EAFP: Try to use the dependencies, catch if they're invalid
+        try:
+            self.io_manager: IOManagerProtocol = io_manager
+            self.transformation_engine: TransformationEngineProtocol = transformation_engine
 
-        # Instance variable annotations following PEP 526
-        self.io_manager: IOManagerProtocol = io_manager
-        self.transformation_engine: TransformationEngineProtocol = transformation_engine
+            # Validate by checking essential methods exist
+            if not hasattr(self.io_manager, "get_input_text"):
+                raise AttributeError("IO manager missing get_input_text method")
+            if not hasattr(self.transformation_engine, "get_available_rules"):
+                raise AttributeError("Transformation engine missing get_available_rules method")
+        except (AttributeError, TypeError) as e:
+            raise ValidationError(f"Invalid dependency: {e}") from e
         self.current_text: str = ""
         self.text_source: TextSource = TextSource.CLIPBOARD
         self.last_update_time: datetime = datetime.now()

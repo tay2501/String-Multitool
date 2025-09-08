@@ -9,15 +9,15 @@ from __future__ import annotations
 
 import argparse
 import sys
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .models.crypto import CryptographyManager
 
-from .models.config import ConfigurationManager
-from .models.transformations import TextTransformationEngine
 from .exceptions import ValidationError
 from .io.manager import InputOutputManager
+from .models.config import ConfigurationManager
+from .models.transformations import TextTransformationEngine
 from .utils.unified_logger import get_logger
 
 
@@ -29,23 +29,24 @@ class ApplicationInterface:
         config_manager: ConfigurationManager,
         transformation_engine: TextTransformationEngine,
         io_manager: InputOutputManager,
-        crypto_manager: Optional[CryptographyManager] = None,
+        crypto_manager: CryptographyManager | None = None,
     ) -> None:
         """Initialize application interface with dependency injection."""
-        if config_manager is None:
-            raise ValidationError("Configuration manager cannot be None")
-        if transformation_engine is None:
-            raise ValidationError("Transformation engine cannot be None")
-        if io_manager is None:
-            raise ValidationError("IO manager cannot be None")
+        try:
+            self.config_manager = config_manager
+            self.transformation_engine = transformation_engine
+            self.io_manager = io_manager
+            self.crypto_manager = crypto_manager
+            self.silent_mode = False
 
-        self.config_manager = config_manager
-        self.transformation_engine = transformation_engine
-        self.io_manager = io_manager
-        self.crypto_manager = crypto_manager
-        self.silent_mode = False
+            self.logger = get_logger(__name__)
 
-        self.logger = get_logger(__name__)
+            # Validate dependencies using EAFP - avoid calling methods that may block
+            self.config_manager.load_transformation_rules()
+            self.transformation_engine.get_available_rules()
+            # Skip io_manager validation to avoid stdin blocking in tests
+        except (AttributeError, TypeError) as e:
+            raise ValidationError(f"Invalid dependency injection: {e}") from e
 
         # Set crypto manager in transformation engine if available
         if self.crypto_manager is not None:
@@ -182,10 +183,13 @@ Examples:
                                 )
                                 print(f"[SUCCESS] Result copied to clipboard: '{display_text}'")
 
-                        except ValidationError as e:
-                            print(f"[ERROR] Transformation failed: {e}")
-                        except Exception as e:
-                            print(f"[ERROR] Unexpected error: {e}")
+                        except (ValidationError, Exception) as e:
+                            error_type = (
+                                "Transformation"
+                                if isinstance(e, ValidationError)
+                                else "Unexpected"
+                            )
+                            print(f"[ERROR] {error_type} error: {e}")
 
                 except KeyboardInterrupt:
                     print("\n[INFO] Use 'quit' or 'exit' to leave interactive mode.")

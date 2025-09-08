@@ -10,9 +10,9 @@ from __future__ import annotations
 import codecs
 import re
 
+from ..exceptions import TransformationError
 from ..models.transformation_base import TransformationBase
 from ..models.types import ConfigDict
-from ..exceptions import TransformationError
 
 
 class ReplaceTransformation(TransformationBase):
@@ -106,28 +106,28 @@ class ReplaceTransformation(TransformationBase):
 
     def _decode_escape_sequences(self, text: str) -> str:
         """Decode escape sequences in text using Python's codecs.decode
-        
+
         Supports standard escape sequences including:
         - \\n: newline (LF)
-        - \\r: carriage return (CR)  
+        - \\r: carriage return (CR)
         - \\r\\n: CRLF
         - \\t: tab
         - \\\\: backslash
         - \\': single quote
         - \\": double quote
-        
+
         Args:
             text: Text potentially containing escape sequences
-            
+
         Returns:
             Text with escape sequences decoded
-            
+
         Raises:
             TransformationError: If escape sequence decoding fails
         """
         try:
             # Use codecs.decode with 'unicode_escape' encoding for standard Python escape sequences
-            return codecs.decode(text, 'unicode_escape')
+            return codecs.decode(text, "unicode_escape")
         except Exception as e:
             # If decoding fails, return original text (graceful degradation)
             self.set_error_context(

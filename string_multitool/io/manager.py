@@ -10,8 +10,8 @@ from __future__ import annotations
 import sys
 from typing import Final
 
-from ..models.types import IOManagerProtocol
 from ..exceptions import ClipboardError
+from ..models.types import IOManagerProtocol
 
 # Import logging utilities
 from ..utils.unified_logger import get_logger, log_debug, log_error, log_info, log_warning

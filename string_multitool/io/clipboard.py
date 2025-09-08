@@ -11,8 +11,8 @@ import threading
 import time
 from typing import Callable, Final
 
-from ..models.types import IOManagerProtocol, ThreadCallback
 from ..exceptions import ClipboardError, ValidationError
+from ..models.types import IOManagerProtocol, ThreadCallback
 
 
 class ClipboardMonitor:

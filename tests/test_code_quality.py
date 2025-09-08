@@ -1,14 +1,22 @@
 """
-Test module for code quality checks that mirror GitHub Actions CI/CD pipeline.
+Modern pytest-based code quality test suite that mirrors GitHub Actions CI/CD pipeline.
 
-This module integrates all code quality checks (type checking, formatting, import sorting,
-and YAML validation) into pytest, making them executable via `pytest test_code_quality.py`.
+This comprehensive module integrates all code quality checks (type checking, formatting, 
+import sorting, and YAML validation) into pytest using modern patterns including:
+- Session-scoped fixtures for performance
+- Parametrized testing for workflow validation
+- Modern type annotations with generic types
+- Comprehensive error reporting and actionable feedback
+
+Makes all quality checks executable via `pytest test_code_quality.py`.
 """
+
+from __future__ import annotations
 
 import subprocess
 import sys
 from pathlib import Path
-from typing import Generator, List
+from typing import Generator
 
 import pytest
 import yaml
@@ -18,7 +26,7 @@ class TestCodeQuality:
     """Test class for comprehensive code quality validation."""
 
     @pytest.fixture(scope="session")
-    def source_files(self) -> Generator[List[Path], None, None]:
+    def source_files(self) -> Generator[list[Path], None, None]:
         """Fixture providing all Python source files in the project."""
         source_dir = Path("string_multitool")
         if source_dir.exists():
@@ -28,7 +36,7 @@ class TestCodeQuality:
             yield []
 
     @pytest.fixture(scope="session")  
-    def workflow_files(self) -> Generator[List[Path], None, None]:
+    def workflow_files(self) -> Generator[list[Path], None, None]:
         """Fixture providing all GitHub Actions workflow files."""
         workflow_dir = Path(".github/workflows")
         if workflow_dir.exists():
@@ -38,7 +46,7 @@ class TestCodeQuality:
             yield []
 
     @pytest.mark.quality
-    def test_mypy_type_checking(self, source_files: List[Path]) -> None:
+    def test_mypy_type_checking(self, source_files: list[Path]) -> None:
         """Test that all source files pass mypy type checking."""
         if not source_files:
             pytest.skip("No source files found")
@@ -58,7 +66,7 @@ class TestCodeQuality:
             )
 
     @pytest.mark.quality
-    def test_black_code_formatting(self, source_files: List[Path]) -> None:
+    def test_black_code_formatting(self, source_files: list[Path]) -> None:
         """Test that all source files conform to black formatting."""
         if not source_files:
             pytest.skip("No source files found")
@@ -79,7 +87,7 @@ class TestCodeQuality:
             )
 
     @pytest.mark.quality
-    def test_isort_import_sorting(self, source_files: List[Path]) -> None:
+    def test_isort_import_sorting(self, source_files: list[Path]) -> None:
         """Test that all source files have correctly sorted imports."""
         if not source_files:
             pytest.skip("No source files found")
@@ -165,15 +173,15 @@ class TestCodeQuality:
             "test_tsv_operations.py",
             "test_readme_examples.py",
             "test_unicode.py",
-            "test_simple.py",
             "test_code_quality.py",  # This file
-            "test_cli_functionality.py",
-            "test_signal_handler.py"
+            "test_signal_handler.py",
+            "test_modern_comprehensive.py"
         ]
         
         missing_files = []
+        tests_dir = Path(__file__).parent
         for test_file in test_files:
-            if not Path(test_file).exists():
+            if not (tests_dir / test_file).exists():
                 missing_files.append(test_file)
         
         if missing_files:
@@ -182,12 +190,13 @@ class TestCodeQuality:
     @pytest.mark.slow
     def test_comprehensive_test_execution(self) -> None:
         """Test that the main test suite executes successfully."""
-        # Run core transformation tests
+        # Run core transformation tests with correct path
+        tests_dir = Path(__file__).parent
         result = subprocess.run(
             [
                 sys.executable, "-m", "pytest", 
-                "test_transform.py", 
-                "test_tsv_case_insensitive.py",
+                str(tests_dir / "test_transform.py"), 
+                str(tests_dir / "test_tsv_case_insensitive.py"),
                 "-v", "--tb=short"
             ],
             capture_output=True,
@@ -224,7 +233,7 @@ class TestCodeQuality:
 
     @pytest.mark.integration
     @pytest.mark.cicd
-    def test_github_actions_workflow_integrity(self, workflow_files: List[Path]) -> None:
+    def test_github_actions_workflow_integrity(self, workflow_files: list[Path]) -> None:
         """Test that GitHub Actions workflows reference existing files and commands."""
         if not workflow_files:
             pytest.skip("No workflow files found")

@@ -132,6 +132,7 @@ markers = [
     "quality: marks tests for code quality checks (type, format, imports)",
     "yaml: marks tests for YAML syntax validation",
     "cicd: marks tests that verify CI/CD pipeline compatibility",
+    "stress: marks tests for stress testing and boundary conditions",
 ]
 # Filter out specific warnings
 filterwarnings = [
