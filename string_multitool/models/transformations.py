@@ -282,8 +282,12 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
             elif args and rule.requires_args:
                 return self._apply_rule_with_args(text, rule_name, args)
             elif args and not rule.requires_args:
-                # Rule doesn't require arguments, ignore provided arguments
-                return rule.function(text)
+                # Rule supports optional arguments - check if it has special handling
+                if rule_name == "t":
+                    return self._apply_rule_with_args(text, rule_name, args)
+                else:
+                    # For other rules without requires_args, ignore provided arguments
+                    return rule.function(text)
             else:
                 return rule.function(text)
 
@@ -399,6 +403,9 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
                 return result.strip(separator)
             elif rule_name == RuleNames.USE_TSV_RULES.value:  # TSV Conversion
                 return self._apply_tsv_conversion_simple(text, args)
+            elif rule_name == "t":  # Trim with custom characters
+                chars_to_strip = args[0] if args else None
+                return text.strip(chars_to_strip)
             else:
                 raise TransformationError(
                     f"Unknown rule with arguments: {rule_name}",
@@ -550,10 +557,11 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
             {
                 "t": TransformationRule(
                     name="Trim",
-                    description="Remove leading and trailing whitespace",
-                    example="  hello world   → hello world",
-                    function=str.strip,
+                    description="Remove leading and trailing whitespace or custom characters",
+                    example="  hello world   → hello world, ###hello### with /t '#' → hello",
+                    function=self._trim_text,
                     rule_type=TransformationRuleType.STRING_OPS,
+                    requires_args=False,  # Optional arguments
                 ),
                 "R": TransformationRule(
                     name="Reverse",
@@ -707,6 +715,20 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
                 result += char
         return result
 
+    def _trim_text(self, text: str) -> str:
+        """Trim whitespace from text.
+
+        This method is used for /t without arguments.
+        When arguments are provided, _apply_rule_with_args handles it.
+
+        Args:
+            text: Input text to trim
+
+        Returns:
+            Text with leading and trailing whitespace removed
+        """
+        return text.strip()
+
     def _to_pascal_case(self, text: str) -> str:
         """Convert text to PascalCase."""
         words = re.findall(r"\w+", text)
@@ -715,7 +737,9 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
 
     def _to_camel_case(self, text: str) -> str:
         """Convert text to camelCase."""
-        words = re.findall(r"\w+", text)
+        # Split on underscores, hyphens, and spaces to get words
+        words = re.split(r"[_\-\s]+", text)
+        words = [word for word in words if word]  # Remove empty strings
         if not words:
             return text
         first_word: str = words[0].lower()
@@ -724,6 +748,10 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
 
     def _to_snake_case(self, text: str) -> str:
         """Convert text to snake_case."""
+        # Handle CamelCase and PascalCase by inserting underscores before uppercase letters
+        # that follow lowercase letters or digits
+        text = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", text)
+        # Split on word boundaries and join with underscores
         words = re.findall(r"\w+", text)
         return "_".join(word.lower() for word in words)
 

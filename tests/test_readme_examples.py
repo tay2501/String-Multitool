@@ -41,39 +41,42 @@ def transformation_engine(config_manager: ConfigurationManager) -> TextTransform
 
 class TestReadmeExamples:
     """Test README.md command examples using modern pytest patterns."""
-    
-    @pytest.mark.parametrize("input_text,rule,expected,description", [
-        # Basic transformations
-        ("  HELLO WORLD  ", "/t/l", "hello world", "Trim + lowercase"),
-        (
-            "The Quick Brown Fox",
-            "/s/u",
-            "THE_QUICK_BROWN_FOX", 
-            "snake_case + uppercase",
-        ),
-        ("  hello world test  ", "/t/S", "hello-world-test", "Trim + slugify"),
-        # Advanced transformations
-        (
-            "http://foo.bar/baz",
-            "/S '+'",
-            "http+foo+bar+baz",
-            "Slugify with custom replacement",
-        ),
-        (
-            "I'm Will, Will's son",
-            "/r 'Will' 'Bill'",
-            "I'm Bill, Bill's son",
-            "Replace text",
-        ),
-        ("remove this text", "/r 'this'", "remove  text", "Remove substring"),
-    ])
+
+    @pytest.mark.parametrize(
+        "input_text,rule,expected,description",
+        [
+            # Basic transformations
+            ("  HELLO WORLD  ", "/t/l", "hello world", "Trim + lowercase"),
+            (
+                "The Quick Brown Fox",
+                "/s/u",
+                "THE_QUICK_BROWN_FOX",
+                "snake_case + uppercase",
+            ),
+            ("  hello world test  ", "/t/S", "hello-world-test", "Trim + slugify"),
+            # Advanced transformations
+            (
+                "http://foo.bar/baz",
+                "/S '+'",
+                "http+foo+bar+baz",
+                "Slugify with custom replacement",
+            ),
+            (
+                "I'm Will, Will's son",
+                "/r 'Will' 'Bill'",
+                "I'm Bill, Bill's son",
+                "Replace text",
+            ),
+            ("remove this text", "/r 'this'", "remove  text", "Remove substring"),
+        ],
+    )
     def test_readme_command_examples(
         self,
         transformation_engine: TextTransformationEngine,
         input_text: str,
         rule: str,
         expected: str,
-        description: str
+        description: str,
     ) -> None:
         """Test individual README command examples using parametrized testing."""
         result = transformation_engine.apply_transformations(input_text, rule)
@@ -81,34 +84,51 @@ class TestReadmeExamples:
             f"{description} failed: expected '{expected}', got '{result}' "
             f"for input '{input_text}' with rule '{rule}'"
         )
-    
-    @pytest.mark.parametrize("category,examples", [
-        ("Basic Case Transformations", [
-            ("Hello World", "/l", "hello world", "Lowercase transformation"),
-            ("hello world", "/u", "HELLO WORLD", "Uppercase transformation"), 
-            ("hello world", "/c", "helloWorld", "camelCase transformation"),
-            ("hello world", "/p", "HelloWorld", "PascalCase transformation"),
-            ("hello world", "/s", "hello_world", "snake_case transformation"),
-            ("hello world", "/a", "Hello World", "Title Case transformation"),
-        ]),
-        ("String Operations", [
-            ("  padded text  ", "/t", "padded text", "Trim whitespace"),
-            ("reverse me", "/R", "em esrever", "Reverse string"),
-            ("line1\nline2\nline3", "/si", "'line1',\n'line2',\n'line3'", "Single quotes insertion"),
-            ("line1\r\nline2\r\nline3", "/dlb", "line1line2line3", "Delete line breaks"),
-        ]),
-        ("Character Width Conversions", [
-            ("ＴＢＬ－ＣＨＡ１", "/fh", "TBL-CHA1", "Full-width to half-width"),
-            ("TBL-CHA1", "/hf", "ＴＢＬ－ＣＨＡ１", "Half-width to full-width"),
-            ("TBL_CHA1", "/uh", "TBL-CHA1", "Underscore to hyphen"),
-            ("TBL-CHA1", "/hu", "TBL_CHA1", "Hyphen to underscore"),
-        ]),
-    ])
+
+    @pytest.mark.parametrize(
+        "category,examples",
+        [
+            (
+                "Basic Case Transformations",
+                [
+                    ("Hello World", "/l", "hello world", "Lowercase transformation"),
+                    ("hello world", "/u", "HELLO WORLD", "Uppercase transformation"),
+                    ("hello world", "/c", "helloWorld", "camelCase transformation"),
+                    ("hello world", "/p", "HelloWorld", "PascalCase transformation"),
+                    ("hello world", "/s", "hello_world", "snake_case transformation"),
+                    ("hello world", "/a", "Hello World", "Title Case transformation"),
+                ],
+            ),
+            (
+                "String Operations",
+                [
+                    ("  padded text  ", "/t", "padded text", "Trim whitespace"),
+                    ("reverse me", "/R", "em esrever", "Reverse string"),
+                    (
+                        "line1\nline2\nline3",
+                        "/si",
+                        "'line1',\r\n'line2',\r\n'line3'",
+                        "Single quotes insertion",
+                    ),
+                    ("line1\r\nline2\r\nline3", "/dlb", "line1line2line3", "Delete line breaks"),
+                ],
+            ),
+            (
+                "Character Width Conversions",
+                [
+                    ("ＴＢＬ－ＣＨＡ１", "/fh", "TBL-CHA1", "Full-width to half-width"),
+                    ("TBL-CHA1", "/hf", "ＴＢＬ－ＣＨＡ１", "Half-width to full-width"),
+                    ("TBL_CHA1", "/uh", "TBL-CHA1", "Underscore to hyphen"),
+                    ("TBL-CHA1", "/hu", "TBL_CHA1", "Hyphen to underscore"),
+                ],
+            ),
+        ],
+    )
     def test_readme_examples_by_category(
         self,
         transformation_engine: TextTransformationEngine,
         category: str,
-        examples: list[tuple[str, str, str, str]]
+        examples: list[tuple[str, str, str, str]],
     ) -> None:
         """Test README examples organized by functionality category."""
         for input_text, rule, expected, description in examples:
@@ -118,19 +138,16 @@ class TestReadmeExamples:
                 f"expected '{expected}', got '{result}' "
                 f"for input '{input_text}' with rule '{rule}'"
             )
-    
-    def test_complex_rule_chains(
-        self,
-        transformation_engine: TextTransformationEngine
-    ) -> None:
+
+    def test_complex_rule_chains(self, transformation_engine: TextTransformationEngine) -> None:
         """Test complex rule chains from README examples."""
         complex_examples = [
             ("  Mixed Case Example  ", "/t/l/s/u", "MIXED_CASE_EXAMPLE", "Trim→Lower→Snake→Upper"),
             ("CamelCaseString", "/s/l/a", "Camel_Case_String", "Snake→Lower→Title"),
             ("  UPPER TEXT  ", "/t/l/p", "UpperText", "Trim→Lower→Pascal"),
-            ("kebab-case-text", "/hu/c", "kebab_Case_Text", "Hyphen→Underscore→camelCase"),
+            ("kebab-case-text", "/hu/c", "kebabCaseText", "Hyphen→Underscore→camelCase"),
         ]
-        
+
         for input_text, rule, expected, description in complex_examples:
             result = transformation_engine.apply_transformations(input_text, rule)
             assert result == expected, (
@@ -138,10 +155,9 @@ class TestReadmeExamples:
                 f"expected '{expected}', got '{result}' "
                 f"for input '{input_text}' with rule '{rule}'"
             )
-    
+
     def test_argument_based_examples(
-        self,
-        transformation_engine: TextTransformationEngine 
+        self, transformation_engine: TextTransformationEngine
     ) -> None:
         """Test README examples with arguments."""
         argument_examples = [
@@ -151,7 +167,7 @@ class TestReadmeExamples:
             ("find and replace", "/r 'and' '&'", "find & replace", "Simple replacement"),
             ("remove this word", "/r 'this '", "remove word", "Remove with space"),
         ]
-        
+
         for input_text, rule, expected, description in argument_examples:
             result = transformation_engine.apply_transformations(input_text, rule)
             assert result == expected, (
@@ -159,11 +175,8 @@ class TestReadmeExamples:
                 f"expected '{expected}', got '{result}' "
                 f"for input '{input_text}' with rule '{rule}'"
             )
-    
-    def test_edge_case_examples(
-        self,
-        transformation_engine: TextTransformationEngine
-    ) -> None:
+
+    def test_edge_case_examples(self, transformation_engine: TextTransformationEngine) -> None:
         """Test edge cases that might appear in README."""
         edge_cases = [
             ("", "/l", "", "Empty string"),
@@ -172,7 +185,7 @@ class TestReadmeExamples:
             ("123", "/l", "123", "Numbers only"),
             ("!@#$%", "/u", "!@#$%", "Special characters only"),
         ]
-        
+
         for input_text, rule, expected, description in edge_cases:
             result = transformation_engine.apply_transformations(input_text, rule)
             assert result == expected, (

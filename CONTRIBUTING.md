@@ -56,7 +56,7 @@ uv run pytest test_transform.py test_tsv_case_insensitive.py -v
 uv run pytest --cov=string_multitool
 
 # Or traditional method
-python -m pytest test_transform.py test_tsv_case_insensitive.py -v
+python -m pytest tests/test_transform.py tests/test_tsv_case_insensitive.py -v
 python -m pytest --cov=string_multitool
 ```
 

@@ -15,6 +15,8 @@ import pytest
 # Add current directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
+from string_multitool.io.clipboard import ClipboardMonitor
+from string_multitool.io.manager import InputOutputManager
 from string_multitool.models.config import ConfigurationManager
 from string_multitool.models.transformations import TextTransformationEngine
 from string_multitool.models.types import (
@@ -23,12 +25,12 @@ from string_multitool.models.types import (
     TextSource,
     TransformationRule,
 )
-from string_multitool.io.clipboard import ClipboardMonitor
-from string_multitool.io.manager import InputOutputManager
+
+
 # Mock ApplicationInterface for testing
 class ApplicationInterface:
     """Mock ApplicationInterface for testing purposes."""
-    
+
     def __init__(
         self,
         config_manager: ConfigurationManager,
@@ -44,17 +46,19 @@ class ApplicationInterface:
         self.crypto_manager = crypto_manager
         self.hotkey_mode = hotkey_mode
         self.system_tray_mode = system_tray_mode
-    
+
     def run(self):
         """Mock run method."""
         pass
-    
+
     def display_help(self):
         """Mock display help method."""
         pass
 
+
 try:
-    from string_multitool.models.crypto import CryptographyManager, CRYPTOGRAPHY_AVAILABLE as CRYPTO_AVAILABLE
+    from string_multitool.models.crypto import CRYPTOGRAPHY_AVAILABLE as CRYPTO_AVAILABLE
+    from string_multitool.models.crypto import CryptographyManager
 except ImportError:
     CryptographyManager = None
     CRYPTO_AVAILABLE = False
@@ -99,14 +103,19 @@ class TestConfigurationManager:
         assert isinstance(config, dict)
         assert "rsa_encryption" in config
         assert config["rsa_encryption"]["key_size"] == 4096
-    
-    @pytest.mark.parametrize("config_key,expected_type", [
-        ("basic_transformations", dict),
-        ("case_transformations", dict), 
-        ("string_operations", dict),
-        ("advanced_rules", dict),
-    ])
-    def test_rule_sections_exist(self, config_manager: ConfigurationManager, config_key: str, expected_type: type) -> None:
+
+    @pytest.mark.parametrize(
+        "config_key,expected_type",
+        [
+            ("basic_transformations", dict),
+            ("case_transformations", dict),
+            ("string_operations", dict),
+            ("advanced_rules", dict),
+        ],
+    )
+    def test_rule_sections_exist(
+        self, config_manager: ConfigurationManager, config_key: str, expected_type: type
+    ) -> None:
         """Test that all required rule sections exist with correct types using parametrized testing."""
         rules = config_manager.load_transformation_rules()
         assert config_key in rules
@@ -117,63 +126,125 @@ class TestConfigurationManager:
 class TestTextTransformationEngine:
     """Test text transformation functionality with modern pytest patterns."""
 
-    @pytest.mark.parametrize("rule,input_text,expected", [
-        ("/uh", "TBL_CHA1", "TBL-CHA1"),
-        ("/hu", "TBL-CHA1", "TBL_CHA1"),
-        ("/fh", "ＴＢＬ－ＣＨＡ１", "TBL-CHA1"),
-        ("/hf", "TBL-CHA1", "ＴＢＬ－ＣＨＡ１"),
-    ])
-    def test_basic_transformations(self, transformation_engine: TextTransformationEngine, rule: str, input_text: str, expected: str) -> None:
+    @pytest.mark.parametrize(
+        "rule,input_text,expected",
+        [
+            ("/uh", "TBL_CHA1", "TBL-CHA1"),
+            ("/hu", "TBL-CHA1", "TBL_CHA1"),
+            ("/fh", "ＴＢＬ－ＣＨＡ１", "TBL-CHA1"),
+            ("/hf", "TBL-CHA1", "ＴＢＬ－ＣＨＡ１"),
+        ],
+    )
+    def test_basic_transformations(
+        self,
+        transformation_engine: TextTransformationEngine,
+        rule: str,
+        input_text: str,
+        expected: str,
+    ) -> None:
         """Test basic transformation rules using parametrized testing."""
         result: str = transformation_engine.apply_transformations(input_text, rule)
         assert result == expected, f"Rule {rule} failed: got '{result}', expected '{expected}'"
 
-    @pytest.mark.parametrize("rule,input_text,expected", [
-        ("/l", "SAY HELLO TO MY LITTLE FRIEND!", "say hello to my little friend!"),
-        ("/u", "Can you hear me, Major Tom?", "CAN YOU HEAR ME, MAJOR TOM?"),
-        ("/p", "The quick brown fox jumps over the lazy dog", "TheQuickBrownFoxJumpsOverTheLazyDog"),
-        ("/c", "is error state!", "isErrorState"),
-        ("/s", "is error state!", "is_error_state"),
-        ("/a", "the quick brown fox jumps over the lazy dog", "The Quick Brown Fox Jumps Over The Lazy Dog"),
-    ])
-    def test_case_transformations(self, transformation_engine: TextTransformationEngine, rule: str, input_text: str, expected: str) -> None:
+    @pytest.mark.parametrize(
+        "rule,input_text,expected",
+        [
+            ("/l", "SAY HELLO TO MY LITTLE FRIEND!", "say hello to my little friend!"),
+            ("/u", "Can you hear me, Major Tom?", "CAN YOU HEAR ME, MAJOR TOM?"),
+            (
+                "/p",
+                "The quick brown fox jumps over the lazy dog",
+                "TheQuickBrownFoxJumpsOverTheLazyDog",
+            ),
+            ("/c", "is error state!", "isErrorState"),
+            ("/s", "is error state!", "is_error_state"),
+            (
+                "/a",
+                "the quick brown fox jumps over the lazy dog",
+                "The Quick Brown Fox Jumps Over The Lazy Dog",
+            ),
+        ],
+    )
+    def test_case_transformations(
+        self,
+        transformation_engine: TextTransformationEngine,
+        rule: str,
+        input_text: str,
+        expected: str,
+    ) -> None:
         """Test case transformation rules using parametrized testing."""
         result: str = transformation_engine.apply_transformations(input_text, rule)
         assert result == expected, f"Rule {rule} failed: got '{result}', expected '{expected}'"
 
-    @pytest.mark.parametrize("rule,input_text,expected", [
-        ("/t", "  Well, something is happening  ", "Well, something is happening"),
-        ("/R", "hello", "olleh"),
-        ("/si", "A0001\r\nA0002\r\nA0003", "'A0001',\r\n'A0002',\r\n'A0003'"),
-        ("/dlb", "A0001\r\nA0002\r\nA0003", "A0001A0002A0003"),
-    ])
-    def test_string_operations(self, transformation_engine: TextTransformationEngine, rule: str, input_text: str, expected: str) -> None:
+    @pytest.mark.parametrize(
+        "rule,input_text,expected",
+        [
+            ("/t", "  Well, something is happening  ", "Well, something is happening"),
+            ("/R", "hello", "olleh"),
+            ("/si", "A0001\r\nA0002\r\nA0003", "'A0001',\r\n'A0002',\r\n'A0003'"),
+            ("/dlb", "A0001\r\nA0002\r\nA0003", "A0001A0002A0003"),
+        ],
+    )
+    def test_string_operations(
+        self,
+        transformation_engine: TextTransformationEngine,
+        rule: str,
+        input_text: str,
+        expected: str,
+    ) -> None:
         """Test string operation rules using parametrized testing."""
         result: str = transformation_engine.apply_transformations(input_text, rule)
         assert result == expected, f"Rule {rule} failed: got '{result}', expected '{expected}'"
 
-    @pytest.mark.parametrize("rule,input_text,expected", [
-        ("/t/l", "  HELLO WORLD  ", "hello world"),
-        ("/s/u", "The Quick Brown Fox", "THE_QUICK_BROWN_FOX"),
-    ])
-    def test_sequential_processing(self, transformation_engine: TextTransformationEngine, rule: str, input_text: str, expected: str) -> None:
+    @pytest.mark.parametrize(
+        "rule,input_text,expected",
+        [
+            ("/t/l", "  HELLO WORLD  ", "hello world"),
+            ("/s/u", "The Quick Brown Fox", "THE_QUICK_BROWN_FOX"),
+        ],
+    )
+    def test_sequential_processing(
+        self,
+        transformation_engine: TextTransformationEngine,
+        rule: str,
+        input_text: str,
+        expected: str,
+    ) -> None:
         """Test sequential rule processing using parametrized testing."""
         result: str = transformation_engine.apply_transformations(input_text, rule)
         assert result == expected, f"Rule {rule} failed: got '{result}', expected '{expected}'"
 
-    @pytest.mark.parametrize("rule,input_text,expected", [
-        ("/S '+'", "http://foo.bar/baz/brrr", "http+foo+bar+baz+brrr"),
-        ("/r 'Will' 'Bill'", "I'm Will, Will's son", "I'm Bill, Bill's son"),
-        ("/S", "hello world test", "hello-world-test"),  # Default replacement
-        ("/r 'this'", "remove this text", "remove  text"),  # Default replacement (empty)
-        # Escape sequence tests for newline conversion
-        ("/r '\\r\\n' '\\n'", "Line1\r\nLine2\r\nLine3", "Line1\nLine2\nLine3"),  # CRLF to LF
-        ("/r '\\n' '\\r\\n'", "Line1\nLine2\nLine3", "Line1\r\nLine2\r\nLine3"),  # LF to CRLF  
-        ("/r '\\r' '\\n'", "Line1\rLine2\rLine3", "Line1\nLine2\nLine3"),  # CR to LF
-        ("/r '\\t' ' '", "Col1\tCol2\tCol3", "Col1 Col2 Col3"),  # Tab to space
-        ("/r '\\\\' '/'", "C:\\path\\to\\file", "C:/path/to/file"),  # Backslash to forward slash
-    ])
-    def test_argument_based_rules(self, transformation_engine: TextTransformationEngine, rule: str, input_text: str, expected: str) -> None:
+    @pytest.mark.parametrize(
+        "rule,input_text,expected",
+        [
+            ("/S '+'", "http://foo.bar/baz/brrr", "http+foo+bar+baz+brrr"),
+            ("/r 'Will' 'Bill'", "I'm Will, Will's son", "I'm Bill, Bill's son"),
+            ("/S", "hello world test", "hello-world-test"),  # Default replacement
+            ("/r 'this'", "remove this text", "remove  text"),  # Default replacement (empty)
+            # Escape sequence tests for newline conversion
+            ("/r '\\r\\n' '\\n'", "Line1\r\nLine2\r\nLine3", "Line1\nLine2\nLine3"),  # CRLF to LF
+            ("/r '\\n' '\\r\\n'", "Line1\nLine2\nLine3", "Line1\r\nLine2\r\nLine3"),  # LF to CRLF
+            ("/r '\\r' '\\n'", "Line1\rLine2\rLine3", "Line1\nLine2\nLine3"),  # CR to LF
+            ("/r '\\t' ' '", "Col1\tCol2\tCol3", "Col1 Col2 Col3"),  # Tab to space
+            (
+                "/r '\\\\' '/'",
+                "C:\\path\\to\\file",
+                "C:/path/to/file",
+            ),  # Backslash to forward slash
+            # Trim with custom characters
+            ("/t '#'", "###hello world###", "hello world"),  # Trim hash characters
+            ("/t 'x'", "xxxtest dataxxx", "test data"),  # Trim x characters
+            ("/t '*'", "***content***", "content"),  # Trim asterisk characters
+            ("/t ' .'", "...  hello world  ...", "hello world"),  # Trim spaces and dots
+        ],
+    )
+    def test_argument_based_rules(
+        self,
+        transformation_engine: TextTransformationEngine,
+        rule: str,
+        input_text: str,
+        expected: str,
+    ) -> None:
         """Test rules with arguments using parametrized testing."""
         result: str = transformation_engine.apply_transformations(input_text, rule)
         assert result == expected, f"Rule {rule} failed: got '{result}', expected '{expected}'"
@@ -193,7 +264,9 @@ class TestTextTransformationEngine:
         with pytest.raises(ValidationError, match="Rules must start with"):
             transformation_engine.apply_transformations("test", "invalid")
 
-    def test_parse_rule_string_edge_cases(self, transformation_engine: TextTransformationEngine) -> None:
+    def test_parse_rule_string_edge_cases(
+        self, transformation_engine: TextTransformationEngine
+    ) -> None:
         """Test edge cases in rule string parsing."""
         # Test rule with no arguments when arguments expected
         parsed: list[tuple[str, list[str]]] = transformation_engine.parse_rule_string("/S")
@@ -208,39 +281,52 @@ class TestTextTransformationEngine:
         assert len(rules) > 0
         assert "u" in rules  # Basic rule
         assert "S" in rules  # Advanced rule
-    
-    @pytest.mark.parametrize("rule,input_text,expected", [
-        # Empty string edge cases
-        ("/l", "", ""),
-        ("/u", "", ""),
-        ("/t", "", ""),
-        # Single character edge cases
-        ("/l", "A", "a"),
-        ("/u", "z", "Z"),
-        ("/t", " ", ""),
-        # Special character edge cases
-        ("/l", "123!@#", "123!@#"),
-        ("/u", "456$%^", "456$%^"),
-        ("/R", "!@#", "#@!"),
-        # Unicode edge cases
-        ("/l", "\u00dc", "\u00fc"),
-        ("/u", "\u00f1", "\u00d1"),
-        ("/t", "\u3000", ""),  # Full-width space
-        # Null and control characters
-        ("/l", "\x00", "\x00"),
-        ("/u", "\t\n", "\t\n"),
-    ])
-    def test_edge_case_transformations(self, transformation_engine: TextTransformationEngine, rule: str, input_text: str, expected: str) -> None:
+
+    @pytest.mark.parametrize(
+        "rule,input_text,expected",
+        [
+            # Empty string edge cases
+            ("/l", "", ""),
+            ("/u", "", ""),
+            ("/t", "", ""),
+            # Single character edge cases
+            ("/l", "A", "a"),
+            ("/u", "z", "Z"),
+            ("/t", " ", ""),
+            # Special character edge cases
+            ("/l", "123!@#", "123!@#"),
+            ("/u", "456$%^", "456$%^"),
+            ("/R", "!@#", "#@!"),
+            # Unicode edge cases
+            ("/l", "\u00dc", "\u00fc"),
+            ("/u", "\u00f1", "\u00d1"),
+            ("/t", "\u3000", ""),  # Full-width space
+            # Null and control characters
+            ("/l", "\x00", "\x00"),
+            ("/u", "\t\n", "\t\n"),
+        ],
+    )
+    def test_edge_case_transformations(
+        self,
+        transformation_engine: TextTransformationEngine,
+        rule: str,
+        input_text: str,
+        expected: str,
+    ) -> None:
         """Test edge case transformations using parametrized testing."""
         result: str = transformation_engine.apply_transformations(input_text, rule)
-        assert result == expected, f"Edge case rule {rule} failed: got '{result}', expected '{expected}'"
+        assert (
+            result == expected
+        ), f"Edge case rule {rule} failed: got '{result}', expected '{expected}'"
 
 
 class TestInteractiveSession:
     """Test interactive session functionality with modern pytest patterns."""
 
     @pytest.fixture
-    def session(self, io_manager: InputOutputManager, transformation_engine: TextTransformationEngine) -> InteractiveSession:
+    def session(
+        self, io_manager: InputOutputManager, transformation_engine: TextTransformationEngine
+    ) -> InteractiveSession:
         """Create an InteractiveSession instance for testing using dependency injection."""
         return InteractiveSession(io_manager, transformation_engine)
 
@@ -273,9 +359,7 @@ class TestInteractiveSession:
     ) -> None:
         """Test refreshing from clipboard."""
         mock_pyperclip.paste.return_value = "new content"
-        with patch.object(
-            session.io_manager, "get_clipboard_text", return_value="new content"
-        ):
+        with patch.object(session.io_manager, "get_clipboard_text", return_value="new content"):
 
             result: str = session.refresh_from_clipboard()
 
@@ -311,15 +395,9 @@ class TestCommandProcessor:
         mock_status.clipboard_monitor_active = False
 
         with (
-            patch.object(
-                processor.session, "get_status_info", return_value=mock_status
-            ),
-            patch.object(
-                processor.session, "get_display_text", return_value="test text"
-            ),
-            patch.object(
-                processor.session, "get_time_since_update", return_value="1 minute ago"
-            ),
+            patch.object(processor.session, "get_status_info", return_value=mock_status),
+            patch.object(processor.session, "get_display_text", return_value="test text"),
+            patch.object(processor.session, "get_time_since_update", return_value="1 minute ago"),
         ):
 
             result: Any = processor.process_command("status")
@@ -327,7 +405,10 @@ class TestCommandProcessor:
             assert result.success is True
             assert "[STATUS]:" in result.message or "Session Status" in result.message
             # Check for status information (文字数やクリップボード情報を確認)
-            assert any(info in result.message for info in ["Current clipboard", "Auto-detection", "Monitor active"])
+            assert any(
+                info in result.message
+                for info in ["Current clipboard", "Auto-detection", "Monitor active"]
+            )
 
 
 class TestCryptographyManager:
@@ -338,21 +419,21 @@ class TestCryptographyManager:
         """Create a CryptographyManager instance for testing with temporary keys."""
         import tempfile
         from pathlib import Path
-        
+
         config_manager: ConfigurationManager = ConfigurationManager()
         if not CRYPTO_AVAILABLE:
             pytest.skip("Cryptography not available")
-        
+
         # Create temporary directory for test keys
         test_key_dir = tmp_path / "test_rsa"
         test_key_dir.mkdir(exist_ok=True)
-        
+
         # Override the key directory in the crypto manager
         crypto_manager = CryptographyManager(config_manager)
         crypto_manager.key_directory = test_key_dir
         crypto_manager.private_key_path = test_key_dir / "rsa"
         crypto_manager.public_key_path = test_key_dir / "rsa.pub"
-        
+
         return crypto_manager
 
     def test_key_generation(self, crypto_manager: CryptographyManager) -> None:
@@ -387,9 +468,7 @@ class TestCryptographyManager:
 
         assert decrypted == large_text
 
-    def test_japanese_text_encryption(
-        self, crypto_manager: CryptographyManager
-    ) -> None:
+    def test_japanese_text_encryption(self, crypto_manager: CryptographyManager) -> None:
         """Test encryption of Japanese text."""
         japanese_text: str = "こんにちは世界"
 
@@ -447,9 +526,7 @@ class TestInputOutputManager:
 
     @patch("string_multitool.io.manager.sys.stdin")
     @patch("string_multitool.io.manager.pyperclip")
-    def test_get_input_text_from_pipe(
-        self, mock_pyperclip: Mock, mock_stdin: Mock
-    ) -> None:
+    def test_get_input_text_from_pipe(self, mock_pyperclip: Mock, mock_stdin: Mock) -> None:
         """Test getting input from pipe."""
         mock_stdin.isatty.return_value = False
         mock_stdin.read.return_value = "piped text\n"
@@ -460,9 +537,7 @@ class TestInputOutputManager:
 
     @patch("string_multitool.io.manager.sys.stdin")
     @patch("string_multitool.io.manager.pyperclip")
-    def test_get_input_text_from_clipboard(
-        self, mock_pyperclip: Mock, mock_stdin: Mock
-    ) -> None:
+    def test_get_input_text_from_clipboard(self, mock_pyperclip: Mock, mock_stdin: Mock) -> None:
         """Test getting input from clipboard."""
         mock_stdin.isatty.return_value = True
         mock_pyperclip.paste.return_value = "clipboard text"
@@ -490,9 +565,7 @@ class TestInputOutputManager:
     @patch("string_multitool.io.manager.CLIPBOARD_AVAILABLE", False)
     def test_clipboard_unavailable(self) -> None:
         """Test behavior when clipboard is unavailable."""
-        with pytest.raises(
-            ClipboardError, match="Clipboard functionality not available"
-        ):
+        with pytest.raises(ClipboardError, match="Clipboard functionality not available"):
             io_manager = InputOutputManager()
             io_manager.get_clipboard_text()
 
@@ -546,9 +619,7 @@ class TestModularTransformations:
     @pytest.fixture
     def transformation_classes(self) -> dict[str, Any]:
         """Get available transformation classes."""
-        from string_multitool.transformations.advanced_transformations import (
-            ReplaceTransformation,
-        )
+        from string_multitool.transformations.advanced_transformations import ReplaceTransformation
         from string_multitool.transformations.basic_transformations import (
             FullToHalfWidthTransformation,
             HalfToFullWidthTransformation,
@@ -567,9 +638,7 @@ class TestModularTransformations:
             DecryptTransformation,
             EncryptTransformation,
         )
-        from string_multitool.transformations.string_operations import (
-            TrimTransformation,
-        )
+        from string_multitool.transformations.string_operations import TrimTransformation
 
         return {
             "uh": UnderbarToHyphenTransformation,
@@ -588,9 +657,7 @@ class TestModularTransformations:
             "dec": DecryptTransformation,
         }
 
-    def test_basic_transformation_classes(
-        self, transformation_classes: dict[str, Any]
-    ) -> None:
+    def test_basic_transformation_classes(self, transformation_classes: dict[str, Any]) -> None:
         """Test individual transformation classes."""
         test_cases: list[tuple[str, str, str]] = [
             ("uh", "TBL_CHA1", "TBL-CHA1"),
@@ -604,16 +671,12 @@ class TestModularTransformations:
             transformation = transformation_class()
             result = transformation.transform(input_text)
 
-            assert (
-                result == expected
-            ), f"Rule {rule} failed: got '{result}', expected '{expected}'"
+            assert result == expected, f"Rule {rule} failed: got '{result}', expected '{expected}'"
             assert transformation.get_transformation_rule() == rule
             assert transformation.get_input_text() == input_text
             assert transformation.get_output_text() == expected
 
-    def test_case_transformation_classes(
-        self, transformation_classes: dict[str, Any]
-    ) -> None:
+    def test_case_transformation_classes(self, transformation_classes: dict[str, Any]) -> None:
         """Test case transformation classes."""
         test_cases: list[tuple[str, str, str]] = [
             ("l", "SAY HELLO TO MY LITTLE FRIEND!", "say hello to my little friend!"),
@@ -637,16 +700,12 @@ class TestModularTransformations:
             transformation = transformation_class()
             result = transformation.transform(input_text)
 
-            assert (
-                result == expected
-            ), f"Rule {rule} failed: got '{result}', expected '{expected}'"
+            assert result == expected, f"Rule {rule} failed: got '{result}', expected '{expected}'"
             assert transformation.get_transformation_rule() == rule
             assert transformation.get_input_text() == input_text
             assert transformation.get_output_text() == expected
 
-    def test_transformation_error_handling(
-        self, transformation_classes: dict[str, Any]
-    ) -> None:
+    def test_transformation_error_handling(self, transformation_classes: dict[str, Any]) -> None:
         """Test error handling in transformation classes."""
         from string_multitool.exceptions import TransformationError
 
@@ -659,9 +718,7 @@ class TestModularTransformations:
         import tempfile
 
         # Create a mock transformation that will fail
-        with patch.object(
-            transformation, "transform", side_effect=RuntimeError("Mock error")
-        ):
+        with patch.object(transformation, "transform", side_effect=RuntimeError("Mock error")):
             with pytest.raises(RuntimeError, match="Mock error"):
                 transformation.transform("test")
 
@@ -671,9 +728,7 @@ class TestModularTransformations:
         assert "test_key" in error_context
         assert "rule" in error_context
 
-    def test_string_operation_classes(
-        self, transformation_classes: dict[str, Any]
-    ) -> None:
+    def test_string_operation_classes(self, transformation_classes: dict[str, Any]) -> None:
         """Test string operation transformation classes."""
         test_cases: list[tuple[str, str, str]] = [
             ("t", "  Well, something is happening  ", "Well, something is happening"),
@@ -684,9 +739,7 @@ class TestModularTransformations:
             transformation = transformation_class()
             result = transformation.transform(input_text)
 
-            assert (
-                result == expected
-            ), f"Rule {rule} failed: got '{result}', expected '{expected}'"
+            assert result == expected, f"Rule {rule} failed: got '{result}', expected '{expected}'"
             assert transformation.get_transformation_rule() == rule
             assert transformation.get_input_text() == input_text
             assert transformation.get_output_text() == expected
@@ -709,14 +762,10 @@ class TestModularTransformations:
         assert result == "remove  text"
 
         # Test error with no arguments
-        with pytest.raises(
-            TransformationError, match="置換処理には最低1つの引数が必要"
-        ):
+        with pytest.raises(TransformationError, match="置換処理には最低1つの引数が必要"):
             replace_transformation.set_arguments([])
 
-    def test_transformation_with_config(
-        self, transformation_classes: dict[str, Any]
-    ) -> None:
+    def test_transformation_with_config(self, transformation_classes: dict[str, Any]) -> None:
         """Test transformation classes with configuration."""
         config = {"test_setting": "test_value"}
         transformation = transformation_classes["u"](config)
@@ -727,9 +776,7 @@ class TestModularTransformations:
         # Config should be available through base class
         assert hasattr(transformation, "_config")
 
-    def test_transformation_base_methods(
-        self, transformation_classes: dict[str, Any]
-    ) -> None:
+    def test_transformation_base_methods(self, transformation_classes: dict[str, Any]) -> None:
         """Test transformation base class methods."""
         transformation = transformation_classes["l"]()
 
@@ -756,9 +803,7 @@ class TestModularTransformations:
 
         # Test encryption without crypto manager (should fail)
         encrypt_transformation = transformation_classes["enc"]()
-        with pytest.raises(
-            TransformationError, match="暗号化マネージャーが設定されていません"
-        ):
+        with pytest.raises(TransformationError, match="暗号化マネージャーが設定されていません"):
             encrypt_transformation.transform("test")
 
         # Test with mock crypto manager
@@ -836,11 +881,7 @@ def test_dataclass_structures() -> None:
 
 def test_logging_functionality() -> None:
     """Test unified logging functionality."""
-    from string_multitool.utils.unified_logger import (
-        get_logger,
-        log_error,
-        log_info,
-    )
+    from string_multitool.utils.unified_logger import get_logger, log_error, log_info
 
     # Test get_logger function
     logger = get_logger("test_logger")
@@ -857,7 +898,7 @@ def test_logging_integration() -> None:
 
     logger = get_logger("integration_test")
     logger.info("Integration test message")
-    
+
     # Basic integration test - logger should work without errors
     assert logger is not None
 
@@ -865,52 +906,53 @@ def test_logging_integration() -> None:
 @pytest.mark.stress
 class TestStressAndBoundaryConditions:
     """Stress testing and boundary condition validation."""
-    
+
     def test_memory_usage_with_repeated_transformations(
         self, transformation_engine: TextTransformationEngine
     ) -> None:
         """Test memory usage with repeated transformations."""
         import gc
-        
+
         # Force garbage collection before test
         gc.collect()
-        
+
         # Perform many transformations
         for i in range(10000):
             result = transformation_engine.apply_transformations(f"test{i}", "/u")
             assert result == f"TEST{i}"
-            
+
             # Periodically force garbage collection
             if i % 1000 == 0:
                 gc.collect()
-        
+
         # Final garbage collection
         gc.collect()
-    
+
     def test_deeply_nested_rule_chains(
         self, transformation_engine: TextTransformationEngine
     ) -> None:
         """Test deeply nested rule chains."""
         # Create a very long rule chain
         long_chain = "/t/l/u/l/u/l/u/l/u/l/u/l/u/l/u/l/u/l/u"  # 19 rules
-        
+
         result = transformation_engine.apply_transformations("  Hello World  ", long_chain)
         # Final result should be lowercase (last /u changes to uppercase, but there's one more /l)
-        assert result == "hello world"
-    
-    @pytest.mark.parametrize("malicious_input", [
-        "\x00" * 1000,  # Null bytes
-        "\xff" * 1000,  # High bytes
-        "<script>alert('xss')</script>",  # XSS attempt
-        "'; DROP TABLE users; --",  # SQL injection attempt
-        "../../../etc/passwd",  # Path traversal attempt
-        "\u200B" * 1000,  # Zero-width spaces
-        "\uFEFF" * 1000,  # Byte order marks
-    ])
+        assert result == "HELLO WORLD"
+
+    @pytest.mark.parametrize(
+        "malicious_input",
+        [
+            "\x00" * 1000,  # Null bytes
+            "\xff" * 1000,  # High bytes
+            "<script>alert('xss')</script>",  # XSS attempt
+            "'; DROP TABLE users; --",  # SQL injection attempt
+            "../../../etc/passwd",  # Path traversal attempt
+            "\u200b" * 1000,  # Zero-width spaces
+            "\ufeff" * 1000,  # Byte order marks
+        ],
+    )
     def test_malicious_input_handling(
-        self, 
-        transformation_engine: TextTransformationEngine, 
-        malicious_input: str
+        self, transformation_engine: TextTransformationEngine, malicious_input: str
     ) -> None:
         """Test handling of potentially malicious input."""
         try:
@@ -922,42 +964,42 @@ class TestStressAndBoundaryConditions:
             # but should not cause security vulnerabilities
             assert "security" not in str(e).lower()
             assert "attack" not in str(e).lower()
-    
+
     def test_resource_exhaustion_protection(
         self, transformation_engine: TextTransformationEngine
     ) -> None:
         """Test protection against resource exhaustion attacks."""
         import time
-        
+
         # Test with extremely long input
         very_long_input = "A" * 1000000  # 1MB
-        
+
         start_time = time.time()
         try:
             result = transformation_engine.apply_transformations(very_long_input, "/l")
             elapsed = time.time() - start_time
-            
+
             # Should complete within reasonable time (5 seconds for 1MB)
             assert elapsed < 5.0, f"Transformation took too long: {elapsed:.2f}s"
             assert result == "a" * 1000000
-            
+
         except MemoryError:
             # If system can't handle 1MB, that's acceptable
             pytest.skip("System unable to handle 1MB transformation")
-    
+
     def test_unicode_boundary_conditions(
         self, transformation_engine: TextTransformationEngine
     ) -> None:
         """Test Unicode boundary conditions and edge cases."""
         boundary_cases = [
-            "\U0001F600",  # Emoji (4-byte UTF-8)
+            "\U0001f600",  # Emoji (4-byte UTF-8)
             "\U00010000",  # First character in supplementary planes
-            "\U0010FFFF",  # Last valid Unicode code point
-            "\uD800\uDC00",  # Surrogate pair (valid in UTF-16)
+            "\U0010ffff",  # Last valid Unicode code point
+            "\ud800\udc00",  # Surrogate pair (valid in UTF-16)
             "\u0300",  # Combining character alone
             "a\u0300\u0301\u0302",  # Base + multiple combining characters
         ]
-        
+
         for test_case in boundary_cases:
             try:
                 result = transformation_engine.apply_transformations(test_case, "/t")
@@ -967,7 +1009,9 @@ class TestStressAndBoundaryConditions:
                 pass
             except Exception as e:
                 # Should not cause other types of exceptions
-                pytest.fail(f"Unexpected exception for Unicode boundary case {repr(test_case)}: {e}")
+                pytest.fail(
+                    f"Unexpected exception for Unicode boundary case {repr(test_case)}: {e}"
+                )
 
 
 def test_pathlib_usage() -> None:
