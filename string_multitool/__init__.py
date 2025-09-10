@@ -35,7 +35,7 @@ from .models.types import (
     TransformationRuleType,
 )
 
-__version__ = "2.1.0"
+__version__ = "2.6.0"
 __author__ = "String_Multitool Development Team"
 
 __all__ = [

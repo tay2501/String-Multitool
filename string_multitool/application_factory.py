@@ -18,13 +18,7 @@ from .models.config import ConfigurationManager
 from .models.crypto import CryptographyManager
 
 # ApplicationInterface will be imported locally to avoid circular imports
-from .models.interactive import CommandProcessor, InteractiveSession
 from .models.transformations import TextTransformationEngine
-from .models.types import (
-    ConfigManagerProtocol,
-    CryptoManagerProtocol,
-    TransformationEngineProtocol,
-)
 from .utils.unified_logger import get_logger, log_with_context
 
 # DIContainer削除 - 直接的なファクトリパターンに変更
@@ -114,10 +108,7 @@ class ApplicationFactory:
             ConfigurationError: If application creation fails
         """
         from .exceptions import ConfigurationError
-        from .models.config import ConfigurationManager
-        from .models.crypto import CryptographyManager
-        from .models.transformations import TextTransformationEngine
-        from .utils.unified_logger import get_logger, log_with_context
+        from .utils.unified_logger import get_logger
 
         logger = get_logger(__name__)
         log_with_context(
@@ -164,8 +155,6 @@ class ApplicationFactory:
             ConfigurationError: If test application creation fails
         """
         from .exceptions import ConfigurationError
-        from .models.config import ConfigurationManager
-        from .models.transformations import TextTransformationEngine
         from .utils.unified_logger import get_logger
 
         logger = get_logger(__name__)

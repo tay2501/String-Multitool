@@ -15,7 +15,8 @@ from __future__ import annotations
 import signal
 import threading
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest

@@ -8,8 +8,8 @@ with proper scope management and dependency injection patterns.
 from __future__ import annotations
 
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Any, Generator
 from unittest.mock import Mock, patch
 
 import pytest

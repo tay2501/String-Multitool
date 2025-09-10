@@ -11,7 +11,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
-from typing import Any, Protocol, Self, TypedDict, override
+from typing import Any, Protocol, TypedDict, override
 
 # PEP 695: Type parameter syntax (Python 3.12+)
 type ConfigValue = str | int | float | bool | list[Any] | dict[str, Any] | None

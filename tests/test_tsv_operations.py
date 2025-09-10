@@ -14,8 +14,6 @@ from __future__ import annotations
 import sys
 import time
 from pathlib import Path
-from typing import Any
-from unittest.mock import Mock, patch
 
 import pytest
 

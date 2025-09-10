@@ -1,0 +1,96 @@
+/* Custom CSS for String-Multitool documentation */
+
+/* Improve readability */
+.wy-nav-content {
+    max-width: 1200px;
+}
+
+/* Code styling */
+.rst-content code.literal {
+    color: #c7254e;
+    background-color: #f9f2f4;
+    border-radius: 4px;
+    padding: 2px 4px;
+}
+
+.rst-content .highlight {
+    margin-bottom: 16px;
+}
+
+/* Improved table styling */
+.rst-content table.docutils {
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+}
+
+.rst-content table.docutils th,
+.rst-content table.docutils td {
+    padding: 8px 12px;
+    border: 1px solid #e1e4e5;
+}
+
+.rst-content table.docutils th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+/* Admonition styling */
+.rst-content .admonition {
+    margin: 1rem 0;
+    padding: 1rem;
+    border-left: 4px solid #2980b9;
+    background-color: #f8f9fa;
+}
+
+.rst-content .admonition.note {
+    border-left-color: #3498db;
+}
+
+.rst-content .admonition.warning {
+    border-left-color: #f39c12;
+}
+
+.rst-content .admonition.danger {
+    border-left-color: #e74c3c;
+}
+
+/* API documentation styling */
+.rst-content dl.py dt {
+    background-color: #f8f9fa;
+    border-left: 4px solid #2980b9;
+    padding-left: 8px;
+}
+
+/* Sidebar improvements */
+.wy-side-nav-search {
+    background-color: #2c3e50;
+}
+
+.wy-side-nav-search input[type="text"] {
+    border-radius: 4px;
+}
+
+/* Better mobile responsiveness */
+@media (max-width: 768px) {
+    .wy-nav-content {
+        padding: 1rem;
+    }
+    
+    .rst-content pre {
+        font-size: 12px;
+        overflow-x: auto;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .rst-content code.literal {
+        color: #ff6b6b;
+        background-color: #2d2d2d;
+    }
+    
+    .rst-content .admonition {
+        background-color: #2d2d2d;
+        color: #ffffff;
+    }
+}

@@ -11,10 +11,9 @@ import sys
 from typing import Final
 
 from ..exceptions import ClipboardError
-from ..models.types import IOManagerProtocol
 
 # Import logging utilities
-from ..utils.unified_logger import get_logger, log_debug, log_error, log_info, log_warning
+from ..utils.unified_logger import get_logger, log_debug
 
 try:
     import pyperclip
@@ -61,7 +60,6 @@ class InputOutputManager:
                     if isinstance(raw_input, str) and "\udcef" in raw_input:
                         # Raw bytes were decoded incorrectly, need to handle encoding
                         # Read the buffer content directly as bytes and decode properly
-                        import codecs
 
                         # Try to decode with UTF-8 error handling
                         try:
@@ -148,6 +146,7 @@ class InputOutputManager:
             if sys.platform == "win32":
                 result = subprocess.run(
                     ["powershell", "-Command", "Get-Clipboard"],
+                    check=False,
                     capture_output=True,
                     text=True,
                     timeout=5,
@@ -166,6 +165,7 @@ class InputOutputManager:
                 # Use echo to get clipboard content via pipeline
                 result = subprocess.run(
                     ["cmd", "/c", "echo off && powershell Get-Clipboard"],
+                    check=False,
                     capture_output=True,
                     text=True,
                     timeout=5,
@@ -235,6 +235,7 @@ class InputOutputManager:
             if sys.platform == "win32":
                 result = subprocess.run(
                     ["powershell", "-Command", f"Set-Clipboard -Value '{text}'"],
+                    check=False,
                     capture_output=True,
                     text=True,
                     timeout=5,
@@ -251,7 +252,9 @@ class InputOutputManager:
             import sys
 
             if sys.platform == "win32":
-                result = subprocess.run(["cmd", "/c", "clip"], input=text, text=True, timeout=5)
+                result = subprocess.run(
+                    ["cmd", "/c", "clip"], check=False, input=text, text=True, timeout=5
+                )
                 if result.returncode == 0:
                     log_debug(logger, "[SUCCESS] Text copied to clipboard via clip command")
                     return

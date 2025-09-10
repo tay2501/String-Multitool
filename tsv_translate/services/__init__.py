@@ -5,11 +5,11 @@ and interface segregation principles from SOLID.
 """
 
 from .base import BaseService
-from .sync_service import SyncService, SyncServiceInterface
 from .conversion_service import ConversionService, ConversionServiceInterface
+from .sync_service import SyncService, SyncServiceInterface
 
 __all__ = [
     "BaseService",
-    "SyncService", "SyncServiceInterface", 
+    "SyncService", "SyncServiceInterface",
     "ConversionService", "ConversionServiceInterface"
 ]

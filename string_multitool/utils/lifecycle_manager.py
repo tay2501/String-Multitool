@@ -28,17 +28,16 @@ Reference:
 from __future__ import annotations
 
 import json
-import logging
 import os
 import platform
 import sys
 import threading
 import time
 import traceback
-from datetime import datetime, timezone
-from enum import Enum, auto
+from datetime import UTC, datetime
+from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Protocol, TypedDict, Union
+from typing import Any, Protocol, TypedDict
 from uuid import uuid4
 
 from .unified_logger import get_logger
@@ -101,13 +100,13 @@ class SessionInfo(TypedDict):
     session_id: str
     start_timestamp: str
     start_timestamp_iso: str
-    end_timestamp: Optional[str]
-    end_timestamp_iso: Optional[str]
-    duration_seconds: Optional[float]
-    exit_reason: Optional[str]
-    exit_code: Optional[int]
-    mode: Optional[str]
-    command_args: List[str]
+    end_timestamp: str | None
+    end_timestamp_iso: str | None
+    duration_seconds: float | None
+    exit_reason: str | None
+    exit_code: int | None
+    mode: str | None
+    command_args: list[str]
 
 
 class SystemInfo(TypedDict):
@@ -123,7 +122,7 @@ class SystemInfo(TypedDict):
     parent_process_id: int
     working_directory: str
     executable_path: str
-    environment_variables: Dict[str, str]
+    environment_variables: dict[str, str]
 
 
 class ResourceMetrics(TypedDict):
@@ -144,9 +143,9 @@ class DebugInfo(TypedDict):
     session: SessionInfo
     system: SystemInfo
     resources: ResourceMetrics
-    components_status: Dict[str, Any]
-    error_details: Optional[Dict[str, Any]]
-    performance_metrics: Dict[str, Any]
+    components_status: dict[str, Any]
+    error_details: dict[str, Any] | None
+    performance_metrics: dict[str, Any]
 
 
 class LifecycleObserver(Protocol):
@@ -170,7 +169,7 @@ class ApplicationLifecycleManager:
     It follows best practices for enterprise-grade logging and monitoring.
     """
 
-    _instance: Optional[ApplicationLifecycleManager] = None
+    _instance: ApplicationLifecycleManager | None = None
     _lock = threading.Lock()
 
     def __new__(cls) -> ApplicationLifecycleManager:
@@ -190,13 +189,13 @@ class ApplicationLifecycleManager:
         self._logger = get_logger(__name__)
         self._session_id = str(uuid4())
         self._start_time = time.time()
-        self._start_datetime = datetime.now(timezone.utc)
-        self._observers: List[LifecycleObserver] = []
-        self._components_status: Dict[str, Any] = {}
-        self._performance_metrics: Dict[str, Any] = {}
-        self._error_details: Optional[Dict[str, Any]] = None
-        self._mode: Optional[str] = None
-        self._command_args: List[str] = sys.argv[1:].copy()
+        self._start_datetime = datetime.now(UTC)
+        self._observers: list[LifecycleObserver] = []
+        self._components_status: dict[str, Any] = {}
+        self._performance_metrics: dict[str, Any] = {}
+        self._error_details: dict[str, Any] | None = None
+        self._mode: str | None = None
+        self._command_args: list[str] = sys.argv[1:].copy()
 
         # Initialize resource monitoring with fallback
         if PSUTIL_AVAILABLE:
@@ -290,7 +289,7 @@ class ApplicationLifecycleManager:
     def _build_session_info(self) -> SessionInfo:
         """Build comprehensive session information."""
         end_time = time.time()
-        end_datetime = datetime.now(timezone.utc)
+        end_datetime = datetime.now(UTC)
         duration = end_time - self._start_time
 
         return {
@@ -396,7 +395,7 @@ class ApplicationLifecycleManager:
                 try:
                     if hasattr(resource, "getrusage") and hasattr(resource, "RUSAGE_SELF"):
                         # Type-safe access to resource constants
-                        rusage_self = getattr(resource, "RUSAGE_SELF")
+                        rusage_self = resource.RUSAGE_SELF
                         ru = resource.getrusage(rusage_self)
                         user_time = ru.ru_utime
                         system_time = ru.ru_stime
@@ -439,7 +438,7 @@ class ApplicationLifecycleManager:
         self,
         exit_reason: ExitReason,
         exit_code: int = 0,
-        exception: Optional[Exception] = None,
+        exception: Exception | None = None,
     ) -> None:
         """
         Log comprehensive application shutdown information.
@@ -564,7 +563,7 @@ class ApplicationLifecycleManager:
         """Get the current runtime in seconds."""
         return time.time() - self._start_time
 
-    def get_debug_summary(self) -> Dict[str, Any]:
+    def get_debug_summary(self) -> dict[str, Any]:
         """Get a summary of current debug information for troubleshooting."""
         try:
             return {
@@ -581,7 +580,7 @@ class ApplicationLifecycleManager:
 
 
 # Global lifecycle manager instance
-_lifecycle_manager: Optional[ApplicationLifecycleManager] = None
+_lifecycle_manager: ApplicationLifecycleManager | None = None
 _manager_lock = threading.Lock()
 
 
@@ -607,7 +606,7 @@ def log_application_start() -> str:
 
 
 def log_application_end(
-    exit_reason: ExitReason, exit_code: int = 0, exception: Optional[Exception] = None
+    exit_reason: ExitReason, exit_code: int = 0, exception: Exception | None = None
 ) -> None:
     """
     Log application shutdown with comprehensive debug information.
@@ -639,7 +638,7 @@ def add_performance_metric(metric_name: str, value: Any) -> None:
     manager.add_performance_metric(metric_name, value)
 
 
-def get_debug_summary() -> Dict[str, Any]:
+def get_debug_summary() -> dict[str, Any]:
     """Get a summary of current debug information for troubleshooting."""
     manager = get_lifecycle_manager()
     return manager.get_debug_summary()

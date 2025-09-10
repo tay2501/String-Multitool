@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import csv
 import re
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from ..exceptions import TransformationError, ValidationError
 from .constants import ERROR_CONTEXT_KEYS

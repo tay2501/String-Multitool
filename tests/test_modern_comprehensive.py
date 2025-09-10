@@ -246,6 +246,12 @@ class TestModernInteractiveSession:
 
     def test_text_refresh(self, interactive_session: InteractiveSession, mock_clipboard: Mock):
         """Test text refresh functionality."""
+        # Explicit validation for CI environment
+        assert interactive_session is not None, "interactive_session fixture not available"
+        assert hasattr(
+            interactive_session, "refresh_from_clipboard"
+        ), "Method refresh_from_clipboard not found"
+
         test_content = "refreshed content"
         mock_clipboard.paste.return_value = test_content
 
@@ -257,6 +263,10 @@ class TestModernInteractiveSession:
 
     def test_session_state_management(self, interactive_session: InteractiveSession):
         """Test session state is properly managed."""
+        # Explicit validation for CI environment
+        assert interactive_session is not None, "interactive_session fixture not available"
+        assert hasattr(interactive_session, "get_status_info"), "Method get_status_info not found"
+
         # Use the actual method name from InteractiveSession
         state = interactive_session.get_status_info()
         assert isinstance(state, SessionState)
@@ -271,6 +281,8 @@ class TestModernCommandProcessor:
     @pytest.fixture
     def command_processor(self, interactive_session: InteractiveSession) -> CommandProcessor:
         """Create CommandProcessor for testing."""
+        # Explicit validation to ensure interactive_session is properly injected
+        assert interactive_session is not None, "interactive_session fixture not properly injected"
         return CommandProcessor(interactive_session)
 
     @pytest.mark.parametrize(

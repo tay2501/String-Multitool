@@ -13,7 +13,6 @@ from __future__ import annotations
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
 
 import pytest
 
@@ -80,6 +79,7 @@ class TestUnicodeHandling:
         try:
             result = subprocess.run(
                 [sys.executable, "String_Multitool.py", "/t"],
+                check=False,
                 input=test_input,
                 text=True,
                 capture_output=True,

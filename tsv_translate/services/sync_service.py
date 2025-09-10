@@ -4,26 +4,25 @@ Demonstrates clean architecture with abstract interfaces,
 dependency injection, and comprehensive error handling.
 """
 
-import hashlib
 import csv
+import hashlib
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional, cast, TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 try:
-    from sqlalchemy.orm import Session
     from sqlalchemy.exc import SQLAlchemyError
+    from sqlalchemy.orm import Session
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
     SQLALCHEMY_AVAILABLE = False
     if TYPE_CHECKING:
-        from sqlalchemy.orm import Session  # type: ignore[import]
-        from sqlalchemy.exc import SQLAlchemyError  # type: ignore[import]
+        pass  # type: ignore[import]
 
-from .base import BaseService
-from ..models import RuleSet, ConversionRule
-from ..models.types import SyncResult, OperationStatus
+from ..models import ConversionRule, RuleSet
 from ..models.exceptions import SyncError, ValidationError
+from ..models.types import OperationStatus, SyncResult
+from .base import BaseService
 
 
 class SyncServiceInterface(ABC):
@@ -32,17 +31,17 @@ class SyncServiceInterface(ABC):
     Follows interface segregation principle, defining only
     the operations needed by clients.
     """
-    
+
     @abstractmethod
     def sync_file(self, file_path: Path) -> SyncResult:
         """Synchronize a single TSV file with database."""
         pass
-    
+
     @abstractmethod
-    def sync_directory(self, directory_path: Path) -> List[SyncResult]:
+    def sync_directory(self, directory_path: Path) -> list[SyncResult]:
         """Synchronize all TSV files in directory."""
         pass
-    
+
     @abstractmethod
     def remove_rule_set(self, rule_set_name: str) -> SyncResult:
         """Remove rule set from database."""
@@ -58,7 +57,7 @@ class SyncService(BaseService, SyncServiceInterface):
     - File integrity verification with hashing
     - Comprehensive logging and result tracking
     """
-    
+
     def health_check(self) -> bool:
         """Verify database connectivity and basic operations."""
         try:
@@ -70,7 +69,7 @@ class SyncService(BaseService, SyncServiceInterface):
             if SQLALCHEMY_AVAILABLE and 'SQLAlchemyError' in str(type(e)):
                 pass  # Log specific SQLAlchemy errors if needed
             return False
-    
+
     def sync_file(self, file_path: Path) -> SyncResult:
         """Synchronize TSV file with database.
         
@@ -78,11 +77,11 @@ class SyncService(BaseService, SyncServiceInterface):
         and comprehensive error handling.
         """
         rule_set_name = file_path.stem
-        
+
         try:
             # Calculate file hash for integrity checking
             file_hash = self._calculate_file_hash(file_path)
-            
+
             # Check if file needs synchronization
             existing_rule_set = self._get_existing_rule_set(rule_set_name)
             if existing_rule_set and existing_rule_set.file_hash == file_hash:
@@ -92,15 +91,15 @@ class SyncService(BaseService, SyncServiceInterface):
                     operation="skip",
                     rules_processed=existing_rule_set.rule_count
                 )
-            
+
             # Parse TSV file
             conversion_rules = self._parse_tsv_file(file_path)
-            
+
             # Perform database synchronization
             return self._sync_to_database(
                 rule_set_name, str(file_path), file_hash, conversion_rules
             )
-            
+
         except (OSError, ValidationError) as e:
             return SyncResult(
                 status=OperationStatus.ERROR,
@@ -108,17 +107,17 @@ class SyncService(BaseService, SyncServiceInterface):
                 operation="error",
                 error_message=str(e)
             )
-    
-    def sync_directory(self, directory_path: Path) -> List[SyncResult]:
+
+    def sync_directory(self, directory_path: Path) -> list[SyncResult]:
         """Synchronize all TSV files in directory."""
         results = []
-        
+
         try:
             tsv_files = list(directory_path.glob("*.tsv"))
             for tsv_file in tsv_files:
                 result = self.sync_file(tsv_file)
                 results.append(result)
-                
+
         except OSError as e:
             # Add error result for directory access failure
             results.append(SyncResult(
@@ -127,9 +126,9 @@ class SyncService(BaseService, SyncServiceInterface):
                 operation="error",
                 error_message=f"Directory access failed: {str(e)}"
             ))
-        
+
         return results
-    
+
     def remove_rule_set(self, rule_set_name: str) -> SyncResult:
         """Remove rule set from database (not the file)."""
         try:
@@ -141,18 +140,18 @@ class SyncService(BaseService, SyncServiceInterface):
                     operation="delete",
                     error_message="Rule set not found"
                 )
-            
+
             rules_count = rule_set.rule_count
             self._db_session.delete(rule_set)
             self._db_session.commit()
-            
+
             return SyncResult(
                 status=OperationStatus.SUCCESS,
                 rule_set_name=rule_set_name,
                 operation="delete",
                 rules_deleted=rules_count
             )
-            
+
         except Exception as e:
             # Handle both SQLAlchemyError and import errors gracefully
             if not SQLALCHEMY_AVAILABLE:
@@ -164,7 +163,7 @@ class SyncService(BaseService, SyncServiceInterface):
                 operation="delete",
                 error_message=f"Database error: {str(e)}"
             )
-    
+
     def _calculate_file_hash(self, file_path: Path) -> str:
         """Calculate SHA-256 hash for file integrity."""
         hash_sha256 = hashlib.sha256()
@@ -172,59 +171,59 @@ class SyncService(BaseService, SyncServiceInterface):
             for chunk in iter(lambda: f.read(4096), b""):
                 hash_sha256.update(chunk)
         return hash_sha256.hexdigest()
-    
-    def _get_existing_rule_set(self, name: str) -> Optional[RuleSet]:
+
+    def _get_existing_rule_set(self, name: str) -> RuleSet | None:
         """Retrieve existing rule set by name."""
         return cast(
-            Optional[RuleSet],
+            RuleSet | None,
             self._db_session.query(RuleSet)
             .filter(RuleSet.name == name)
             .first()
         )
-    
-    def _parse_tsv_file(self, file_path: Path) -> List[tuple[str, str]]:
+
+    def _parse_tsv_file(self, file_path: Path) -> list[tuple[str, str]]:
         """Parse TSV file into conversion rules.
         
         Validates file format and handles encoding properly.
         """
         rules = []
-        
+
         try:
-            with open(file_path, 'r', encoding='utf-8', newline='') as f:
+            with open(file_path, encoding='utf-8', newline='') as f:
                 reader = csv.reader(f, delimiter='\t')
-                
+
                 for line_no, row in enumerate(reader, 1):
                     if len(row) != 2:
                         raise ValidationError(
                             f"Line {line_no}: Expected 2 columns, got {len(row)}"
                         )
-                    
+
                     source_text, target_text = row[0].strip(), row[1].strip()
                     if not source_text:
                         raise ValidationError(
                             f"Line {line_no}: Source text cannot be empty"
                         )
-                    
+
                     rules.append((source_text, target_text))
-                    
+
         except UnicodeDecodeError as e:
             raise ValidationError(f"File encoding error: {str(e)}")
-        
+
         return rules
-    
+
     def _sync_to_database(
         self,
         rule_set_name: str,
         file_path: str,
         file_hash: str,
-        conversion_rules: List[tuple[str, str]]
+        conversion_rules: list[tuple[str, str]]
     ) -> SyncResult:
         """Synchronize parsed rules to database with transaction safety."""
         try:
             # Get or create rule set
             rule_set = self._get_existing_rule_set(rule_set_name)
             operation = "update" if rule_set else "create"
-            
+
             if rule_set:
                 # Clear existing rules for clean replacement
                 self._db_session.query(ConversionRule).filter(
@@ -240,14 +239,14 @@ class SyncService(BaseService, SyncServiceInterface):
                 )
                 self._db_session.add(rule_set)
                 self._db_session.flush()  # Get ID for foreign key
-            
+
             # Update rule set metadata
             rule_set.file_hash = file_hash
             rule_set.rule_count = len(conversion_rules)
-            
+
             # Extract TSV filename for traceability
             tsv_file_name = Path(file_path).name
-            
+
             # Add conversion rules with TSV file name
             for source_text, target_text in conversion_rules:
                 rule = ConversionRule(
@@ -257,9 +256,9 @@ class SyncService(BaseService, SyncServiceInterface):
                     tsv_file_name=tsv_file_name
                 )
                 self._db_session.add(rule)
-            
+
             self._db_session.commit()
-            
+
             return SyncResult(
                 status=OperationStatus.SUCCESS,
                 rule_set_name=rule_set_name,
@@ -269,7 +268,7 @@ class SyncService(BaseService, SyncServiceInterface):
                 rules_updated=len(conversion_rules) if operation == "update" else 0,
                 file_hash=file_hash
             )
-            
+
         except Exception as e:
             # Handle both SQLAlchemyError and import errors gracefully
             if not SQLALCHEMY_AVAILABLE:

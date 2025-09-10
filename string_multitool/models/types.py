@@ -7,6 +7,7 @@ throughout the application, providing type safety and clear interfaces.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, auto
@@ -17,7 +18,6 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Generic,
     Protocol,
     TypeGuard,
@@ -717,7 +717,7 @@ def is_thread_callback(obj: Any) -> TypeGuard[ThreadCallback]:
     Returns:
         True if obj is a valid ThreadCallback
     """
-    return obj is None or (callable(obj) and hasattr(obj, "__call__"))
+    return obj is None or (callable(obj) and callable(obj))
 
 
 def is_config_manager(obj: Any) -> TypeGuard[ConfigManagerProtocol]:
@@ -1121,7 +1121,7 @@ class ResultContainer(Generic[T]):
         return self.error or ""
 
     @classmethod
-    def success_result(cls, data: T) -> "ResultContainer[T]":
+    def success_result(cls, data: T) -> ResultContainer[T]:
         """Create a successful result.
 
         Args:
@@ -1133,7 +1133,7 @@ class ResultContainer(Generic[T]):
         return cls(success=True, data=data)
 
     @classmethod
-    def error_result(cls, error: str) -> "ResultContainer[T]":
+    def error_result(cls, error: str) -> ResultContainer[T]:
         """Create an error result.
 
         Args:

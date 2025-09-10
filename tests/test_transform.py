@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -64,8 +64,6 @@ except ImportError:
     CRYPTO_AVAILABLE = False
 from string_multitool.exceptions import (
     ClipboardError,
-    ConfigurationError,
-    CryptographyError,
     TransformationError,
     ValidationError,
 )
@@ -417,8 +415,6 @@ class TestCryptographyManager:
     @pytest.fixture
     def crypto_manager(self, tmp_path) -> CryptographyManager:
         """Create a CryptographyManager instance for testing with temporary keys."""
-        import tempfile
-        from pathlib import Path
 
         config_manager: ConfigurationManager = ConfigurationManager()
         if not CRYPTO_AVAILABLE:
@@ -707,15 +703,12 @@ class TestModularTransformations:
 
     def test_transformation_error_handling(self, transformation_classes: dict[str, Any]) -> None:
         """Test error handling in transformation classes."""
-        from string_multitool.exceptions import TransformationError
 
         # Test with None input converted to string (Python handles this)
         transformation = transformation_classes["l"]()
 
         # Test error handling by trying to access attributes that would cause exceptions
         # Since we can't mock str.lower directly, we test error handling through actual errors
-        import os
-        import tempfile
 
         # Create a mock transformation that will fail
         with patch.object(transformation, "transform", side_effect=RuntimeError("Mock error")):
@@ -881,7 +874,7 @@ def test_dataclass_structures() -> None:
 
 def test_logging_functionality() -> None:
     """Test unified logging functionality."""
-    from string_multitool.utils.unified_logger import get_logger, log_error, log_info
+    from string_multitool.utils.unified_logger import log_error, log_info
 
     # Test get_logger function
     logger = get_logger("test_logger")
@@ -894,7 +887,6 @@ def test_logging_functionality() -> None:
 
 def test_logging_integration() -> None:
     """Test integration of unified logging with application components."""
-    from string_multitool.utils.unified_logger import get_logger
 
     logger = get_logger("integration_test")
     logger.info("Integration test message")

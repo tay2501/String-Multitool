@@ -8,7 +8,7 @@ comprehensive help system, auto-completion support, and intuitive subcommands.
 from __future__ import annotations
 
 import sys
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any
 
 import typer
 from rich.console import Console
@@ -20,7 +20,7 @@ from .exceptions import ConfigurationError, StringMultitoolError, ValidationErro
 from .main import ApplicationInterface
 
 # Import logging utilities
-from .utils.unified_logger import get_logger, log_debug, log_error, log_info, log_warning
+from .utils.unified_logger import get_logger, log_error, log_info, log_warning
 
 # Rich console for beautiful output
 console: Console = Console()
@@ -87,7 +87,7 @@ def _handle_cli_error(error: Exception, operation: str, **context: Any) -> None:
 
 def _get_input_text(
     app_instance: ApplicationInterface,
-    text: Optional[str],
+    text: str | None,
     use_clipboard_fallback: bool = False,
 ) -> str:
     """Get input text from various sources using EAFP pattern.
@@ -184,7 +184,7 @@ def transform_text(
         typer.Argument(help="Transformation rules (e.g., '/t/l' for trim + lowercase)"),
     ],
     text: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--text", "-t", help="Input text (if not provided, uses clipboard or pipe)"),
     ] = None,
     output: Annotated[
@@ -213,7 +213,7 @@ def transform_text(
 @app.command("encrypt", help="Encrypt text using RSA+AES hybrid encryption")
 def encrypt_text(
     text: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--text", "-t", help="Text to encrypt (if not provided, uses clipboard)"),
     ] = None,
     output: Annotated[
@@ -249,7 +249,7 @@ def encrypt_text(
 @app.command("decrypt", help="Decrypt text using RSA+AES hybrid decryption")
 def decrypt_text(
     text: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--text", "-t", help="Text to decrypt (if not provided, uses clipboard)"),
     ] = None,
     output: Annotated[
@@ -291,7 +291,7 @@ def daemon_mode() -> None:
 @app.command("rules", help="Display available transformation rules")
 def show_rules(
     category: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             "--category",
             "-c",
@@ -299,7 +299,7 @@ def show_rules(
         ),
     ] = None,
     search: Annotated[
-        Optional[str], typer.Option("--search", "-s", help="Search rules by keyword")
+        str | None, typer.Option("--search", "-s", help="Search rules by keyword")
     ] = None,
 ) -> None:
     """Display available transformation rules with examples.

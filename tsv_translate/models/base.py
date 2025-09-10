@@ -4,9 +4,9 @@ Following SQLAlchemy 2.0 best practices with declarative mapping.
 """
 
 from datetime import datetime
+
 from sqlalchemy import DateTime, MetaData, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-
 
 # Consistent naming convention following SQL standards
 NAMING_CONVENTION = {
@@ -20,9 +20,9 @@ NAMING_CONVENTION = {
 
 class Base(DeclarativeBase):
     """Base class for all models with common patterns."""
-    
+
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
-    
+
     # Common audit fields following enterprise patterns
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -30,7 +30,7 @@ class Base(DeclarativeBase):
         nullable=False,
         comment="Record creation timestamp"
     )
-    
+
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

@@ -17,19 +17,16 @@ from typing import Any
 from ..exceptions import TransformationError, ValidationError
 from .argument_parser import ArgumentParsingError, default_parser
 from .constants import (
-    CRYPTO_CONSTANTS,
     ERROR_CONTEXT_KEYS,
     TRANSFORM_CONSTANTS,
     VALIDATION_CONSTANTS,
     RuleNames,
-    TSVOptionNames,
 )
 from .transformation_base import TransformationBase
 from .types import (
     ConfigManagerProtocol,
     ConfigurableComponent,
     CryptoManagerProtocol,
-    TransformationEngineProtocol,
     TransformationRule,
     TransformationRuleType,
     TSVConversionOptions,
@@ -976,7 +973,7 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
                 file_name = tsv_file.name
                 file_list.append(f"  {file_name}")
 
-            return f"Available TSV rule files:\n" + "\n".join(file_list)
+            return "Available TSV rule files:\n" + "\n".join(file_list)
 
         except Exception as e:
             return f"Error listing TSV rules: {e}"
@@ -1017,9 +1014,10 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
 
                 # オプション判定（--で始まるか-で始まる）
                 if arg.startswith("--") or (arg.startswith("-") and len(arg) > 1):
-                    if arg_lower in ["--case-insensitive", "--caseinsensitive"]:
-                        case_insensitive = True
-                    elif arg_lower == "-i":
+                    if (
+                        arg_lower in ["--case-insensitive", "--caseinsensitive"]
+                        or arg_lower == "-i"
+                    ):
                         case_insensitive = True
                     elif arg_lower in ["--list", "-l"]:
                         return {"list_rules": True}

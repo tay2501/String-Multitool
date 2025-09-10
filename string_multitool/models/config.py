@@ -109,7 +109,7 @@ class ConfigurationManager(ConfigurableComponent[dict[str, Any]]):
             ConfigurationError: If file cannot be loaded or parsed
         """
         try:
-            with open(file_path, "r", encoding="utf-8") as file:
+            with open(file_path, encoding="utf-8") as file:
                 data: Any = json.load(file)
 
             if not isinstance(data, dict):

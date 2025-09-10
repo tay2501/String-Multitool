@@ -8,8 +8,8 @@ the Dependency Inversion Principle (DIP) of SOLID.
 from __future__ import annotations
 
 import inspect
-from collections.abc import Callable, Mapping
-from typing import Any, Generic, TypeVar, cast, get_args, get_origin, get_type_hints
+from collections.abc import Callable
+from typing import Any, TypeVar, cast, get_args, get_origin, get_type_hints
 
 from typing_extensions import ParamSpec
 

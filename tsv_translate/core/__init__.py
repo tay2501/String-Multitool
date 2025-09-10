@@ -4,7 +4,7 @@ Foundation layer providing reusable components following
 SOLID principles and clean architecture patterns.
 """
 
-from .exceptions import TSVTranslateError, ValidationError, SyncError
+from .exceptions import SyncError, TSVTranslateError, ValidationError
 from .types import ConversionResult, SyncResult
 
 __all__ = [

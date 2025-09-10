@@ -18,11 +18,10 @@ Test coverage:
 from __future__ import annotations
 
 import sys
-import tempfile
 import threading
 import time
+from collections.abc import Generator
 from pathlib import Path
-from typing import Any, Generator
 from unittest.mock import Mock, patch
 
 import pytest
@@ -244,8 +243,6 @@ class TestSystemIntegration:
 
     def test_concurrent_transformation_requests(self) -> None:
         """並行変換リクエストテスト"""
-        import threading
-        import time
 
         config_manager = ConfigurationManager()
         transformation_engine = TextTransformationEngine(config_manager)
@@ -328,7 +325,6 @@ class TestPerformanceIntegration:
 
     def test_transformation_performance(self) -> None:
         """変換処理パフォーマンステスト"""
-        import time
 
         config_manager = ConfigurationManager()
         transformation_engine = TextTransformationEngine(config_manager)
@@ -346,7 +342,6 @@ class TestPerformanceIntegration:
 
     def test_config_loading_performance(self) -> None:
         """設定読み込みパフォーマンステスト"""
-        import time
 
         # 複数回の設定読み込み（キャッシュ効果を確認）
         start_time = time.time()

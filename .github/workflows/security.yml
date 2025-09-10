@@ -226,9 +226,9 @@ jobs:
 
       - name: Check licenses
         run: |
-          pip-licenses --format=json --output-file=licenses-report.json
-          pip-licenses --format=csv --output-file=licenses-report.csv
-          licensecheck --format json > licensecheck-report.json
+          uv run pip-licenses --format=json --output-file=licenses-report.json
+          uv run pip-licenses --format=csv --output-file=licenses-report.csv
+          uv run licensecheck --format json > licensecheck-report.json
 
       - name: Upload compliance reports
         uses: actions/upload-artifact@v4

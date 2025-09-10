@@ -5,39 +5,37 @@ performance optimizations and comprehensive result tracking.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, cast, TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 try:
-    from sqlalchemy.orm import Session
     from sqlalchemy.exc import SQLAlchemyError
+    from sqlalchemy.orm import Session
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
     SQLALCHEMY_AVAILABLE = False
     if TYPE_CHECKING:
-        from sqlalchemy.orm import Session
-        from sqlalchemy.exc import SQLAlchemyError
+        pass
 
-from .base import BaseService
-from ..models import RuleSet, ConversionRule
+from ..models import ConversionRule, RuleSet
 from ..models.types import ConversionResult, OperationStatus
-from ..models.exceptions import ConversionError
+from .base import BaseService
 
 
 class ConversionServiceInterface(ABC):
     """Interface for text conversion operations."""
-    
+
     @abstractmethod
     def convert_text(self, text: str, rule_set_name: str) -> ConversionResult:
         """Convert text using specified rule set."""
         pass
-    
+
     @abstractmethod
-    def list_rule_sets(self) -> List[str]:
+    def list_rule_sets(self) -> list[str]:
         """Get list of available rule set names."""
         pass
-    
+
     @abstractmethod
-    def get_rule_set_info(self, rule_set_name: str) -> Optional[dict]:
+    def get_rule_set_info(self, rule_set_name: str) -> dict | None:
         """Get information about a specific rule set."""
         pass
 
@@ -51,19 +49,19 @@ class ConversionService(BaseService, ConversionServiceInterface):
     - Comprehensive error handling and logging
     - Clean separation of concerns
     """
-    
+
     def health_check(self) -> bool:
         """Verify conversion service is operational."""
         try:
             # Test basic query operation
             count = self._db_session.query(RuleSet).count()
             return True
-        except Exception as e:
+        except Exception:
             # Handle both SQLAlchemyError and import errors gracefully
             if not SQLALCHEMY_AVAILABLE:
                 return False
             return False
-    
+
     def convert_text(self, text: str, rule_set_name: str) -> ConversionResult:
         """Convert text using specified rule set.
         
@@ -78,7 +76,7 @@ class ConversionService(BaseService, ConversionServiceInterface):
                 rule_set_name=rule_set_name,
                 error_message="Empty input text"
             )
-        
+
         try:
             # Get rule set with validation
             rule_set = self._get_rule_set(rule_set_name)
@@ -89,14 +87,14 @@ class ConversionService(BaseService, ConversionServiceInterface):
                     rule_set_name=rule_set_name,
                     error_message=f"Rule set '{rule_set_name}' not found"
                 )
-            
+
             # Perform conversion using optimized query
             converted_text = self._apply_conversion_rules(text, rule_set.id)
-            
+
             # Track usage statistics
             if converted_text != text:
                 self._update_usage_statistics(rule_set.id, text)
-            
+
             return ConversionResult(
                 status=OperationStatus.SUCCESS,
                 original_text=text,
@@ -104,7 +102,7 @@ class ConversionService(BaseService, ConversionServiceInterface):
                 rule_set_name=rule_set_name,
                 rules_applied=1 if converted_text != text else 0
             )
-            
+
         except Exception as e:
             # Handle both SQLAlchemyError and import errors gracefully
             if not SQLALCHEMY_AVAILABLE:
@@ -115,8 +113,8 @@ class ConversionService(BaseService, ConversionServiceInterface):
                 rule_set_name=rule_set_name,
                 error_message=f"Database error: {str(e)}"
             )
-    
-    def list_rule_sets(self) -> List[str]:
+
+    def list_rule_sets(self) -> list[str]:
         """Get sorted list of available rule set names."""
         try:
             rule_sets = (
@@ -125,27 +123,27 @@ class ConversionService(BaseService, ConversionServiceInterface):
                 .all()
             )
             return [rs.name for rs in rule_sets]
-            
-        except Exception as e:
+
+        except Exception:
             # Handle both SQLAlchemyError and import errors gracefully
             if not SQLALCHEMY_AVAILABLE:
                 return []
             return []
-    
-    def get_rule_set_info(self, rule_set_name: str) -> Optional[dict]:
+
+    def get_rule_set_info(self, rule_set_name: str) -> dict | None:
         """Get comprehensive information about a rule set."""
         try:
             rule_set = self._get_rule_set(rule_set_name)
             if not rule_set:
                 return None
-            
+
             # Calculate additional statistics
             total_usage = (
                 self._db_session.query(ConversionRule.usage_count)
                 .filter(ConversionRule.rule_set_id == rule_set.id)
                 .all()
             )
-            
+
             return {
                 "name": rule_set.name,
                 "file_path": rule_set.file_path,
@@ -155,22 +153,22 @@ class ConversionService(BaseService, ConversionServiceInterface):
                 "updated_at": rule_set.updated_at.isoformat(),
                 "description": rule_set.description
             }
-            
-        except Exception as e:
+
+        except Exception:
             # Handle both SQLAlchemyError and import errors gracefully
             if not SQLALCHEMY_AVAILABLE:
                 return None
             return None
-    
-    def _get_rule_set(self, name: str) -> Optional[RuleSet]:
+
+    def _get_rule_set(self, name: str) -> RuleSet | None:
         """Get rule set by name with error handling."""
         return cast(
-            Optional[RuleSet],
+            RuleSet | None,
             self._db_session.query(RuleSet)
             .filter(RuleSet.name == name)
             .first()
         )
-    
+
     def _apply_conversion_rules(self, text: str, rule_set_id: int) -> str:
         """Apply conversion rules efficiently.
         
@@ -185,9 +183,9 @@ class ConversionService(BaseService, ConversionServiceInterface):
             )
             .first()
         )
-        
+
         return conversion_rule.target_text if conversion_rule else text
-    
+
     def _update_usage_statistics(self, rule_set_id: int, source_text: str) -> None:
         """Update usage statistics for monitoring and optimization.
         
@@ -202,12 +200,12 @@ class ConversionService(BaseService, ConversionServiceInterface):
                 )
                 .first()
             )
-            
+
             if rule:
                 rule.usage_count += 1
                 self._db_session.commit()
-                
-        except Exception as e:
+
+        except Exception:
             # Handle both SQLAlchemyError and import errors gracefully
             if not SQLALCHEMY_AVAILABLE:
                 return

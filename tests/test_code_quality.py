@@ -15,8 +15,8 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
 import pytest
 import yaml
@@ -53,6 +53,7 @@ class TestCodeQuality:
 
         result = subprocess.run(
             [sys.executable, "-m", "mypy", "string_multitool/"],
+            check=False,
             capture_output=True,
             text=True,
             cwd=Path.cwd(),
@@ -73,6 +74,7 @@ class TestCodeQuality:
 
         result = subprocess.run(
             [sys.executable, "-m", "black", "--line-length", "99", "--check", "string_multitool/"],
+            check=False,
             capture_output=True,
             text=True,
             cwd=Path.cwd(),
@@ -94,6 +96,7 @@ class TestCodeQuality:
 
         result = subprocess.run(
             [sys.executable, "-m", "isort", "--check-only", "string_multitool/"],
+            check=False,
             capture_output=True,
             text=True,
             cwd=Path.cwd(),
@@ -127,7 +130,7 @@ class TestCodeQuality:
             pytest.skip(f"Workflow file {workflow_file} not found")
 
         try:
-            with open(workflow_path, "r", encoding="utf-8") as f:
+            with open(workflow_path, encoding="utf-8") as f:
                 yaml.safe_load(f)
         except yaml.YAMLError as e:
             pytest.fail(f"YAML syntax error in {workflow_file}: {e}")
@@ -205,6 +208,7 @@ class TestCodeQuality:
                 "-v",
                 "--tb=short",
             ],
+            check=False,
             capture_output=True,
             text=True,
             cwd=Path.cwd(),
@@ -224,7 +228,7 @@ class TestCodeQuality:
         if not pyproject_path.exists():
             pytest.skip("pyproject.toml not found")
 
-        with open(pyproject_path, "r", encoding="utf-8") as f:
+        with open(pyproject_path, encoding="utf-8") as f:
             content = f.read()
 
         # Check for coverage configuration sections
@@ -247,7 +251,7 @@ class TestCodeQuality:
 
         for workflow_file in workflow_files:
             if "ci.yml" in workflow_file.name:
-                with open(workflow_file, "r", encoding="utf-8") as f:
+                with open(workflow_file, encoding="utf-8") as f:
                     content = f.read()
 
                 missing_commands = []

@@ -5,7 +5,7 @@ and dependency injection principles.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 try:
     from sqlalchemy.orm import Session
@@ -27,7 +27,7 @@ class BaseService(ABC):
     - Consistent error handling
     - Logging interface (extendable)
     """
-    
+
     def __init__(self, db_session: Session) -> None:
         """Initialize with database session dependency.
         
@@ -36,12 +36,12 @@ class BaseService(ABC):
         """
         self._db_session = db_session
         self._validate_dependencies()
-    
+
     def _validate_dependencies(self) -> None:
         """Validate required dependencies are properly injected."""
         if not self._db_session:
             raise TSVTranslateError("Database session is required")
-    
+
     @abstractmethod
     def health_check(self) -> bool:
         """Verify service is operational.
@@ -50,11 +50,11 @@ class BaseService(ABC):
             True if service is healthy, False otherwise
         """
         pass
-    
+
     def _log_operation(
         self,
         operation: str,
-        details: Optional[dict[str, Any]] = None
+        details: dict[str, Any] | None = None
     ) -> None:
         """Log service operations for debugging and monitoring.
         
@@ -67,11 +67,11 @@ class BaseService(ABC):
         """
         # TODO: Integrate with application logging system
         pass
-    
+
     def __enter__(self) -> "BaseService":
         """Context manager entry for resource management."""
         return self
-    
+
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Context manager exit with cleanup."""
         # Base implementation - subclasses can override

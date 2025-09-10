@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import Callable, Final
+from typing import Final
 
 from ..exceptions import ClipboardError, ValidationError
 from ..models.types import IOManagerProtocol, ThreadCallback

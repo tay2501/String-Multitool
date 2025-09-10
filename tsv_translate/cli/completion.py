@@ -4,8 +4,8 @@ Educational implementation of command-line completion using argcomplete
 with dynamic rule set name completion.
 """
 
-from typing import Any, List, Optional
 from pathlib import Path
+from typing import Any
 
 try:
     import argcomplete
@@ -24,11 +24,11 @@ class RuleSetCompleter:
     Demonstrates how to create dynamic completion that queries
     the database for available rule sets.
     """
-    
+
     def __init__(self, config_path: Path = Path("config/tsv_converter.json")):
         self.config_path = config_path
-    
-    def __call__(self, prefix: str, **kwargs) -> List[str]:
+
+    def __call__(self, prefix: str, **kwargs) -> list[str]:
         """Return completion options for rule set names.
         
         Args:
@@ -39,24 +39,24 @@ class RuleSetCompleter:
         """
         try:
             config = load_config(self.config_path)
-            
+
             # Quick engine initialization for completion
             with TSVTranslateEngine(config) as engine:
                 rule_sets = engine.list_rule_sets()
-                
+
                 # Filter by prefix
                 return [
-                    rule_set for rule_set in rule_sets 
+                    rule_set for rule_set in rule_sets
                     if rule_set.startswith(prefix)
                 ]
-                
+
         except Exception:
             # Fallback to empty completion on any error
             # Completion should never crash the CLI
             return []
 
 
-def setup_completion(parser: Any, config_path: Optional[Path] = None) -> None:
+def setup_completion(parser: Any, config_path: Path | None = None) -> None:
     """Setup tab completion for the argument parser.
     
     Educational example of how to add intelligent completion
@@ -68,12 +68,12 @@ def setup_completion(parser: Any, config_path: Optional[Path] = None) -> None:
     """
     if not COMPLETION_AVAILABLE:
         return
-    
+
     # Create completer instance
     rule_set_completer = RuleSetCompleter(
         config_path or Path("config/tsv_converter.json")
     )
-    
+
     # Add completion to specific arguments
     if hasattr(parser, '_subparsers'):
         for action in parser._subparsers._actions:
@@ -84,7 +84,7 @@ def setup_completion(parser: Any, config_path: Optional[Path] = None) -> None:
                         for sub_action in subparser._actions:
                             if sub_action.dest == 'rule_set':
                                 sub_action.completer = rule_set_completer
-    
+
     # Enable argcomplete
     argcomplete.autocomplete(parser)
 
@@ -99,7 +99,7 @@ def install_completion_script() -> None:
         print("Tab completion requires 'argcomplete' package:")
         print("  pip install argcomplete")
         return
-    
+
     print("To enable tab completion, add this to your shell profile:")
     print()
     print("For bash (.bashrc or .bash_profile):")

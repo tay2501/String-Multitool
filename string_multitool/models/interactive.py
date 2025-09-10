@@ -7,15 +7,12 @@ with comprehensive error handling and type safety.
 
 from __future__ import annotations
 
-import time
 from datetime import datetime
-from typing import Any
 
 from ..exceptions import ClipboardError, ValidationError
 from ..io.clipboard import ClipboardMonitor
 from .types import (
     CommandResult,
-    ConfigManagerProtocol,
     IOManagerProtocol,
     SessionState,
     TextSource,

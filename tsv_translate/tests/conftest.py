@@ -5,8 +5,10 @@ reusable test infrastructure with proper setup/teardown.
 """
 
 import tempfile
-import pytest
 from pathlib import Path
+
+import pytest
+
 try:
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
@@ -18,7 +20,7 @@ except ImportError:
 
 from ..models import Base
 from ..models.engine import TSVTranslateEngine
-from ..services import SyncService, ConversionService
+from ..services import ConversionService, SyncService
 
 
 @pytest.fixture
@@ -33,12 +35,12 @@ def test_database():
     """Create in-memory test database."""
     engine = create_engine("sqlite:///:memory:", echo=False)
     Base.metadata.create_all(engine)
-    
+
     SessionLocal = sessionmaker(bind=engine)
     session = SessionLocal()
-    
+
     yield session
-    
+
     session.close()
     engine.dispose()
 

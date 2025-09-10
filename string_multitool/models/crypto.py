@@ -15,8 +15,8 @@ from typing import TYPE_CHECKING, Any, Final
 from ..exceptions import ConfigurationError, CryptographyError
 
 # Import logging utilities
-from ..utils.unified_logger import get_logger, log_with_context
-from .types import ConfigManagerProtocol, ConfigurableComponent, CryptoManagerProtocol
+from ..utils.unified_logger import get_logger
+from .types import ConfigManagerProtocol, ConfigurableComponent
 
 try:
     from cryptography.hazmat.backends import default_backend
