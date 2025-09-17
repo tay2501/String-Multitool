@@ -96,9 +96,14 @@ class TestUnicodeHandling:
             # Windows console may have encoding limitations, so just verify trimming worked
             # and non-ASCII characters are present (even if corrupted)
             assert len(actual_output) > 0, "Output should not be empty"
-            assert len(actual_output) < len(
-                test_input
-            ), "Output should be shorter than input (trimmed)"
+            
+            # Check if trimming actually occurred by comparing with manually trimmed input
+            expected_length = len(test_input.strip())
+            assert len(actual_output) <= expected_length, (
+                f"Output should be no longer than trimmed input. "
+                f"Expected: {expected_length}, Actual: {len(actual_output)}, "
+                f"Input: {repr(test_input)}, Output: {repr(actual_output)}"
+            )
 
         except subprocess.TimeoutExpired:
             pytest.fail("Unicode pipe test timed out")

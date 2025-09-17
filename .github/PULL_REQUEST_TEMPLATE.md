@@ -6,15 +6,15 @@
 
 <!-- Please delete options that are not relevant -->
 
-- [ ] = Bug fix (non-breaking change which fixes an issue)
-- [ ] ( New feature (non-breaking change which adds functionality)
-- [ ] =¥ Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] =Ú Documentation update
-- [ ] >ù Code cleanup/refactoring
-- [ ] ¡ Performance improvement
-- [ ] = Security enhancement
-- [ ] =' Configuration change
-- [ ] >ê Test improvement
+- [ ] Bug fix (non-breaking change which fixes an issue)
+- [ ] New feature (non-breaking change which adds functionality)
+- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] Documentation update
+- [ ] Code cleanup/refactoring
+- [ ] Performance improvement
+- [ ] Security enhancement
+- [ ] Configuration change
+- [ ] Test improvement
 
 ## Related Issues
 
@@ -28,24 +28,25 @@ Related to #(issue)
 <!-- Describe the changes made in detail -->
 
 ### Core Changes
-- 
-- 
-- 
+-
+-
+-
 
 ### Additional Changes
-- 
-- 
-- 
+-
+-
+-
 
 ## Testing
 
 <!-- Describe how you tested your changes -->
 
 ### Test Cases
-- [ ] Unit tests pass (`python -m pytest test_transform.py test_tsv_case_insensitive.py -v`)
-- [ ] Type checking passes (`python -m mypy string_multitool/`)
-- [ ] Code formatting is correct (`python -m black --check string_multitool/`)
-- [ ] Import sorting is correct (`python -m isort --check-only string_multitool/`)
+- [ ] Unit tests pass (`uv run pytest tests/ -v`)
+- [ ] Type checking passes (`uv run mypy string_multitool/`)
+- [ ] Code formatting is correct (`uv run black --check string_multitool/`)
+- [ ] Import sorting is correct (`uv run isort --check-only string_multitool/`)
+- [ ] Linting passes (`uv run ruff check string_multitool/`)
 
 ### Manual Testing
 - [ ] Interactive mode tested
@@ -57,6 +58,7 @@ Related to #(issue)
 - [ ] Cryptography functions tested
 - [ ] Input validation tested
 - [ ] No sensitive data exposed
+- [ ] Security scans pass (`uv run bandit -r string_multitool/`)
 
 ## Screenshots/Demo
 
@@ -111,6 +113,7 @@ Related to #(issue)
 - [ ] I have checked for dependency conflicts
 - [ ] New dependencies are justified and minimal
 - [ ] Dependencies are pinned to secure versions
+- [ ] uv.lock file is updated if dependencies changed
 
 ## Additional Notes
 

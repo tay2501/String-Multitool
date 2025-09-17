@@ -135,16 +135,16 @@ def sample_texts(request: pytest.FixtureRequest) -> str:
 
 @pytest.fixture
 def crypto_manager(config_manager: ConfigurationManager):
-    """Mock crypto manager for testing."""
+    """Provide CryptographyManager with proper error handling."""
     try:
         from string_multitool.models.crypto import CryptographyManager
-
         return CryptographyManager(config_manager)
-    except (ImportError, TypeError):
+    except (ImportError, TypeError, FileNotFoundError) as exc:
+        pytest.skip(f"Crypto functionality not available: {exc}")
         return None
 
 
-# Modern pytest markers for organizing tests
+# Modern pytest markers for organizing tests (2025 standards)
 pytest_markers = [
     "unit: Unit tests for individual components",
     "integration: Integration tests for component interaction",
@@ -152,6 +152,12 @@ pytest_markers = [
     "security: Security-related tests",
     "edge_cases: Edge case and boundary condition tests",
     "slow: Tests that take significant time to run",
+    "transforms: Text transformation engine tests",
+    "crypto: Cryptography functionality tests",
+    "clipboard: Clipboard operation tests",
+    "config: Configuration management tests",
+    "io: Input/output operation tests",
+    "stress: Stress testing and boundary conditions",
 ]
 
 
@@ -167,25 +173,33 @@ class ExceptionTestHelper:
 
     @staticmethod
     def assert_validation_error(func, *args, expected_message: str = None, **kwargs):
-        """Assert that function raises ValidationError with optional message check."""
+        """Assert that function raises ValidationError with optional message check (modern pattern)."""
         from string_multitool.exceptions import ValidationError
 
-        with pytest.raises(ValidationError) as exc_info:
+        with pytest.raises(ValidationError, match=expected_message) as exc_info:
             func(*args, **kwargs)
 
+        # Additional validation for better error reporting
+        error_msg = str(exc_info.value)
+        assert len(error_msg) > 0, "ValidationError should have a descriptive message"
+
         if expected_message:
-            assert expected_message in str(exc_info.value)
+            assert expected_message in error_msg, f"Expected '{expected_message}' in error message: '{error_msg}'"
 
     @staticmethod
     def assert_transformation_error(func, *args, expected_message: str = None, **kwargs):
-        """Assert that function raises TransformationError with optional message check."""
+        """Assert that function raises TransformationError with optional message check (modern pattern)."""
         from string_multitool.exceptions import TransformationError
 
-        with pytest.raises(TransformationError) as exc_info:
+        with pytest.raises(TransformationError, match=expected_message) as exc_info:
             func(*args, **kwargs)
 
+        # Enhanced error validation
+        error_msg = str(exc_info.value)
+        assert len(error_msg) > 0, "TransformationError should have a descriptive message"
+
         if expected_message:
-            assert expected_message in str(exc_info.value)
+            assert expected_message in error_msg, f"Expected '{expected_message}' in error message: '{error_msg}'"
 
 
 @pytest.fixture
@@ -194,14 +208,16 @@ def exception_helper() -> ExceptionTestHelper:
     return ExceptionTestHelper()
 
 
-# Performance testing fixture using pytest-benchmark if available
+# Performance testing fixture with pytest-benchmark integration
 @pytest.fixture
 def performance_threshold():
-    """Define performance thresholds for benchmark tests."""
+    """Define performance thresholds for benchmark tests (2025 standards)."""
     return {
-        "transformation_time": 0.01,  # 10ms max for single transformation
-        "bulk_transformation_time": 1.0,  # 1s max for 1000 transformations
-        "config_load_time": 0.1,  # 100ms max for config loading
+        "transformation_time": 0.005,  # 5ms max for single transformation (stricter)
+        "bulk_transformation_time": 0.5,  # 500ms max for 1000 transformations
+        "config_load_time": 0.05,  # 50ms max for config loading
+        "memory_usage_mb": 100,  # 100MB max memory usage
+        "file_load_time": 0.1,  # 100ms max for file operations
     }
 
 
@@ -213,3 +229,31 @@ def interactive_session(
     from string_multitool.models.interactive import InteractiveSession
 
     return InteractiveSession(io_manager, transformation_engine)
+
+
+# Modern async fixture support (Context7 best practices)
+@pytest.fixture
+def async_test_wrapper():
+    """Wrapper fixture for synchronous tests that need async functionality."""
+    import asyncio
+
+    def _run_async(coro):
+        """Run async coroutine in synchronous test context."""
+        return asyncio.run(coro)
+
+    return _run_async
+
+
+# Benchmark fixture for performance testing
+@pytest.fixture
+def benchmark_config():
+    """Configuration for pytest-benchmark with modern standards."""
+    return {
+        'min_rounds': 5,
+        'max_time': 1.0,
+        'min_time': 0.005,
+        'timer': 'time.perf_counter',
+        'disable_gc': True,
+        'warmup': True,
+        'warmup_iterations': 2,
+    }

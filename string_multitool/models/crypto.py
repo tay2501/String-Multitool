@@ -10,7 +10,7 @@ from __future__ import annotations
 import base64
 import secrets
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Final
+from typing import Any, Final, TYPE_CHECKING
 
 from ..exceptions import ConfigurationError, CryptographyError
 
@@ -22,7 +22,7 @@ try:
     from cryptography.hazmat.backends import default_backend
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import padding, rsa
-    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+    from cryptography.hazmat.primitives.ciphers import algorithms, Cipher, modes
 
     _cryptography_available = True
 except ImportError:
@@ -350,3 +350,98 @@ class CryptographyManager(ConfigurableComponent[dict[str, Any]]):
             return True
         except (FileNotFoundError, OSError, ValueError, TypeError):
             return False
+
+    def encrypt(self, data: bytes) -> bytes:
+        """Encrypt bytes data using hybrid AES+RSA encryption.
+
+        Args:
+            data: Binary data to encrypt
+
+        Returns:
+            Encrypted binary data
+
+        Raises:
+            CryptographyError: If encryption fails
+        """
+        try:
+            # Generate AES key and IV
+            aes_key = secrets.token_bytes(self.rsa_config["aes_key_size"])
+            aes_iv = secrets.token_bytes(self.rsa_config["aes_iv_size"])
+
+            # Encrypt data with AES
+            cipher = Cipher(algorithms.AES(aes_key), modes.CBC(aes_iv), backend=default_backend())
+            encryptor = cipher.encryptor()
+
+            # Pad data to AES block size
+            padding_length = 16 - (len(data) % 16)
+            padded_data = data + bytes([padding_length] * padding_length)
+
+            encrypted_data = encryptor.update(padded_data) + encryptor.finalize()
+
+            # Encrypt AES key with RSA
+            _, public_key = self.ensure_key_pair()
+            encrypted_aes_key = public_key.encrypt(
+                aes_key,
+                padding.OAEP(
+                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                    algorithm=hashes.SHA256(),
+                    label=None,
+                ),
+            )
+
+            # Combine encrypted key, IV, and data
+            return encrypted_aes_key + aes_iv + encrypted_data
+
+        except Exception as e:
+            raise CryptographyError(
+                f"Bytes encryption failed: {e}",
+                {"data_length": len(data), "error_type": type(e).__name__},
+            ) from e
+
+    def decrypt(self, encrypted_data: bytes) -> bytes:
+        """Decrypt binary data using hybrid AES+RSA decryption.
+
+        Args:
+            encrypted_data: Encrypted binary data
+
+        Returns:
+            Decrypted binary data
+
+        Raises:
+            CryptographyError: If decryption fails
+        """
+        try:
+            if not encrypted_data:
+                raise CryptographyError("Cannot decrypt empty data")
+
+            # Extract components
+            key_size = self.rsa_config["key_size"] // 8  # Convert bits to bytes
+            encrypted_aes_key = encrypted_data[:key_size]
+            aes_iv = encrypted_data[key_size : key_size + self.rsa_config["aes_iv_size"]]
+            encrypted_payload = encrypted_data[key_size + self.rsa_config["aes_iv_size"] :]
+
+            # Decrypt AES key with RSA
+            private_key, _ = self.ensure_key_pair()
+            aes_key = private_key.decrypt(
+                encrypted_aes_key,
+                padding.OAEP(
+                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                    algorithm=hashes.SHA256(),
+                    label=None,
+                ),
+            )
+
+            # Decrypt data with AES
+            cipher = Cipher(algorithms.AES(aes_key), modes.CBC(aes_iv), backend=default_backend())
+            decryptor = cipher.decryptor()
+            padded_data = decryptor.update(encrypted_payload) + decryptor.finalize()
+
+            # Remove padding
+            padding_length = padded_data[-1]
+            return padded_data[:-padding_length]
+
+        except Exception as e:
+            raise CryptographyError(
+                f"Bytes decryption failed: {e}",
+                {"encrypted_length": len(encrypted_data), "error_type": type(e).__name__},
+            ) from e

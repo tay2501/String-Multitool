@@ -10,20 +10,12 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum, auto
+from enum import auto, Enum
 from pathlib import Path
 
 # Import ValidationError for TypeGuard functions
 # Note: This creates a circular import, so we'll use TYPE_CHECKING
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Generic,
-    Protocol,
-    TypeGuard,
-    TypeVar,
-    runtime_checkable,
-)
+from typing import Any, Generic, Protocol, runtime_checkable, TYPE_CHECKING, TypeGuard, TypeVar
 
 if TYPE_CHECKING:
     from ..exceptions import ValidationError
@@ -403,6 +395,34 @@ class CryptoManagerProtocol(Protocol):
         """
         ...
 
+    def encrypt(self, data: bytes) -> bytes:
+        """Encrypt bytes using hybrid RSA+AES encryption.
+
+        Args:
+            data: Raw bytes to encrypt
+
+        Returns:
+            Encrypted bytes
+
+        Raises:
+            CryptographyError: If encryption fails
+        """
+        ...
+
+    def decrypt(self, encrypted_data: bytes) -> bytes:
+        """Decrypt bytes using hybrid RSA+AES decryption.
+
+        Args:
+            encrypted_data: Encrypted bytes
+
+        Returns:
+            Decrypted raw bytes
+
+        Raises:
+            CryptographyError: If decryption fails
+        """
+        ...
+
 
 class ClipboardMonitorProtocol(Protocol):
     """Protocol for clipboard monitoring operations."""
@@ -535,7 +555,7 @@ def is_valid_config_dict(obj: Any) -> TypeGuard[ConfigDict]:
     Returns:
         True if obj is a valid configuration dictionary
     """
-    return isinstance(obj, dict) and all(isinstance(k, str) for k in obj.keys())
+    return isinstance(obj, dict) and all(isinstance(k, str) for k in obj)
 
 
 def is_valid_rule_string(obj: Any) -> TypeGuard[str]:
@@ -650,7 +670,7 @@ def is_rule_dict(obj: Any) -> TypeGuard[RuleDict]:
     """
     return (
         isinstance(obj, dict)
-        and all(isinstance(k, str) for k in obj.keys())
+        and all(isinstance(k, str) for k in obj)
         and all(is_transformation_rule(v) for v in obj.values())
     )
 
@@ -664,7 +684,7 @@ def is_error_context(obj: Any) -> TypeGuard[ErrorContext]:
     Returns:
         True if obj is a valid ErrorContext
     """
-    return isinstance(obj, dict) and all(isinstance(k, str) for k in obj.keys())
+    return isinstance(obj, dict) and all(isinstance(k, str) for k in obj)
 
 
 def is_validation_result(obj: Any) -> TypeGuard[ValidationResult]:
@@ -856,10 +876,7 @@ def is_daemon_config(obj: Any) -> TypeGuard[dict[str, Any]]:
 
     # Validate auto_transformation section
     auto_transformation = obj.get("auto_transformation", {})
-    if not isinstance(auto_transformation, dict):
-        return False
-
-    return True
+    return isinstance(auto_transformation, dict)
 
 
 def is_security_config(obj: Any) -> TypeGuard[dict[str, Any]]:
@@ -876,7 +893,7 @@ def is_security_config(obj: Any) -> TypeGuard[dict[str, Any]]:
 
     # Check for expected security configuration structure
     # This is flexible to allow for different security configurations
-    return all(isinstance(k, str) for k in obj.keys())
+    return all(isinstance(k, str) for k in obj)
 
 
 def is_transformation_rules_config(obj: Any) -> TypeGuard[dict[str, Any]]:
@@ -892,7 +909,7 @@ def is_transformation_rules_config(obj: Any) -> TypeGuard[dict[str, Any]]:
         return False
 
     # Validate that all keys are strings and values are appropriate
-    return all(isinstance(k, str) for k in obj.keys())
+    return all(isinstance(k, str) for k in obj)
 
 
 def is_hotkey_config(obj: Any) -> TypeGuard[dict[str, Any]]:
@@ -909,7 +926,7 @@ def is_hotkey_config(obj: Any) -> TypeGuard[dict[str, Any]]:
 
     # Check for expected hotkey configuration structure
     # This is flexible to allow for different hotkey configurations
-    return all(isinstance(k, str) for k in obj.keys())
+    return all(isinstance(k, str) for k in obj)
 
 
 def is_list_of_strings(obj: Any) -> TypeGuard[list[str]]:

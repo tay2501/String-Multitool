@@ -37,6 +37,8 @@ dependencies = [
     "structlog>=25.4.0",
     "sqlalchemy>=2.0.0",
     "litecli>=1.12.3",
+    "tree-sitter-analyzer[popular]>=1.2.3",
+    "black>=25.1.0",
 ]
 
 [project.optional-dependencies]
@@ -107,6 +109,10 @@ addopts = [
     "--color=yes",           # force color output
     "--durations=10",        # show 10 slowest tests
     "--maxfail=5",           # stop after 5 failures
+    "--cov=string_multitool", # coverage for main package (Context7 best practice)
+    "--cov-report=term-missing", # show missing lines in terminal
+    "--cov-report=html",     # generate HTML coverage report
+    "--cov-config=pyproject.toml", # use pyproject.toml for coverage config
 ]
 testpaths = [
     "tests",
@@ -167,12 +173,22 @@ log_cli_level = "INFO"
 log_cli_format = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
 log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 
+# Coverage configuration following Context7 best practices
 [tool.coverage.run]
-source = ["String_Multitool"]
+source = ["string_multitool", "String_Multitool"]
 omit = [
+    "tests/*",
+    "*/__init__.py",
+    "*/conftest.py",
+    "string_multitool/main.py",  # Entry point
+    "String_Multitool.py",      # Legacy entry point
     "test_*",
     "setup.py",
 ]
+concurrency = ["thread", "multiprocessing"]
+parallel = true
+context = "${COVERAGE_CONTEXT}"
+branch = true
 
 [tool.coverage.report]
 exclude_lines = [
@@ -186,7 +202,20 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
+    "@typing\\.overload",
+    "if TYPE_CHECKING:",
 ]
+show_missing = true
+precision = 2
+fail_under = 85
+skip_covered = false
+
+[tool.coverage.html]
+directory = "htmlcov"
+show_contexts = true
+
+[tool.coverage.xml]
+output = "coverage.xml"
 
 [tool.black]
 line-length = 99
@@ -210,7 +239,10 @@ extend-exclude = '''
 profile = "black"
 multi_line_output = 3
 line_length = 99
-known_first_party = ["String_Multitool"]
+known_first_party = ["string_multitool", "String_Multitool"]
+known_third_party = ["pytest", "cryptography", "pyperclip", "watchdog", "typer", "rich"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+force_alphabetical_sort_within_sections = true
 
 [tool.mypy]
 python_version = "3.12"
@@ -246,6 +278,8 @@ venv = ".venv"
 [tool.ruff]
 target-version = "py312"
 line-length = 99
+
+[tool.ruff.lint]
 select = [
     "E",    # pycodestyle errors
     "W",    # pycodestyle warnings  
@@ -262,9 +296,16 @@ ignore = [
     "B008",   # do not perform function calls in argument defaults
     "C901",   # too complex
     "PLR0913", # too many arguments
+    "PLC0415", # import should be at top-level (needed for circular import prevention)
+    "PLW0603", # global statement (used for singleton pattern)
+    "PLR2004", # magic values (acceptable in this context)
+    "B904",   # raise from (not always needed)
+    "F841",   # unused variable (may be intentional)
+    "UP046",  # Generic subclass (compatible with older Python)
+    "UP038",  # isinstance tuple (more readable)
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "test_*.py" = ["PLR2004"]  # magic value used in comparison
 
 [tool.flake8]
@@ -272,4 +313,13 @@ max-line-length = 99
 extend-ignore = ["E203", "W503", "E501"]  # E203: conflicts with black, W503: conflicts with PEP8, E501: handled by black
 
 [tool.uv]
+
+[dependency-groups]
+dev = [
+    "isort>=5.13.2",
+    "mypy>=1.17.1",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "ruff>=0.12.11",
+]
 # UV automatically manages dependencies based on project.optional-dependencies

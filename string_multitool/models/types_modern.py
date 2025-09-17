@@ -11,7 +11,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
-from typing import Any, Protocol, TypedDict, override
+from typing import Any, override, Protocol, TypedDict
 
 # PEP 695: Type parameter syntax (Python 3.12+)
 type ConfigValue = str | int | float | bool | list[Any] | dict[str, Any] | None
@@ -351,3 +351,19 @@ class ModernTransformationConfig:
         """
         rule = self.get_rule(name)
         return rule is not None and rule.get("enabled", False)
+
+# Completion system types for Tab completion support
+@dataclass
+class CompletionChoice:
+    """Represents a completion choice with value and optional description."""
+    value: str
+    description: str | None = None
+
+
+@dataclass
+class CompletionContext:
+    """Context information for completion operations."""
+    incomplete_text: str
+    cursor_position: int
+    current_command: str | None = None
+    parameters: Dict[str, Any] = field(default_factory=dict)

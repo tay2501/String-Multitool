@@ -8,6 +8,7 @@ following the single responsibility principle and EAFP error handling pattern.
 from __future__ import annotations
 
 import base64
+import binascii
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -33,6 +34,9 @@ class CryptoTransformations(TransformationBase):
         """
         super().__init__({})  # No configuration needed for crypto operations
         self.crypto_manager = crypto_manager
+        self._input_text: str = ""
+        self._output_text: str = ""
+        self._transformation_rule: str = ""
 
     def set_crypto_manager(self, crypto_manager: CryptoManagerProtocol) -> None:
         """Set the cryptography manager for encryption/decryption operations.
@@ -92,6 +96,9 @@ class CryptoTransformations(TransformationBase):
             TransformationError: If encryption fails or crypto manager not set
         """
         try:
+            self._input_text = text
+            self._transformation_rule = "encrypt"
+
             if not self.crypto_manager:
                 raise TransformationError(
                     CRYPTO_CONSTANTS.NO_CRYPTO_MANAGER_ERROR,
@@ -100,7 +107,9 @@ class CryptoTransformations(TransformationBase):
 
             # EAFP: Try encryption directly
             encrypted_bytes = self.crypto_manager.encrypt(text.encode("utf-8"))
-            return base64.b64encode(encrypted_bytes).decode("ascii")
+            result = base64.b64encode(encrypted_bytes).decode("ascii")
+            self._output_text = result
+            return result
 
         except AttributeError as e:
             raise TransformationError(
@@ -132,6 +141,9 @@ class CryptoTransformations(TransformationBase):
             TransformationError: If decryption fails or crypto manager not set
         """
         try:
+            self._input_text = encrypted_text
+            self._transformation_rule = "decrypt"
+
             if not self.crypto_manager:
                 raise TransformationError(
                     CRYPTO_CONSTANTS.NO_CRYPTO_MANAGER_ERROR,
@@ -141,9 +153,11 @@ class CryptoTransformations(TransformationBase):
             # EAFP: Try decryption directly
             encrypted_bytes = base64.b64decode(encrypted_text.encode("ascii"))
             decrypted_bytes = self.crypto_manager.decrypt(encrypted_bytes)
-            return decrypted_bytes.decode("utf-8")
+            result = decrypted_bytes.decode("utf-8")
+            self._output_text = result
+            return result
 
-        except (ValueError, base64.binascii.Error) as e:
+        except (ValueError, binascii.Error) as e:
             raise TransformationError(
                 "Invalid Base64 encoded data for decryption",
                 {
@@ -207,7 +221,7 @@ class CryptoTransformations(TransformationBase):
         try:
             # EAFP: Try decoding directly
             return base64.b64decode(encoded_text.encode("ascii")).decode("utf-8")
-        except (ValueError, base64.binascii.Error) as e:
+        except (ValueError, binascii.Error) as e:
             raise TransformationError(
                 "Invalid Base64 encoded data",
                 {
@@ -231,3 +245,27 @@ class CryptoTransformations(TransformationBase):
                     ERROR_CONTEXT_KEYS.TEXT_LENGTH: len(encoded_text),
                 },
             ) from e
+
+    def get_input_text(self) -> str:
+        """Get the input text used in the transformation.
+
+        Returns:
+            Input text string
+        """
+        return self._input_text
+
+    def get_output_text(self) -> str:
+        """Get the output text from the transformation.
+
+        Returns:
+            Output text string
+        """
+        return self._output_text
+
+    def get_transformation_rule(self) -> str:
+        """Get the transformation rule that was applied.
+
+        Returns:
+            Transformation rule string
+        """
+        return self._transformation_rule

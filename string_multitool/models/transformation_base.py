@@ -110,11 +110,11 @@ class TransformationBase(ABC):
         Args:
             context: エラー情報を含む辞書
         """
-        try:
-            self._error_context.update(context)
-        except Exception:
+        import contextlib
+
+        with contextlib.suppress(Exception):
             # EAFPスタイル: 更新に失敗した場合は無視
-            pass
+            self._error_context.update(context)
 
     def get_error_context(self) -> ErrorContext:
         """現在のエラーコンテキストを取得
@@ -136,9 +136,10 @@ class TransformationBase(ABC):
 
         Note:
             このメソッドは引数を必要とする変換クラスでオーバーライドされる
+            基本実装では何も行わない（明示的なno-op）
         """
-        # Default implementation does nothing
-        pass
+        # Explicit no-op: This is an optional hook method
+        # Subclasses that need arguments will override this method
 
     def _safe_transform(self, text: str) -> str:
         """安全な変換実行のヘルパーメソッド
@@ -341,11 +342,11 @@ class ChainableTransformationBase(TransformationBase):
 
     def clear_chain(self) -> None:
         """変換チェインをクリア"""
-        try:
-            self._chain.clear()
-        except Exception:
+        import contextlib
+
+        with contextlib.suppress(Exception):
             # EAFPスタイル: クリアに失敗した場合は無視
-            pass
+            self._chain.clear()
 
     def get_chain_length(self) -> int:
         """チェインの長さを取得

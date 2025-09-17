@@ -259,11 +259,11 @@ class ShellStyleArgumentParser:
         Returns:
             Text with surrounding quotes removed if they were present
         """
-        if len(text) >= 2:
-            if (text.startswith('"') and text.endswith('"')) or (
-                text.startswith("'") and text.endswith("'")
-            ):
-                return text[1:-1]
+        if len(text) >= 2 and (
+            (text.startswith('"') and text.endswith('"'))
+            or (text.startswith("'") and text.endswith("'"))
+        ):
+            return text[1:-1]
         return text
 
 

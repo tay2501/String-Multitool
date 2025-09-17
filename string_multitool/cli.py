@@ -28,13 +28,40 @@ console: Console = Console()
 # Type alias for command decorator
 CommandDecorator = Any
 
-# Main Typer application
+# Completion functions for MCP operations
+def complete_context7_operations(incomplete: str) -> list[str]:
+    """Provide completion for Context7 MCP operations."""
+    operations = [
+        "resolve-library-id",
+        "get-library-docs",
+        "search-examples",
+        "list-libraries"
+    ]
+    return [op for op in operations if incomplete.lower() in op.lower()]
+
+
+def complete_serena_operations(incomplete: str) -> list[str]:
+    """Provide completion for Serena MCP operations."""
+    operations = [
+        "find-symbol",
+        "get-symbols-overview",
+        "search-for-pattern",
+        "list-dir",
+        "find-file",
+        "read-memory",
+        "write-memory",
+        "find-referencing-symbols"
+    ]
+    return [op for op in operations if incomplete.lower() in op.lower()]
+
+# Main Typer application with Tab completion enabled
 app: Typer = typer.Typer(
     name="string-multitool",
-    help="Advanced text transformation tool with pipe support and RSA encryption",
-    epilog="Examples:\n  string-multitool transform '/t/l'           # Trim and lowercase\n  string-multitool encrypt                     # Encrypt clipboard\n  echo 'text' | string-multitool transform '/u' # Uppercase piped text",
+    help="Advanced text transformation tool with Context7/Serena MCP support and Tab completion",
+    epilog="Examples:\n  string-multitool transform '/t/l'           # Trim and lowercase\n  string-multitool context7 resolve-library-id # Context7 MCP operation\n  string-multitool serena find-symbol          # Serena MCP operation\n  string-multitool completion --install         # Install Tab completion",
     rich_markup_mode="rich",
     no_args_is_help=True,
+    add_completion=True,  # Enable Typer's built-in completion system
 )
 
 # Create application instance (will be initialized when needed)
@@ -363,15 +390,119 @@ def show_rules(
         )
 
 
+@app.command("context7", help="Execute Context7 MCP operations for library documentation")
+def context7_command(
+    operation: Annotated[
+        str,
+        typer.Argument(help="Context7 MCP operation", autocompletion=complete_context7_operations)
+    ],
+    library: Annotated[
+        str | None,
+        typer.Option("--library", "-l", help="Library name for documentation lookup")
+    ] = None,
+    topic: Annotated[
+        str | None,
+        typer.Option("--topic", "-t", help="Specific topic to focus on")
+    ] = None,
+    tokens: Annotated[
+        int,
+        typer.Option("--tokens", help="Maximum tokens for documentation")
+    ] = 3000,
+) -> None:
+    """Execute Context7 MCP operations for library documentation."""
+    console.print(Panel(
+        f"Context7 Operation: [blue]{operation}[/blue]\n"
+        f"Library: [green]{library or 'N/A'}[/green]\n"
+        f"Topic: [yellow]{topic or 'N/A'}[/yellow]\n"
+        f"Tokens: [cyan]{tokens}[/cyan]",
+        title="Context7 MCP",
+        border_style="blue"
+    ))
+
+    # Note: Actual MCP integration would be implemented here
+    console.print("[dim]Note: MCP integration requires separate setup[/dim]")
+    console.print("[yellow]Use: npx -y @upstash/context7-mcp@latest --transport stdio[/yellow]")
+
+
+@app.command("serena", help="Execute Serena MCP operations for code analysis")
+def serena_command(
+    operation: Annotated[
+        str,
+        typer.Argument(help="Serena MCP operation", autocompletion=complete_serena_operations)
+    ],
+    path: Annotated[
+        str,
+        typer.Option("--path", "-p", help="File or directory path")
+    ] = ".",
+    pattern: Annotated[
+        str | None,
+        typer.Option("--pattern", help="Search pattern for pattern-based operations")
+    ] = None,
+) -> None:
+    """Execute Serena MCP operations for code analysis."""
+    console.print(Panel(
+        f"Serena Operation: [blue]{operation}[/blue]\n"
+        f"Path: [green]{path}[/green]\n"
+        f"Pattern: [yellow]{pattern or 'N/A'}[/yellow]",
+        title="Serena MCP",
+        border_style="magenta"
+    ))
+
+    # Note: Actual MCP integration would be implemented here
+    console.print("[dim]Note: MCP integration requires separate setup[/dim]")
+    console.print("[yellow]Serena MCP should be configured in your IDE/environment[/yellow]")
+
+
+@app.command("completion", help="Manage shell completion installation")
+def completion_command(
+    install: Annotated[
+        bool,
+        typer.Option("--install", help="Install shell completion")
+    ] = False,
+    show: Annotated[
+        str | None,
+        typer.Option("--show", help="Show completion script for shell (bash, zsh, fish, powershell)")
+    ] = None,
+    shell: Annotated[
+        str | None,
+        typer.Option("--shell", help="Target shell for installation")
+    ] = None,
+) -> None:
+    """Manage shell completion installation."""
+    if install:
+        console.print("[blue]Installing shell completion...[/blue]")
+        console.print("[yellow]Run: python scripts/setup_completion.py --install[/yellow]")
+        if shell:
+            console.print(f"[dim]Target shell: {shell}[/dim]")
+    elif show:
+        console.print(f"[blue]Showing completion script for {show}...[/blue]")
+        console.print(f"[yellow]Run: python scripts/setup_completion.py --show {show}[/yellow]")
+    else:
+        console.print(Panel(
+            "Shell Completion Management:\n\n"
+            "[cyan]Install completion:[/cyan]\n"
+            "  string-multitool completion --install\n"
+            "  string-multitool completion --install --shell bash\n\n"
+            "[cyan]Show completion script:[/cyan]\n"
+            "  string-multitool completion --show bash\n"
+            "  string-multitool completion --show zsh\n\n"
+            "[cyan]Supported shells:[/cyan]\n"
+            "  bash, zsh, fish, powershell",
+            title="Shell Completion Help",
+            border_style="blue"
+        ))
+
+
 @app.command("version", help="Show version information")
 def show_version() -> None:
     """Display version and system information."""
     console.print(
         Panel.fit(
             "[bold cyan]String_Multitool[/bold cyan]\n"
-            "[green]Version:[/green] 2.1.0 (Typer Edition)\n"
+            "[green]Version:[/green] 2.6.0 (Tab Completion Edition)\n"
             "[green]Python:[/green] " + sys.version.split()[0] + "\n"
-            "[green]Platform:[/green] " + sys.platform,
+            "[green]Platform:[/green] " + sys.platform + "\n"
+            "[green]Features:[/green] Context7 MCP, Serena MCP, Tab Completion",
             title="Version Info",
             border_style="blue",
         )

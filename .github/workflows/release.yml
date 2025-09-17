@@ -21,6 +21,7 @@ on:
         default: false
 
 env:
+  UV_VERSION: "0.8.17"  # Latest stable version
   PYTHON_VERSION: '3.12'
   BUILD_TIMEOUT: 45
   ARTIFACT_RETENTION_DAYS: 90
@@ -39,7 +40,7 @@ jobs:
     
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0  # Full history for changelog generation
     
@@ -130,27 +131,26 @@ jobs:
     
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: Set up Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        architecture: ${{ matrix.python-arch }}
+      uses: actions/checkout@v5
     
     - name: Install uv
       uses: astral-sh/setup-uv@v6
       with:
+        version: ${{ env.UV_VERSION }}
         enable-cache: true
         cache-local-path: ~\AppData\Local\uv\cache
+        cache-dependency-glob: "uv.lock"
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      run: uv python install ${{ env.PYTHON_VERSION }}
     
     - name: Install dependencies
       run: |
-        uv sync --all-extras --dev
-        
+        uv sync --all-extras --dev --locked
+
         # Verify installation
-        python --version
-        python -c "import sys; print(f'Architecture: {sys.maxsize > 2**32 and \"64-bit\" or \"32-bit\"}')""
+        uv run --frozen python --version
+        uv run --frozen python -c "import sys; print(f'Architecture: {sys.maxsize > 2**32 and \"64-bit\" or \"32-bit\"}')""
     
     - name: Update version in code
       run: |
@@ -252,7 +252,7 @@ jobs:
     
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     
     - name: Download all build artifacts
       uses: actions/download-artifact@v4
@@ -342,7 +342,7 @@ jobs:
     
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
     

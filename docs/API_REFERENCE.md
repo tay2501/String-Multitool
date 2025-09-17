@@ -34,6 +34,7 @@ string_multitool/
 │   ├── basic_transformations.py      # Basic text operations
 │   ├── case_transformations.py       # Case conversion operations
 │   ├── encryption_transformations.py # Security operations
+│   ├── japanese_encoding_transformations.py # Japanese encoding conversion
 │   └── ...                          # Other transformation modules
 ├── utils/          # Utility Components
 │   ├── unified_logger.py   # Logging infrastructure

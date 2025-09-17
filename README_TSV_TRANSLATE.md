@@ -18,9 +18,27 @@ This project demonstrates modern Python development best practices:
 
 ### Installation
 
+#### Recommended: UV Package Manager
+
+```bash
+# Install with uv (recommended - fastest dependency resolution)
+uv sync --group dev
+
+# Create required directories
+mkdir -p data logs config/tsv_rules
+
+# Verify TSV functionality
+uv run python String_Multitool.py /tsvtr --help
+```
+
+#### Alternative: Traditional Pip
+
 ```bash
 # Install dependencies
-pip install -r requirements-tsv.txt
+pip install -e .
+
+# Or with requirements file
+pip install -r requirements.txt
 
 # Create directories
 mkdir -p data logs config/tsv_rules
@@ -28,18 +46,23 @@ mkdir -p data logs config/tsv_rules
 
 ### Basic Usage
 
+#### Modern CLI Interface with Case-Insensitive Support
+
 ```bash
-# List available rule sets
-python tsvtr.py ls
+# Standard TSV conversion
+uv run python String_Multitool.py /tsvtr technical_terms.tsv
 
-# Convert clipboard text using a rule set
-python tsvtr.py japanese_english
+# NEW: Case-insensitive matching (powerful feature for flexible conversion)
+echo "api documentation" | uv run python String_Multitool.py /tsvtr tech_terms.tsv --case-insensitive
+# Result: "Application Programming Interface documentation"
 
-# Sync TSV files with database
-python tsvtr.py sync config/tsv_rules
+# Database management
+uv run python -m tsv_translate.cli.main ls                     # List rule sets
+uv run python -m tsv_translate.cli.main sync config/tsv_rules  # Sync TSV files
+uv run python -m tsv_translate.cli.main info japanese_english  # Rule set details
 
-# Get detailed information about a rule set
-python tsvtr.py info japanese_english
+# Interactive database shell
+uv run python -m tsv_translate.cli.main --shell litecli       # Enhanced SQLite shell
 ```
 
 ## 📁 Project Structure
@@ -154,16 +177,23 @@ Enable database encryption in configuration:
 
 ## 🧪 Testing
 
+### Comprehensive Test Suite with Modern Pytest
+
 ```bash
-# Run all tests
-python -m pytest tsv_translator/tests/ -v
+# Run all TSV-related tests with uv
+uv run pytest tests/ -m "tsv" -v
 
-# Run with coverage
-python -m pytest tsv_translator/tests/ --cov=tsv_translator --cov-report=html
+# Test case-insensitive functionality specifically
+uv run pytest tests/ -m "tsv" -k "case_insensitive" -v
 
-# Run specific test categories
-python -m pytest tsv_translator/tests/test_models.py -v
-python -m pytest tsv_translator/tests/test_services.py -v
+# Run with coverage reporting
+uv run pytest tests/ -m "tsv" --cov=string_multitool --cov-report=html
+
+# Performance testing for large TSV files
+uv run pytest tests/ -m "tsv and performance" -v
+
+# Traditional method (if not using uv)
+python -m pytest tests/ -m "tsv" -v
 ```
 
 ## 📊 Performance Characteristics
@@ -211,29 +241,64 @@ class ConversionService(BaseService):
 
 ## 🚀 Advanced Usage
 
-### Tab Completion
+### Case-Insensitive TSV Conversion (New Feature)
 
-Enable tab completion for rule set names:
+The enhanced TSV system now supports flexible case-insensitive matching:
 
 ```bash
-# Install argcomplete
-pip install argcomplete
+# Create technical glossary
+echo -e "API\tApplication Programming Interface\nSQL\tStructured Query Language\nREST\tRepresentational State Transfer" > tech_terms.tsv
 
-# Enable completion
-eval "$(register-python-argcomplete tsvtr.py)"
+# Standard conversion (case-sensitive)
+echo "Use API with SQL" | uv run python String_Multitool.py /tsvtr tech_terms.tsv
+# Result: "Use Application Programming Interface with Structured Query Language"
+
+# Case-insensitive conversion (flexible matching)
+echo "api and rest integration" | uv run python String_Multitool.py /tsvtr tech_terms.tsv --case-insensitive
+# Result: "Application Programming Interface and Representational State Transfer integration"
+
+# Mixed case input handling
+echo "Modern sql and Api patterns" | uv run python String_Multitool.py /tsvtr tech_terms.tsv --case-insensitive
+# Result: "Modern Structured Query Language and Application Programming Interface patterns"
 ```
 
-### File Watching
+### Database Management
 
-Enable automatic synchronization:
+```bash
+# Install development dependencies for enhanced database tools
+uv sync --group dev
+
+# Enhanced SQLite shell with syntax highlighting
+uv run python -m tsv_translate.cli.main --shell litecli
+
+# Standard SQLite shell
+uv run python -m tsv_translate.cli.main --shell sqlite3
+```
+
+### Development and Testing
+
+#### File Watching (Development Mode)
+
+Enable automatic synchronization in development:
 
 ```json
 {
-  "enable_file_watching": true
+  "enable_file_watching": true,
+  "case_insensitive_default": false
 }
 ```
 
 The system will automatically detect TSV file changes and update the database.
+
+#### Testing Case-Insensitive Features
+
+```bash
+# Test the new case-insensitive functionality
+uv run pytest tests/ -m "tsv" -k "case_insensitive" -v
+
+# Benchmark case-insensitive performance
+uv run pytest tests/ -m "tsv and performance" --benchmark-only
+```
 
 ### Direct Database Access
 

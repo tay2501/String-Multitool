@@ -25,28 +25,46 @@ String-Multitool is a modern Python text transformation toolkit designed for pro
 
 ### 🎯 Core Capabilities
 
-- **🔄 Text Transformations**: 25+ built-in rules for case conversion, formatting, and Unicode handling
+- **🔄 Text Transformations**: 26+ built-in rules for case conversion, formatting, Unicode handling, and Japanese encoding conversion
 - **🔐 Enterprise Security**: RSA-4096 + AES-256 hybrid encryption with automatic key management
 - **📊 TSV Processing**: Database-backed dictionary conversion with case-insensitive matching
 - **🖥️ CLI Excellence**: Modern interface with pipe support and interactive mode
-- **🏗️ MVC Architecture**: Professional Python design patterns with type safety
+- **🏗️ Modern Architecture**: Follows 2025 Python packaging standards (PEP 621, hatchling build backend)
+- **⚡ Performance**: Optimized with UV package manager (10-100x faster than pip)
 - **🌐 Cross-Platform**: Windows, macOS, and Linux support with clipboard integration
 
 ## 🚀 Quick Start
 
 ### Installation
 
+#### Recommended: UV Package Manager (2025 Standard)
+
+[UV](https://docs.astral.sh/uv/) is the modern Python package manager, providing 10-100x faster installation than pip and serving as a complete Python toolchain replacement.
+
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/String-Multitool.git
 cd String-Multitool
 
-# Setup environment (recommended)
+# Install dependencies with uv (fastest and recommended for 2025)
 uv sync
 
-# Alternative: traditional pip
+# For development with all extras
+uv sync --group dev --all-extras
+
+# Verify installation
+uv run python String_Multitool.py help
+```
+
+#### Alternative: Traditional Pip
+
+```bash
+# Clone and setup virtual environment
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -e .
+
+# Or install from requirements
 pip install -r requirements.txt
 
 # Verify installation
@@ -131,6 +149,7 @@ String-Multitool offers comprehensive text processing capabilities organized int
 | `/r 'old' 'new'` | **Replace text** | `/r 'API' 'Application Programming Interface'` | Targeted replacement |
 | `/S '+'` | **Slugify with separator** | `/S '+'` on `http://foo.bar` | `http+foo+bar` |
 | `/tsvtr file.tsv` | **TSV dictionary conversion** | `/tsvtr technical_terms.tsv --case-insensitive` | Dictionary-based transformation |
+| `/iconv -f FROM -t TO` | **Japanese encoding conversion** | `/iconv -f SJIS -t UTF8` or `/iconv -t UTF8` (auto-detect) | Character encoding conversion |
 | `/enc` | **RSA encrypt** | `/enc` | Base64 encrypted output |
 | `/dec` | **RSA decrypt** | `/dec` | Original plaintext |
 
@@ -161,6 +180,17 @@ TSV rules are stored in SQLite for high-performance lookups:
 | `python -m tsv_translate.cli.main sync config/tsv_rules` | **Import TSV files** | Sync to database |
 | `python -m tsv_translate.cli.main --shell litecli` | **SQL interface** | Interactive queries |
 | `python -m tsv_translate.cli.main ls` | **List rule sets** | Available conversions |
+
+### Japanese Character Encoding Conversion
+
+```bash
+# Convert Japanese text encoding with iconv-compatible syntax
+echo "日本語テキスト" | python String_Multitool.py /iconv -f SJIS -t UTF8
+# Convert with auto-detection (recommended)
+echo "日本語テキスト" | python String_Multitool.py /iconv -t UTF8
+
+# Supported conversions: SJIS ⇔ MS932, SJIS ⇔ EUC-JP, SJIS ⇔ UTF-8
+```
 
 ### TSV Dictionary Conversion
 
@@ -229,13 +259,14 @@ string_multitool/
 └── main.py         # Application entry point
 ```
 
-### Design Principles
+### Design Principles (2025 Standards Compliant)
 
-- **🏗️ MVC Pattern**: Clear separation of business logic, UI, and control flow
-- **⚡ Performance**: Efficient algorithms with minimal memory footprint  
-- **🔒 Security**: Defense-in-depth with secure defaults
+- **🏗️ Modern MVC Pattern**: Clear separation following Python best practices with PEP 621 project structure
+- **📦 Standards Compliance**: Uses hatchling build backend and pyproject.toml (PEP 621) for packaging
+- **⚡ Performance**: UV package manager integration and efficient algorithms with minimal memory footprint
+- **🔒 Security**: Defense-in-depth with secure defaults and modern cryptography
 - **🧩 Extensibility**: Protocol-based interfaces for easy customization
-- **📝 Type Safety**: Comprehensive type hints with mypy validation
+- **📝 Type Safety**: Comprehensive type hints with mypy strict mode validation
 
 ## 📦 Installation
 
@@ -243,7 +274,9 @@ string_multitool/
 
 | Component | Requirement | Notes |
 |-----------|-------------|-------|
-| **Python** | 3.12+ | Modern language features required |
+| **Python** | 3.12+ (tested on 3.13+) | Modern language features and 2025 standards compliance |
+| **Package Manager** | [UV](https://docs.astral.sh/uv/) (strongly recommended) | 10-100x faster than pip, replaces multiple tools |
+| **Alternative** | pip with virtual environment | Traditional approach, slower but compatible |
 | **Platform** | Windows/macOS/Linux | Cross-platform clipboard support |
 | **Memory** | 100MB+ | For large TSV processing |
 | **Storage** | 50MB+ | Including dependencies |
@@ -255,15 +288,18 @@ string_multitool/
 git clone https://github.com/yourusername/String-Multitool.git
 cd String-Multitool
 
-# Setup with uv (recommended)
+# Setup with uv (2025 standard - fastest and most comprehensive)
 uv sync
 
-# Alternative with pip
+# Or with development dependencies
+uv sync --group dev
+
+# Alternative with traditional pip (slower but compatible)
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -e .
 
 # Verify installation
-python String_Multitool.py help
+uv run python String_Multitool.py help
 ```
 
 ### Core Dependencies
@@ -279,22 +315,51 @@ python String_Multitool.py help
 
 ### Development Commands
 
+#### Application Execution
+
 ```bash
-# Application execution
-python String_Multitool.py                   # Interactive mode
-python String_Multitool.py /t/l             # Direct rule application
-python String_Multitool.py --daemon         # Background mode
+# Interactive mode
+uv run python String_Multitool.py
 
-# Testing and quality assurance
-python -m pytest tests/ -v --cov=string_multitool
-python -m mypy string_multitool/             # Type checking
-python -m black string_multitool/            # Code formatting
-python -m isort string_multitool/            # Import organization
+# Direct rule application
+uv run python String_Multitool.py /t/l
 
-# Build and packaging
-./build.ps1                                  # Windows executable
+# Background daemon mode
+uv run python String_Multitool.py --daemon
+
+# TSV conversion with case-insensitive matching
+echo "API Documentation" | uv run python String_Multitool.py /tsvtr tech_terms.tsv --case-insensitive
+```
+
+#### Testing and Quality Assurance
+
+```bash
+# Run comprehensive test suite
+uv run pytest tests/ -v --cov=string_multitool
+
+# Type checking with mypy
+uv run mypy string_multitool/
+
+# Code formatting
+uv run black string_multitool/
+uv run isort string_multitool/
+
+# Linting with ruff
+uv run ruff check string_multitool/
+```
+
+#### Build and Packaging
+
+```bash
+# Windows executable (PowerShell)
+./build.ps1
 ./build.ps1 -Clean                          # Clean build
-uv build                                     # Python wheel
+
+# Python wheel distribution
+uv build
+
+# Development installation
+uv pip install -e .
 ```
 
 ### Quality Metrics
@@ -320,14 +385,20 @@ cd String-Multitool
 # 2. Create feature branch
 git checkout -b feature/your-feature-name
 
-# 3. Setup development environment
-uv sync --group dev
+# 3. Setup development environment with all dependencies
+uv sync --group dev --all-extras
 
-# 4. Make changes and test
-python -m pytest tests/ -v --cov=string_multitool
-python -m mypy string_multitool/
+# 4. Make changes and verify quality
+uv run pytest tests/ -v --cov=string_multitool
+uv run mypy string_multitool/
+uv run ruff check string_multitool/
+uv run black string_multitool/
 
-# 5. Submit pull request
+# 5. Run specific test categories
+uv run pytest tests/ -m "unit and not slow"
+uv run pytest tests/ -m "integration"
+
+# 6. Submit pull request
 ```
 
 ### Adding New Features

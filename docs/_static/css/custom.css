@@ -1,0 +1,351 @@
+/* Custom CSS for String-Multitool Documentation */
+
+/* Modern color scheme */
+:root {
+    --primary-color: #2980b9;
+    --secondary-color: #3498db;
+    --accent-color: #e74c3c;
+    --success-color: #27ae60;
+    --warning-color: #f39c12;
+    --info-color: #17a2b8;
+    --light-gray: #f8f9fa;
+    --dark-gray: #343a40;
+    --code-bg: #f5f5f5;
+    --code-border: #ddd;
+}
+
+/* Enhanced typography */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+}
+
+/* Code blocks styling */
+.highlight {
+    background-color: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 4px;
+    margin: 1em 0;
+    overflow-x: auto;
+}
+
+.highlight pre {
+    padding: 1em;
+    margin: 0;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+/* Inline code */
+code {
+    background-color: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 3px;
+    padding: 0.2em 0.4em;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+/* Tables enhancement */
+table.docutils {
+    border-collapse: collapse;
+    margin: 1em 0;
+    width: 100%;
+}
+
+table.docutils th,
+table.docutils td {
+    border: 1px solid #ddd;
+    padding: 0.75em;
+    text-align: left;
+}
+
+table.docutils th {
+    background-color: var(--light-gray);
+    font-weight: 600;
+    color: var(--dark-gray);
+}
+
+table.docutils tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+/* Performance tables specific styling */
+table.docutils.performance {
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+table.docutils.performance th {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Admonition boxes */
+.admonition {
+    margin: 1em 0;
+    padding: 1em;
+    border-radius: 6px;
+    border-left: 4px solid;
+    background-color: var(--light-gray);
+}
+
+.admonition.note {
+    border-left-color: var(--info-color);
+    background-color: #e1f5fe;
+}
+
+.admonition.warning {
+    border-left-color: var(--warning-color);
+    background-color: #fff3cd;
+}
+
+.admonition.important {
+    border-left-color: var(--accent-color);
+    background-color: #ffe6e6;
+}
+
+.admonition.tip {
+    border-left-color: var(--success-color);
+    background-color: #e8f5e8;
+}
+
+.admonition-title {
+    font-weight: 600;
+    margin-bottom: 0.5em;
+    color: var(--dark-gray);
+}
+
+/* Navigation enhancements */
+.wy-side-nav-search {
+    background-color: var(--primary-color);
+}
+
+.wy-side-nav-search input[type=text] {
+    border-radius: 4px;
+    border: none;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.wy-side-nav-search input[type=text]:focus {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Content area improvements */
+.rst-content .section {
+    margin-bottom: 2em;
+}
+
+.rst-content h1,
+.rst-content h2,
+.rst-content h3,
+.rst-content h4,
+.rst-content h5,
+.rst-content h6 {
+    color: var(--primary-color);
+    font-weight: 600;
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+}
+
+.rst-content h1 {
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 0.5em;
+}
+
+/* API reference specific styling */
+.rst-content dl.class,
+.rst-content dl.function,
+.rst-content dl.method {
+    border: 1px solid #e1e4e5;
+    border-radius: 6px;
+    margin: 1em 0;
+    padding: 1em;
+    background-color: #fafafa;
+}
+
+.rst-content dl.class > dt,
+.rst-content dl.function > dt,
+.rst-content dl.method > dt {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.5em 1em;
+    margin: -1em -1em 1em -1em;
+    border-radius: 5px 5px 0 0;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+.rst-content dl.class .descname,
+.rst-content dl.function .descname,
+.rst-content dl.method .descname {
+    font-weight: 600;
+    color: white;
+}
+
+/* Autosummary table styling */
+table.autosummary {
+    width: 100%;
+    margin: 1em 0;
+}
+
+table.autosummary th {
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: 600;
+    padding: 0.75em;
+}
+
+table.autosummary td {
+    padding: 0.5em 0.75em;
+    border-bottom: 1px solid #eee;
+}
+
+table.autosummary td:first-child {
+    font-family: monospace;
+    font-size: 0.9em;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+/* Links styling */
+a {
+    color: var(--secondary-color);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
+/* Code syntax highlighting overrides */
+.highlight .k { color: #0000ff; }  /* Keyword */
+.highlight .s { color: #008000; }  /* String */
+.highlight .c { color: #808080; }  /* Comment */
+.highlight .n { color: #000000; }  /* Name */
+.highlight .o { color: #666666; }  /* Operator */
+
+/* Performance metrics styling */
+.performance-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1em;
+    margin: 1em 0;
+}
+
+.performance-metric {
+    background-color: var(--light-gray);
+    border-radius: 6px;
+    padding: 1em;
+    text-align: center;
+    border: 1px solid #ddd;
+}
+
+.performance-metric h4 {
+    color: var(--primary-color);
+    margin: 0 0 0.5em 0;
+    font-size: 1.1em;
+}
+
+.performance-metric .value {
+    font-size: 1.5em;
+    font-weight: 600;
+    color: var(--success-color);
+    display: block;
+    margin-bottom: 0.25em;
+}
+
+/* Version badge */
+.version-badge {
+    display: inline-block;
+    background-color: var(--success-color);
+    color: white;
+    padding: 0.2em 0.5em;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 600;
+    margin-left: 0.5em;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .performance-metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .rst-content dl.class > dt,
+    .rst-content dl.function > dt,
+    .rst-content dl.method > dt {
+        font-size: 0.8em;
+        word-break: break-all;
+    }
+
+    table.docutils {
+        font-size: 0.9em;
+    }
+
+    .highlight pre {
+        font-size: 0.8em;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --code-bg: #2d2d2d;
+        --code-border: #555;
+        --light-gray: #3a3a3a;
+        --dark-gray: #f8f9fa;
+    }
+
+    body {
+        background-color: #1a1a1a;
+        color: #e0e0e0;
+    }
+
+    .rst-content dl.class,
+    .rst-content dl.function,
+    .rst-content dl.method {
+        background-color: #2a2a2a;
+        border-color: #555;
+    }
+
+    table.docutils th {
+        background-color: #404040;
+        color: #e0e0e0;
+    }
+
+    table.docutils tr:nth-child(even) {
+        background-color: #2a2a2a;
+    }
+}
+
+/* Print styles */
+@media print {
+    .wy-nav-side,
+    .wy-nav-content-wrap .wy-nav-content .rst-content .headerlink {
+        display: none !important;
+    }
+
+    .wy-nav-content {
+        margin-left: 0 !important;
+    }
+
+    body {
+        font-size: 12pt;
+        line-height: 1.4;
+    }
+
+    .highlight {
+        border: 1px solid #000;
+        page-break-inside: avoid;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        page-break-after: avoid;
+    }
+}

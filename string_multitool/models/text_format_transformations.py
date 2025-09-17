@@ -11,7 +11,7 @@ import re
 from typing import Any
 
 from ..exceptions import TransformationError
-from .constants import ERROR_CONTEXT_KEYS, TRANSFORM_CONSTANTS
+from .constants import ERROR_CONTEXT_KEYS
 from .transformation_base import TransformationBase
 
 
@@ -29,6 +29,9 @@ class TextFormatTransformations(TransformationBase):
             config: Optional configuration dictionary
         """
         super().__init__(config or {})
+        self._input_text: str = ""
+        self._output_text: str = ""
+        self._transformation_rule: str = ""
 
     def transform(self, text: str, operation: str = "trim") -> str:
         """Apply text format transformation to text.
@@ -54,6 +57,9 @@ class TextFormatTransformations(TransformationBase):
         }
 
         try:
+            self._input_text = text
+            self._transformation_rule = operation
+
             if operation not in operation_map:
                 raise TransformationError(
                     f"Unknown text format operation: {operation}",
@@ -64,7 +70,9 @@ class TextFormatTransformations(TransformationBase):
                 )
 
             # EAFP: Try transformation directly
-            return operation_map[operation](text)
+            result = operation_map[operation](text)
+            self._output_text = result
+            return result
 
         except TransformationError:
             raise
@@ -366,3 +374,27 @@ class TextFormatTransformations(TransformationBase):
                     ERROR_CONTEXT_KEYS.TEXT_LENGTH: len(text),
                 },
             ) from e
+
+    def get_input_text(self) -> str:
+        """Get the input text used in the transformation.
+
+        Returns:
+            Input text string
+        """
+        return self._input_text
+
+    def get_output_text(self) -> str:
+        """Get the output text from the transformation.
+
+        Returns:
+            Output text string
+        """
+        return self._output_text
+
+    def get_transformation_rule(self) -> str:
+        """Get the transformation rule that was applied.
+
+        Returns:
+            Transformation rule string
+        """
+        return self._transformation_rule

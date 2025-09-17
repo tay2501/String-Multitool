@@ -20,7 +20,7 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Dependency Review
         uses: actions/dependency-review-action@v4
@@ -50,21 +50,21 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+        uses: actions/checkout@v5
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
+          version: "0.8.17"
           enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Set up Python
+        run: uv python install 3.12
 
       - name: Install analysis tools
         run: |
-          uv sync --all-extras --dev
+          uv sync --all-extras --dev --locked
           uv add --dev pip-audit safety
 
       - name: Check pyproject.toml sync
@@ -94,10 +94,10 @@ jobs:
           echo "" >> dependency-report.md
           
           # Run pip-audit
-          uv run pip-audit --format=json --output=pip-audit.json || true
-          
+          uv run --frozen pip-audit --format=json --output=pip-audit.json || true
+
           # Run safety check
-          uv run safety check --json --output=safety.json || true
+          uv run --frozen safety check --json --output=safety.json || true
           
           # Process results
           python -c "

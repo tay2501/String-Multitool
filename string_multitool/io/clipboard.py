@@ -13,6 +13,9 @@ from typing import Final
 
 from ..exceptions import ClipboardError, ValidationError
 from ..models.types import IOManagerProtocol, ThreadCallback
+from ..utils.unified_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class ClipboardMonitor:
@@ -205,5 +208,5 @@ class ClipboardMonitor:
 
             except Exception as e:
                 # Log error but continue monitoring
-                print(f"[MONITOR] Error during clipboard check: {e}")
+                logger.error(f"Error during clipboard check: {e}")
                 time.sleep(self.check_interval)

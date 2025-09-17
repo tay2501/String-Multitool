@@ -19,6 +19,8 @@ from .models.config import ConfigurationManager
 from .models.transformations import TextTransformationEngine
 from .utils.unified_logger import get_logger
 
+logger = get_logger(__name__)
+
 
 class ApplicationInterface:
     """Main application interface coordinating all String_Multitool components."""
@@ -125,12 +127,14 @@ Examples:
 
         # Only show messages in non-silent mode
         if not self.silent_mode:
-            print("Interactive mode")
-            print(
+            logger.info("Interactive mode")
+            logger.info(
                 "Type 'help' for available transformation rules or 'commands' for interactive commands."
             )
-            print("Enter transformation rules (e.g. '/t/l' for trim + lowercase) or commands.")
-            print("Type 'quit' or 'exit' to leave.\n")
+            logger.info(
+                "Enter transformation rules (e.g. '/t/l' for trim + lowercase) or commands."
+            )
+            logger.info("Type 'quit' or 'exit' to leave.\n")
 
         # Initialize interactive session
         session = InteractiveSession(self.io_manager, self.transformation_engine)
@@ -146,7 +150,7 @@ Examples:
                     # Check if it's a command or transformation rule
                     if processor.is_command(user_input):
                         result = processor.process_command(user_input)
-                        print(result.message)
+                        logger.info(result.message)
 
                         if not result.should_continue:
                             break
@@ -158,8 +162,8 @@ Examples:
                             # Get current clipboard text
                             input_text = self.io_manager.get_input_text()
                             if not input_text:
-                                print(
-                                    "[WARNING] No input text available. Try 'refresh' to load from clipboard."
+                                logger.warning(
+                                    "No input text available. Try 'refresh' to load from clipboard."
                                 )
                                 continue
 
@@ -171,7 +175,7 @@ Examples:
                             # Handle output based on mode
                             if self.silent_mode:
                                 # Silent mode: only show the result, no clipboard copy
-                                print(result_text)
+                                logger.info(result_text)
                             else:
                                 # Normal mode: copy to clipboard and show success message
                                 self.io_manager.set_output_text(result_text)
@@ -180,7 +184,7 @@ Examples:
                                     if len(result_text) > 100
                                     else result_text
                                 )
-                                print(f"[SUCCESS] Result copied to clipboard: '{display_text}'")
+                                logger.info(f"Result copied to clipboard: '{display_text}'")
 
                         except (ValidationError, Exception) as e:
                             error_type = (
@@ -188,12 +192,14 @@ Examples:
                                 if isinstance(e, ValidationError)
                                 else "Unexpected"
                             )
-                            print(f"[ERROR] {error_type} error: {e}")
+                            logger.error(f"{error_type} error: {e}")
+                        except Exception as e:
+                            logger.error(f"Transformation error: {e}")
 
                 except KeyboardInterrupt:
-                    print("\n[INFO] Use 'quit' or 'exit' to leave interactive mode.")
+                    logger.info("\nUse 'quit' or 'exit' to leave interactive mode.")
                 except EOFError:
-                    print("\nGoodbye!")
+                    logger.info("\nGoodbye!")
                     break
 
         finally:
@@ -213,46 +219,43 @@ Examples:
             rule = rule.replace("//", "/")
 
         # Combine rule with arguments if provided (e.g., "/S '+'" becomes "/S '+'")
-        if rule_args:
-            combined_rule = f"{rule} {' '.join(repr(arg) for arg in rule_args)}"
-        else:
-            combined_rule = rule
+        combined_rule = f"{rule} {' '.join(repr(arg) for arg in rule_args)}" if rule_args else rule
 
         input_text = self.io_manager.get_input_text()
         result = self.transformation_engine.apply_transformations(input_text, combined_rule)
 
         if self.silent_mode:
             # Silent mode: only output the transformation result, no clipboard copying
-            print(result, end="")  # No newline to keep output clean
+            logger.info(result)
         else:
             # Normal mode: output to stdout for pipe chaining AND copy to clipboard
-            print(result)  # Output for pipe chaining
+            logger.info(result)
             self.io_manager.set_output_text(result)
 
     def display_help(self) -> None:
         """Display help information."""
-        print("String_Multitool Help")
-        print("=" * 50)
+        logger.info("String_Multitool Help")
+        logger.info("=" * 50)
 
         # Get available transformation rules
         try:
             rules = self.transformation_engine.get_available_rules()
             if rules:
-                print("\nAvailable transformation rules:")
+                logger.info("\nAvailable transformation rules:")
                 for rule_name, rule in rules.items():
-                    print(f"  /{rule_name:<8} - {rule.description}")
+                    logger.info(f"  /{rule_name:<8} - {rule.description}")
                     if rule.example:
-                        print(f"            Example: {rule.example}")
+                        logger.info(f"            Example: {rule.example}")
             else:
-                print("\nNo transformation rules available.")
+                logger.info("\nNo transformation rules available.")
         except Exception as e:
-            print(f"\nError loading rules: {e}")
+            logger.error(f"\nError loading rules: {e}")
 
-        print("\nUsage:")
-        print("  python String_Multitool.py                 - Interactive mode")
-        print("  python String_Multitool.py /rule           - Apply rule to clipboard")
-        print("  python String_Multitool.py help            - Show this help")
-        print("\nIn interactive mode, type 'commands' for available commands.")
+        logger.info("\nUsage:")
+        logger.info("  python String_Multitool.py                 - Interactive mode")
+        logger.info("  python String_Multitool.py /rule           - Apply rule to clipboard")
+        logger.info("  python String_Multitool.py help            - Show this help")
+        logger.info("\nIn interactive mode, type 'commands' for available commands.")
 
 
 def main() -> None:

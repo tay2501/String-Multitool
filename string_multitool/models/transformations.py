@@ -15,13 +15,11 @@ from pathlib import Path
 from typing import Any
 
 from ..exceptions import TransformationError, ValidationError
+from ..utils.unified_logger import get_logger
 from .argument_parser import ArgumentParsingError, default_parser
-from .constants import (
-    ERROR_CONTEXT_KEYS,
-    TRANSFORM_CONSTANTS,
-    VALIDATION_CONSTANTS,
-    RuleNames,
-)
+
+logger = get_logger(__name__)
+from .constants import ERROR_CONTEXT_KEYS, RuleNames, TRANSFORM_CONSTANTS, VALIDATION_CONSTANTS
 from .transformation_base import TransformationBase
 from .types import (
     ConfigManagerProtocol,
@@ -104,6 +102,11 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
                     "config_manager_type": type(config_manager).__name__,
                 },
             ) from e
+
+        # Initialize Japanese encoding transformer
+        from .japanese_encoding_transformations import JapaneseEncodingTransformation
+
+        self.japanese_encoding = JapaneseEncodingTransformation()
 
     def set_crypto_manager(self, crypto_manager: CryptoManagerProtocol) -> None:
         """Set the cryptography manager for encryption/decryption operations.
@@ -336,9 +339,9 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
                         "Cryptography manager not available for encryption",
                         {"rule": rule_name},
                     )
-                print("Using existing RSA key pair")
+                logger.info("Using existing RSA key pair")
                 result = self.crypto_manager.encrypt_text(text)
-                print(f"Text encrypted successfully (AES-256+RSA-4096, {len(text)} bytes)")
+                logger.info(f"Text encrypted successfully (AES-256+RSA-4096, {len(text)} bytes)")
                 return result
             elif rule_name == RuleNames.DECRYPT.value:
                 if self.crypto_manager is None:
@@ -346,9 +349,9 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
                         "Cryptography manager not available for decryption",
                         {"rule": rule_name},
                     )
-                print("Using existing RSA key pair")
+                logger.info("Using existing RSA key pair")
                 result = self.crypto_manager.decrypt_text(text)
-                print(f"Text decrypted successfully (AES-256+RSA-4096, {len(result)} chars)")
+                logger.info(f"Text decrypted successfully (AES-256+RSA-4096, {len(result)} chars)")
                 return result
             else:
                 raise TransformationError(f"Unknown crypto rule: {rule_name}")
@@ -370,6 +373,72 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
             )
             raise TransformationError(
                 f"Cryptography operation failed: {e}", self.get_error_context()
+            ) from e
+
+    def _apply_iconv_conversion(self, text: str, args: list[str]) -> str:
+        """
+        Apply iconv-style character encoding conversion.
+
+        Supports Japanese character encoding conversions with iconv-compatible syntax:
+        - /iconv -f SJIS -t UTF8
+        - /iconv -t UTF8 (auto-detect source)
+        - /iconv SJIS UTF8 (positional arguments)
+
+        Args:
+            text: Input text to convert
+            args: iconv-style arguments
+
+        Returns:
+            Converted text string
+
+        Raises:
+            TransformationError: If conversion fails
+        """
+        try:
+            # Parse iconv arguments
+            args_str = " ".join(args) if args else ""
+            from_encoding, to_encoding = self.japanese_encoding.parse_iconv_args(args_str)
+
+            # Validate target encoding is specified
+            if not to_encoding:
+                raise TransformationError(
+                    "Target encoding (-t) is required for iconv conversion",
+                    {ERROR_CONTEXT_KEYS.ARGS: args},
+                )
+
+            # Auto-detect source encoding if not specified
+            if not from_encoding:
+                from_encoding = self.japanese_encoding.detect_likely_encoding(text)
+                logger.info(
+                    "Auto-detected source encoding",
+                    detected_encoding=from_encoding,
+                    text_preview=text[:50] + "..." if len(text) > 50 else text,
+                )
+
+            # Perform conversion
+            result = self.japanese_encoding.convert_encoding(text, from_encoding, to_encoding)
+
+            logger.info(
+                "iconv conversion completed",
+                from_encoding=from_encoding,
+                to_encoding=to_encoding,
+                input_length=len(text),
+                output_length=len(result),
+            )
+
+            return result
+
+        except Exception as e:
+            self.set_error_context(
+                {
+                    ERROR_CONTEXT_KEYS.RULE_NAME: "iconv",
+                    ERROR_CONTEXT_KEYS.ARGS: args,
+                    ERROR_CONTEXT_KEYS.ERROR_TYPE: type(e).__name__,
+                }
+            )
+            raise TransformationError(
+                f"iconv conversion failed: {e}",
+                self.get_error_context(),
             ) from e
 
     def _apply_rule_with_args(self, text: str, rule_name: str, args: list[str]) -> str:
@@ -400,6 +469,8 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
                 return result.strip(separator)
             elif rule_name == RuleNames.USE_TSV_RULES.value:  # TSV Conversion
                 return self._apply_tsv_conversion_simple(text, args)
+            elif rule_name == "iconv":  # Japanese encoding conversion
+                return self._apply_iconv_conversion(text, args)
             elif rule_name == "t":  # Trim with custom characters
                 chars_to_strip = args[0] if args else None
                 return text.strip(chars_to_strip)
@@ -680,6 +751,14 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
                     requires_args=True,
                     rule_type=TransformationRuleType.ADVANCED,
                 ),
+                "iconv": TransformationRule(
+                    name="Japanese Character Encoding Conversion",
+                    description="Convert between Japanese character encodings with iconv-compatible syntax",
+                    example="/iconv -f SJIS -t UTF8 → Convert Shift_JIS to UTF-8, /iconv -t UTF8 → Auto-detect source and convert to UTF-8",
+                    function=lambda text: text,  # Handled specially
+                    requires_args=True,
+                    rule_type=TransformationRuleType.ADVANCED,
+                ),
             }
         )
 
@@ -734,7 +813,10 @@ class TextTransformationEngine(ConfigurableComponent[dict[str, Any]], Transforma
 
     def _to_camel_case(self, text: str) -> str:
         """Convert text to camelCase."""
-        # Split on underscores, hyphens, and spaces to get words
+        # Remove punctuation and split on underscores, hyphens, and spaces to get words
+        text = re.sub(
+            r"[^\w\s\-_]", "", text
+        )  # Remove punctuation but keep word chars, spaces, hyphens, underscores
         words = re.split(r"[_\-\s]+", text)
         words = [word for word in words if word]  # Remove empty strings
         if not words:

@@ -30,6 +30,9 @@ class HashTransformations(TransformationBase):
         """
         super().__init__(config or {})
         self._supported_algorithms = {"sha256", "sha1", "sha512", "md5", "sha224", "sha384"}
+        self._input_text: str = ""
+        self._output_text: str = ""
+        self._transformation_rule: str = ""
 
     def transform(self, text: str, algorithm: str = "sha256") -> str:
         """Apply hash transformation to text.
@@ -45,6 +48,9 @@ class HashTransformations(TransformationBase):
             TransformationError: If hashing fails
         """
         try:
+            self._input_text = text
+            self._transformation_rule = algorithm
+
             if algorithm not in self._supported_algorithms:
                 raise TransformationError(
                     f"Unsupported hash algorithm: {algorithm}",
@@ -55,7 +61,9 @@ class HashTransformations(TransformationBase):
                 )
 
             # EAFP: Try hashing directly
-            return self._compute_hash(text, algorithm)
+            result = self._compute_hash(text, algorithm)
+            self._output_text = result
+            return result
 
         except TransformationError:
             raise
@@ -81,7 +89,7 @@ class HashTransformations(TransformationBase):
         Raises:
             TransformationError: If hashing fails
         """
-        return self._compute_hash(text, "sha256")
+        return self.transform(text, "sha256")
 
     def sha1_hash(self, text: str) -> str:
         """Generate SHA-1 hash of text.
@@ -95,7 +103,7 @@ class HashTransformations(TransformationBase):
         Raises:
             TransformationError: If hashing fails
         """
-        return self._compute_hash(text, "sha1")
+        return self.transform(text, "sha1")
 
     def sha512_hash(self, text: str) -> str:
         """Generate SHA-512 hash of text.
@@ -109,7 +117,7 @@ class HashTransformations(TransformationBase):
         Raises:
             TransformationError: If hashing fails
         """
-        return self._compute_hash(text, "sha512")
+        return self.transform(text, "sha512")
 
     def md5_hash(self, text: str) -> str:
         """Generate MD5 hash of text.
@@ -127,7 +135,7 @@ class HashTransformations(TransformationBase):
         Raises:
             TransformationError: If hashing fails
         """
-        return self._compute_hash(text, "md5")
+        return self.transform(text, "md5")
 
     def _compute_hash(self, text: str, algorithm: str) -> str:
         """Compute hash using specified algorithm.
@@ -193,3 +201,27 @@ class HashTransformations(TransformationBase):
             True if algorithm is supported, False otherwise
         """
         return algorithm.lower() in self._supported_algorithms
+
+    def get_input_text(self) -> str:
+        """Get the input text used in the transformation.
+
+        Returns:
+            Input text string
+        """
+        return self._input_text
+
+    def get_output_text(self) -> str:
+        """Get the output text from the transformation.
+
+        Returns:
+            Output text string
+        """
+        return self._output_text
+
+    def get_transformation_rule(self) -> str:
+        """Get the transformation rule that was applied.
+
+        Returns:
+            Transformation rule string
+        """
+        return self._transformation_rule

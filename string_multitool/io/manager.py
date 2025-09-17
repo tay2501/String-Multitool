@@ -8,6 +8,7 @@ clipboard access and pipe input detection.
 from __future__ import annotations
 
 import sys
+from contextlib import suppress
 from typing import Final
 
 from ..exceptions import ClipboardError
@@ -127,7 +128,7 @@ class InputOutputManager:
                     time.sleep(0.1 * (attempt + 1))  # Progressive delay
 
         # Method 2: tkinter fallback
-        try:
+        with suppress(Exception):
             import tkinter as tk
 
             root = tk.Tk()
@@ -135,11 +136,9 @@ class InputOutputManager:
             content = root.clipboard_get()
             root.destroy()
             return content if content is not None else ""
-        except Exception:
-            pass
 
         # Method 3: PowerShell fallback (Windows)
-        try:
+        with suppress(Exception):
             import subprocess
             import sys
 
@@ -153,11 +152,9 @@ class InputOutputManager:
                 )
                 if result.returncode == 0:
                     return result.stdout.strip()
-        except Exception:
-            pass
 
         # Method 4: Windows clip command fallback
-        try:
+        with suppress(Exception):
             import subprocess
             import sys
 
@@ -172,8 +169,6 @@ class InputOutputManager:
                 )
                 if result.returncode == 0:
                     return result.stdout.strip()
-        except Exception:
-            pass
 
         raise ClipboardError(
             f"Failed to read from clipboard after trying all methods: {last_error}",
@@ -213,7 +208,7 @@ class InputOutputManager:
                     time.sleep(0.1 * (attempt + 1))  # Progressive delay
 
         # Method 2: tkinter fallback
-        try:
+        with suppress(Exception):
             import tkinter as tk
 
             root = tk.Tk()
@@ -224,11 +219,9 @@ class InputOutputManager:
             root.destroy()
             log_debug(logger, "[SUCCESS] Text copied to clipboard via tkinter")
             return
-        except Exception:
-            pass
 
         # Method 3: PowerShell fallback (Windows)
-        try:
+        with suppress(Exception):
             import subprocess
             import sys
 
@@ -243,11 +236,9 @@ class InputOutputManager:
                 if result.returncode == 0:
                     log_debug(logger, "[SUCCESS] Text copied to clipboard via PowerShell")
                     return
-        except Exception:
-            pass
 
         # Method 4: Windows clip command fallback
-        try:
+        with suppress(Exception):
             import subprocess
             import sys
 
@@ -258,8 +249,6 @@ class InputOutputManager:
                 if result.returncode == 0:
                     log_debug(logger, "[SUCCESS] Text copied to clipboard via clip command")
                     return
-        except Exception:
-            pass
 
         raise ClipboardError(
             f"Failed to copy to clipboard after trying all methods: {last_error}",

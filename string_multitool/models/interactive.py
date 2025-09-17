@@ -63,11 +63,11 @@ class InteractiveSession:
         # Auto-detection is always enabled
         self.auto_detection_enabled = True
         # Start monitoring immediately
-        try:
-            self.clipboard_monitor.start_monitoring(self._on_clipboard_change)
-        except Exception:
+        import contextlib
+
+        with contextlib.suppress(Exception):
             # Continue with auto-detection enabled even if monitoring fails
-            pass
+            self.clipboard_monitor.start_monitoring(self._on_clipboard_change)
 
     def initialize_with_text(self, text: str, source: str = "clipboard") -> None:
         """Initialize session with initial text.
@@ -278,11 +278,8 @@ class CommandProcessor:
             return True
 
         # If it starts with '/', it's a transformation rule
-        if input_text.startswith("/"):
-            return False
-
         # Default to command for unrecognized input
-        return True
+        return not input_text.startswith("/")
 
     def process_command(self, command: str) -> CommandResult:
         """Process interactive command and return result.

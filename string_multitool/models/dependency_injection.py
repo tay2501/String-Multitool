@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Callable
-from typing import Any, TypeVar, cast, get_args, get_origin, get_type_hints
+from typing import Any, cast, get_args, get_origin, get_type_hints, TypeVar
 
 from typing_extensions import ParamSpec
 
@@ -260,12 +260,12 @@ class ServiceRegistry:
         configurator(container)
 
 
-def inject(service_type: type[T]) -> T:
+def inject[T](service_type: type[T]) -> T:
     """Convenience function to inject a service dependency."""
     return ServiceRegistry.get_container().get(service_type)
 
 
-def injectable(cls: type[T]) -> type[T]:
+def injectable[T](cls: type[T]) -> type[T]:
     """Class decorator to mark a class as injectable."""
     # This is mainly for documentation purposes in Python
     # The actual injection happens in the container

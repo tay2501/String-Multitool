@@ -79,6 +79,9 @@ class CryptoConstants:
     # Encoding constants
     BASE64_ENCODING: Final[str] = "ascii"
 
+    # Error messages
+    NO_CRYPTO_MANAGER_ERROR: Final[str] = "Crypto manager not available"
+
 
 @dataclass(frozen=True)
 class ValidationConstants:
@@ -171,6 +174,7 @@ class ErrorContextKeys:
 
     # General error context
     ERROR_TYPE: Final[str] = "error_type"
+    TEXT_TYPE: Final[str] = "text_type"
     TEXT_LENGTH: Final[str] = "text_length"
     TEXT_PREVIEW: Final[str] = "text_preview"
 
@@ -187,9 +191,11 @@ class ErrorContextKeys:
     RULES_COUNT: Final[str] = "rules_count"
 
     # Encoding/decoding context
+    ENCODING: Final[str] = "encoding"
     ENCODING_ERROR: Final[str] = "encoding_error"
     UNICODE_ERROR: Final[str] = "unicode_error"
     DECODE_ERROR: Final[str] = "decode_error"
+    DATA_FORMAT: Final[str] = "data_format"
 
     # JSON-specific context
     JSON_ERROR: Final[str] = "json_error"
@@ -197,8 +203,12 @@ class ErrorContextKeys:
     ERROR_POS: Final[str] = "error_pos"
 
     # Configuration context
+    OPERATION: Final[str] = "operation"
+    COMPONENT: Final[str] = "component"
+    ALGORITHM: Final[str] = "algorithm"
     CONFIG_KEYS: Final[str] = "config_keys"
     CONFIG_TYPE: Final[str] = "config_type"
+    MANAGER_TYPE: Final[str] = "manager_type"
 
 
 # Module-level singleton instances for convenient access

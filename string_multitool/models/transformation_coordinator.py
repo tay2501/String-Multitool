@@ -8,7 +8,7 @@ and loose coupling patterns.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .types import ConfigManagerProtocol, CryptoManagerProtocol
@@ -248,9 +248,9 @@ class TransformationCoordinator(ConfigurableComponent[dict[str, Any]], Transform
         """
         try:
             # Basic case transformations
-            if rule_name == "lower" or rule_name == "l":
+            if rule_name in {"lower", "l"}:
                 return text.lower()
-            elif rule_name == "upper" or rule_name == "u":
+            elif rule_name in {"upper", "u"}:
                 return text.upper()
             elif rule_name == "title":
                 return text.title()

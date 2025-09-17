@@ -34,7 +34,7 @@ import sys
 import threading
 import time
 import traceback
-from datetime import UTC, datetime
+from datetime import datetime, UTC
 from enum import Enum
 from pathlib import Path
 from typing import Any, Protocol, TypedDict
@@ -393,9 +393,13 @@ class ApplicationLifecycleManager:
             # Try to get resource module metrics if available
             if RESOURCE_AVAILABLE:
                 try:
-                    if hasattr(resource, "getrusage") and hasattr(resource, "RUSAGE_SELF"):
+                    if (
+                        RESOURCE_AVAILABLE
+                        and hasattr(resource, "getrusage")
+                        and hasattr(resource, "RUSAGE_SELF")
+                    ):
                         # Type-safe access to resource constants
-                        rusage_self = resource.RUSAGE_SELF
+                        rusage_self = getattr(resource, "RUSAGE_SELF", 0)
                         ru = resource.getrusage(rusage_self)
                         user_time = ru.ru_utime
                         system_time = ru.ru_stime

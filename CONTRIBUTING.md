@@ -1,12 +1,14 @@
 # Contributing to String Multitool
 
-Thank you for your interest in contributing to String Multitool! This guide will help you get started.
+Thank you for your interest in contributing to String Multitool! This guide will help you get started with our **2025 Python packaging standards** compliant development workflow.
 
 ## Development Setup
 
-### Prerequisites
-- Python 3.10 or higher
-- Git
+### Prerequisites (2025 Standards)
+- **Python 3.12+**: Required for modern language features and 2025 standards compliance
+- **[UV](https://docs.astral.sh/uv/)**: Modern Python package manager (strongly recommended)
+- **Git**: Version control
+- **Hatchling**: Build backend (automatically managed via pyproject.toml)
 
 ### Setup Instructions
 ```bash
@@ -14,23 +16,25 @@ Thank you for your interest in contributing to String Multitool! This guide will
 git clone https://github.com/[your-username]/String-Multitool.git
 cd String-Multitool
 
-# Install dependencies using uv (recommended)
-uv sync --all-extras --dev
+# Install dependencies using uv (2025 standard - 10-100x faster)
+uv sync --group dev --all-extras
 
-# Or using traditional pip
+# Alternative using traditional pip (slower but compatible)
 python -m venv .venv
 .venv\Scripts\activate  # Windows
 source .venv/bin/activate  # macOS/Linux
 pip install -e .
 ```
 
-## Code Style
+## Code Style (2025 Standards)
 
-We use automated tools to maintain code quality:
+We follow **2025 Python best practices** with automated quality tools:
 
-- **black**: Code formatting
-- **isort**: Import sorting  
-- **mypy**: Type checking
+- **black**: Code formatting (99 character line length, optimized for modern displays)
+- **isort**: Import sorting with Black profile compatibility
+- **mypy**: Strict type checking with Python 3.12+ features
+- **ruff**: Modern, fast Python linter
+- **PEP 621**: Project metadata standardization in pyproject.toml
 
 Before submitting a PR, run:
 ```bash
@@ -60,9 +64,9 @@ python -m pytest tests/test_transform.py tests/test_tsv_case_insensitive.py -v
 python -m pytest --cov=string_multitool
 ```
 
-## Architecture Overview
+## Architecture Overview (2025 Compliant)
 
-String_Multitool follows **Python MVC best practices**:
+String_Multitool follows **2025 Python MVC best practices** with modern packaging standards:
 
 ```
 string_multitool/
@@ -87,20 +91,23 @@ string_multitool/
 
 ## TSV Database Development
 
-The project includes a SQLite-backed TSV conversion system:
+The project includes a SQLite-backed TSV conversion system with case-insensitive matching:
 
 ```bash
-# Test TSV functionality
-python String_Multitool.py /tsvtr technical_terms.tsv
+# Test TSV functionality with case-insensitive support
+uv run python String_Multitool.py /tsvtr technical_terms.tsv --case-insensitive
 
 # Access database directly for debugging
-python -m tsv_translate.cli.main --shell litecli
-python -m tsv_translate.cli.main --shell sqlite3
+uv run python -m tsv_translate.cli.main --shell litecli
+uv run python -m tsv_translate.cli.main --shell sqlite3
 
 # Manage TSV rule sets
-python -m tsv_translate.cli.main ls                    # List rule sets
-python -m tsv_translate.cli.main sync config/tsv_rules # Sync TSV files
-python -m tsv_translate.cli.main info japanese_terms   # Show rule set info
+uv run python -m tsv_translate.cli.main ls                    # List rule sets
+uv run python -m tsv_translate.cli.main sync config/tsv_rules # Sync TSV files
+uv run python -m tsv_translate.cli.main info japanese_terms   # Show rule set info
+
+# Test case-insensitive functionality specifically
+uv run pytest tests/ -m "tsv" -k "case_insensitive" -v
 ```
 
 ### Database Schema

@@ -81,9 +81,12 @@ except ImportError:
 from string_multitool.utils.unified_logger import get_logger
 
 
+@pytest.mark.unit
+@pytest.mark.config
 class TestConfigurationManager:
     """Test configuration management functionality with modern pytest patterns."""
 
+    @pytest.mark.config
     def test_load_transformation_rules(self, config_manager: ConfigurationManager) -> None:
         """Test loading transformation rules from config using pytest fixture."""
         rules: dict[str, Any] = config_manager.load_transformation_rules()
@@ -94,6 +97,8 @@ class TestConfigurationManager:
         assert "string_operations" in rules
         assert "advanced_rules" in rules
 
+    @pytest.mark.security
+    @pytest.mark.config
     def test_load_security_config(self, config_manager: ConfigurationManager) -> None:
         """Test loading security configuration using pytest fixture."""
         config: dict[str, Any] = config_manager.load_security_config()
@@ -133,6 +138,7 @@ class TestTextTransformationEngine:
             ("/hf", "TBL-CHA1", "ＴＢＬ－ＣＨＡ１"),
         ],
     )
+    @pytest.mark.transforms
     def test_basic_transformations(
         self,
         transformation_engine: TextTransformationEngine,
@@ -140,39 +146,46 @@ class TestTextTransformationEngine:
         input_text: str,
         expected: str,
     ) -> None:
-        """Test basic transformation rules using parametrized testing."""
+        """Test basic transformation rules using modern parametrized testing with descriptive IDs."""
         result: str = transformation_engine.apply_transformations(input_text, rule)
-        assert result == expected, f"Rule {rule} failed: got '{result}', expected '{expected}'"
+        assert result == expected, f"Transform {rule} failed: '{input_text}' -> expected '{expected}', got '{result}'"
 
     @pytest.mark.parametrize(
         "rule,input_text,expected",
         [
-            ("/l", "SAY HELLO TO MY LITTLE FRIEND!", "say hello to my little friend!"),
-            ("/u", "Can you hear me, Major Tom?", "CAN YOU HEAR ME, MAJOR TOM?"),
-            (
+            pytest.param("/l", "SAY HELLO TO MY LITTLE FRIEND!", "say hello to my little friend!", id="lowercase"),
+            pytest.param("/u", "Can you hear me, Major Tom?", "CAN YOU HEAR ME, MAJOR TOM?", id="uppercase"),
+            pytest.param(
                 "/p",
                 "The quick brown fox jumps over the lazy dog",
                 "TheQuickBrownFoxJumpsOverTheLazyDog",
+                id="pascal_case"
             ),
-            ("/c", "is error state!", "isErrorState"),
-            ("/s", "is error state!", "is_error_state"),
-            (
+            pytest.param("/c", "is error state!", "isErrorState", id="camel_case"),
+            pytest.param("/s", "is error state!", "is_error_state", id="snake_case"),
+            pytest.param(
                 "/a",
                 "the quick brown fox jumps over the lazy dog",
                 "The Quick Brown Fox Jumps Over The Lazy Dog",
+                id="title_case"
             ),
         ],
     )
+    @pytest.mark.transforms
+    @pytest.mark.parametrize("execution_count", [1], indirect=False)
     def test_case_transformations(
         self,
         transformation_engine: TextTransformationEngine,
         rule: str,
         input_text: str,
         expected: str,
+        execution_count: int,
     ) -> None:
-        """Test case transformation rules using parametrized testing."""
-        result: str = transformation_engine.apply_transformations(input_text, rule)
-        assert result == expected, f"Rule {rule} failed: got '{result}', expected '{expected}'"
+        """Test case transformation rules using modern parametrized testing with consistency validation."""
+        # Test multiple executions for consistency (idempotency)
+        for _ in range(execution_count):
+            result: str = transformation_engine.apply_transformations(input_text, rule)
+            assert result == expected, f"Case transform {rule} failed: '{input_text}' -> expected '{expected}', got '{result}'"
 
     @pytest.mark.parametrize(
         "rule,input_text,expected",

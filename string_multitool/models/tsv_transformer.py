@@ -172,7 +172,7 @@ class TSVTransformer(TransformationBase):
             with self._tsv_file_path.open("r", encoding="utf-8") as file:
                 csv_reader = csv.reader(file, delimiter="\t")
 
-                for line_num, row in enumerate(csv_reader, 1):
+                for _line_num, row in enumerate(csv_reader, 1):
                     # 空行をスキップ
                     if not row or len(row) < 2:
                         continue
@@ -312,16 +312,16 @@ class TSVTransformer(TransformationBase):
 
                 if options.preserve_original_case:
                     # 元の文字のケースを保持
-                    def replacement(match: re.Match[str]) -> str:
+                    def replacement(match: re.Match[str], replacement_value: str = value) -> str:
                         original = match.group(0)
                         if original.isupper():
-                            return value.upper()
+                            return replacement_value.upper()
                         elif original.islower():
-                            return value.lower()
+                            return replacement_value.lower()
                         elif original.istitle():
-                            return value.capitalize()
+                            return replacement_value.capitalize()
                         else:
-                            return value
+                            return replacement_value
 
                     result = re.sub(pattern, replacement, result, flags=re.IGNORECASE)
                 else:

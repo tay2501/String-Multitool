@@ -80,7 +80,7 @@ class TestSystemIntegration:
         "input_text,rules,expected",
         [
             ("  Hello World Test  ", "/t/l/s", "hello_world_test"),
-            ("camelCaseTest", "/s/u", "CAMELCASETEST"),  # snake_case currently doesn't split words
+            ("camelCaseTest", "/s/u", "CAMEL_CASE_TEST"),  # snake_case splits words and converts to lowercase, then uppercase
             ("test-kebab-case", "/hu", "test_kebab_case"),  # Convert hyphens to underscores
             ("MixedCase Example", "/l/t", "mixedcase example"),
             ("   UPPERCASE TEXT   ", "/t/s/l", "uppercase_text"),
