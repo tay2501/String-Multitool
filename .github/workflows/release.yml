@@ -109,7 +109,7 @@ jobs:
         }
     
     - name: Upload release notes
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: release-notes
         path: release-notes.md
@@ -226,14 +226,14 @@ jobs:
         Compress-Archive -Path "dist/string-multitool-portable/build-metadata.json" -DestinationPath "dist/string-multitool-portable.zip" -Update
     
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: string-multitool-${{ matrix.platform }}
         path: dist/string-multitool-portable/
         retention-days: ${{ fromJson(env.ARTIFACT_RETENTION_DAYS) }}
     
     - name: Upload ZIP package
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: string-multitool-${{ matrix.platform }}-zip
         path: dist/string-multitool-portable.zip
