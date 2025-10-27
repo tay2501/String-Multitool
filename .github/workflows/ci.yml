@@ -112,7 +112,7 @@ jobs:
         category: "/language:python"
 
     - name: Upload security reports
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: always()
       with:
         name: security-reports
@@ -159,7 +159,7 @@ jobs:
         uv run --frozen pyinstaller --onefile --icon=resources/icon.png --name=String_Multitool_${{ runner.os }} String_Multitool.py
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: executables-${{ runner.os }}
         path: dist/String_Multitool_*
