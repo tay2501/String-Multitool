@@ -29,7 +29,7 @@ keywords = ["text", "transformation", "clipboard", "encryption", "rsa", "unicode
 dependencies = [
     "pyperclip>=1.9.0",
     "watchdog>=6.0.0",
-    "cryptography>=44.0.0",
+    "cryptography>=50.0.0",
     "typer>=0.16.0",
     "rich>=14.1.0",
     "typing-extensions>=4.12.2",
@@ -38,13 +38,13 @@ dependencies = [
     "sqlalchemy>=2.0.0",
     "litecli>=1.12.3",
     "tree-sitter-analyzer[popular]>=1.2.3",
-    "black>=25.1.0",
+    "black>=26.3.1",
 ]
 
 [project.optional-dependencies]
 dev = [
     # Testing framework and extensions
-    "pytest>=8.4.1",
+    "pytest>=9.0.3",
     "pytest-cov>=6.2.1",
     "pytest-xdist>=3.3.0",
     "pytest-timeout>=2.1.0",
@@ -52,7 +52,7 @@ dev = [
     "pytest-benchmark>=4.0.0",
     "pytest-asyncio>=0.21.0",
     # Code quality tools
-    "black>=24.0.0",
+    "black>=26.3.1",
     "isort>=5.12.0",
     "mypy>=1.5.0",
     "ruff>=0.6.0",
@@ -68,15 +68,15 @@ dev = [
     # Build and distribution
     "build>=0.10.0",
     "twine>=4.0.0",
-    "wheel>=0.41.0",
+    "wheel>=0.46.2",
     # Development utilities
     "coverage[toml]>=7.2.0",
     "ipython>=8.14.0",
     "ipdb>=0.13.13",
-    "python-dotenv>=1.0.0",
+    "python-dotenv>=1.2.2",
     # System tray support (optional)
     "pystray>=0.19.5",
-    "pillow>=10.4.0",
+    "pillow>=12.3.0",
 ]
 build = [
     "pyinstaller>=6.12.0",
@@ -318,7 +318,7 @@ extend-ignore = ["E203", "W503", "E501"]  # E203: conflicts with black, W503: co
 dev = [
     "isort>=5.13.2",
     "mypy>=1.17.1",
-    "pytest>=8.4.1",
+    "pytest>=9.0.3",
     "pytest-cov>=6.2.1",
     "ruff>=0.12.11",
 ]
